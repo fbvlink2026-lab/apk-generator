@@ -76,15 +76,16 @@ $ERROR_LINES
 Created by MartoDosko © Copyright 2026
 "
 
-echo "$NEW_CONTENT" > docs/errors.md
+# ✅ ANG errors.md MO AY NASA UGAT — HINDI SA docs/
+echo "$NEW_CONTENT" > errors.md
 
-echo "✅ Nailagay na ang detalye sa docs/errors.md"
+echo "✅ Nailagay na ang detalye sa errors.md"
 
 git config --global user.name "github-actions[bot]"
 git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-git add docs/errors.md
-git commit -m "🔄 Auto-update: naitala ang error mula Run $RUN_ID"
-git push "https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com/$OWNER/$REPO.git" HEAD:$BRANCH
+git add errors.md
+git commit -m "🔄 Auto-update: naitala ang error mula Run $RUN_ID" || true
+git push "https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com/$OWNER/$REPO.git" HEAD:$BRANCH || true
 
-echo "✅ Naipadala na ang na-update na errors.md"
+echo "✅ Tapos na ang script"
