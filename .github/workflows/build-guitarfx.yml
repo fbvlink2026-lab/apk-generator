@@ -11,6 +11,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -37,10 +40,8 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace 2>&1 > build_log.txt || true
 
-      - name: ✅ ISULAT SA errors.md — DIREKTANG GIT COMMIT!
+      - name: ✅ ISULAT SA errors.md — GITHUB_TOKEN!
         if: always()
-        env:
-          TOKEN: ${{ secrets.TOKEN }}
         run: |
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
           cd apps/GuitarFX
@@ -50,16 +51,17 @@ jobs:
           else
             LINE="❌ ERROR — GuitarFX — $DATE — Nabigo ang pagbuo"
           fi
-
+          
           cd $GITHUB_WORKSPACE
-          echo -e "$LINE\n---\n$(cat errors.md)" > NEW.md
-          mv NEW.md errors.md
+          echo -e "$LINE\n---\n$(cat errors.md)" > NEW_LOG.md
+          mv NEW_LOG.md errors.md
 
-          git config --global user.name "apk-bot"
-          git config --global user.email "apk-bot@users.noreply.github.com"
-          git add errors.md
-          git commit -m "🔄 Auto-Update: errors.md"
-          git push https://$TOKEN@github.com/fbvlink2026-lab/apk-generator.git main
+      - name: 📝 I-COMMIT PABALIK — GITHUB AUTO-COMMIT!
+        if: always()
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "🔄 Auto-Update: errors.md"
+          file_pattern: "errors.md"
 
       - name: 📦 Upload APK
         uses: actions/upload-artifact@v4
