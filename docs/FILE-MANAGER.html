@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="tl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📂 Buong Istraktura ng Repositoryo</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background: #f6f8fa; padding: 20px; max-width: 1000px; margin: 0 auto; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: #0969da; text-decoration: none; font-size: 14px; }
+        .back-link:hover { text-decoration: underline; }
+        h1 { color: #24292f; text-align: center; margin-bottom: 20px; font-size: 24px; }
+        .intro { background: white; padding: 16px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #d0d7de; font-size: 14px; line-height: 1.7; }
+        .tree { background: white; border-radius: 10px; border: 1px solid #d0d7de; overflow: hidden; }
+        .tree-header { background: #f3f4f6; padding: 12px 16px; border-bottom: 1px solid #d0d7de; font-weight: bold; color: #24292f; }
+        .tree-item { padding: 8px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f3f4f6; }
+        .tree-item:hover { background: #f6f8fa; }
+        .folder-icon { color: #9e6a00; font-size: 18px; }
+        .file-icon { color: #0969da; font-size: 16px; }
+        .folder-content { display: none; padding-left: 24px; }
+        .folder-open > .folder-content { display: block; }
+        .name { flex: 1; color: #24292f; font-size: 14px; }
+        .file-viewer { margin-top: 20px; background: white; border-radius: 10px; border: 1px solid #d0d7de; overflow: hidden; display: none; }
+        .file-header { background: #f3f4f6; padding: 10px 16px; border-bottom: 1px solid #d0d7de; display: flex; justify-content: space-between; align-items: center; }
+        .file-name { font-weight: bold; color: #24292f; font-size: 14px; }
+        .copy-btn { background: #28c76f; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .copy-btn:hover { background: #1fb05f; }
+        .code-box { padding: 16px; background: #f6f8fa; margin: 0; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; color: #24292f; white-space: pre-wrap; word-break: break-all; max-height: 500px; overflow-y: auto; }
+        .chevron { transition: transform 0.2s; font-size: 12px; color: #656d76; display: inline-block; width: 16px; }
+        .folder-open > .tree-item > .chevron { transform: rotate(90deg); }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-link">← Bumalik sa Pangunahing Pahina</a>
+
+    <h1>📂 Buong Istraktura ng Repositoryo</h1>
+
+    <div class="intro">
+        <p><strong>📂 Pindutin ang Pangalan ng Folder</strong> → Lalawak at lalabas ang mga file sa loob</p>
+        <p><strong>📄 Pindutin ang Pangalan ng File</strong> → Lalabas ang buong laman sa kodigong kahon sa ibaba</p>
+        <p><strong>📋 Pindutin ang "Kopyahin"</strong> → Makokopya agad ang buong laman ng file</p>
+    </div>
+
+    <div class="tree">
+        <div class="tree-header">📂 apk-generator / — Ugat ng Repositoryo</div>
+
+        <!-- 📂 .github -->
+        <div class="folder-open">
+            <div class="tree-item" onclick="toggleFolder(this.parentElement)">
+                <span class="chevron">▶</span>
+                <span class="folder-icon">📁</span>
+                <span class="name">.github</span>
+            </div>
+            <div class="folder-content">
+                <div class="folder-open">
+                    <div class="tree-item" onclick="toggleFolder(this.parentElement)">
+                        <span class="chevron">▶</span>
+                        <span class="folder-icon">📁</span>
+                        <span class="name">workflows</span>
+                    </div>
+                    <div class="folder-content">
+                        <div class="tree-item" onclick="showFile(this, 'build.yml', 'name: Build APK\non:\n  push:\n    paths:\n      - \"apps/**\"\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4')">
+                            <span class="file-icon">📄</span>
+                            <span class="name">build.yml</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 📂 apps -->
+        <div class="folder-open">
+            <div class="tree-item" onclick="toggleFolder(this.parentElement)">
+                <span class="chevron">▶</span>
+                <span class="folder-icon">📁</span>
+                <span class="name">apps</span>
+            </div>
+            <div class="folder-content">
+                <div class="folder-open">
+                    <div class="tree-item" onclick="toggleFolder(this.parentElement)">
+                        <span class="chevron">▶</span>
+                        <span class="folder-icon">📁</span>
+                        <span class="name">GuitarFX</span>
+                    </div>
+                    <div class="folder-content">
+                        <div class="tree-item" onclick="showFile(this, 'README.md', '# GuitarFX\nAplikasyon para sa Guitar Effects.')">
+                            <span class="file-icon">📄</span>
+                            <span class="name">README.md</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 📂 docs -->
+        <div class="folder-open">
+            <div class="tree-item" onclick="toggleFolder(this.parentElement)">
+                <span class="chevron">▶</span>
+                <span class="folder-icon">📁</span>
+                <span class="name">docs</span>
+            </div>
+            <div class="folder-content">
+                <div class="tree-item" onclick="showFile(this, 'VERSIONS.md', '# Bersyon — Kasaysayan')">
+                    <span class="file-icon">📄</span>
+                    <span class="name">VERSIONS.md</span>
+                </div>
+                <div class="tree-item" onclick="showFile(this, 'USAPAN.md', '# Usapan — Lahat ng pinag-usapan')">
+                    <span class="file-icon">📄</span>
+                    <span class="name">USAPAN.md</span>
+                </div>
+                <div class="tree-item" onclick="showFile(this, 'SOLUSYON.md', '# Solusyon — Problema at Solusyon')">
+                    <span class="file-icon">📄</span>
+                    <span class="name">SOLUSYON.md</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 📄 Ugat na mga file -->
+        <div class="tree-item" onclick="showFile(this, 'README.md', '# APK Generator — Buong Gabay')">
+            <span class="file-icon">📄</span>
+            <span class="name">README.md</span>
+        </div>
+    </div>
+
+    <div class="file-viewer" id="fileViewer">
+        <div class="file-header">
+            <span class="file-name" id="fileName">filename</span>
+            <button class="copy-btn" onclick="copyCode()">📋 Kopyahin</button>
+        </div>
+        <pre class="code-box" id="fileContent">Laman ng file...</pre>
+    </div>
+
+<script>
+function toggleFolder(el) { el.classList.toggle('folder-open'); }
+let currentCode = "";
+function showFile(item, name, content) {
+    document.getElementById('fileName').textContent = name;
+    document.getElementById('fileContent').textContent = content;
+    currentCode = content;
+    document.getElementById('fileViewer').style.display = 'block';
+}
+function copyCode() {
+    navigator.clipboard.writeText(currentCode).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        const orig = btn.textContent;
+        btn.textContent = "✅ Nakopya!";
+        setTimeout(() => btn.textContent = orig, 2000);
+    });
+}
+</script>
+
+</body>
+</html>
