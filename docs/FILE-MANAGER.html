@@ -13,13 +13,12 @@
         .tree-header { background: #f3f4f6; padding: 12px 16px; border-bottom: 1px solid #ddd; font-weight: bold; }
         .tree-item { padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f3f4f6; }
         .tree-item:hover { background: #eaf4ff; }
-        .folder-icon { color: #9e6a00; }
-        .file-icon { color: #0969da; }
         .folder-content { display: none; padding-left: 28px; }
         .folder-open > .folder-content { display: block; }
         .chevron { transition: transform 0.2s; font-size: 12px; width: 16px; display: inline-block; }
         .folder-open > .tree-item > .chevron { transform: rotate(90deg); }
         a { text-decoration: none; color: inherit; flex: 1; }
+        .loading { padding: 20px; text-align: center; color: #666; }
     </style>
 </head>
 <body>
@@ -29,63 +28,90 @@
 
     <div class="tree">
         <div class="tree-header">📂 apk-generator / — Ugat ng Repositoryo</div>
-
-        <div class="folder-open">
-            <div class="tree-item" onclick="toggleFolder(this.parentElement)">
-                <span class="chevron">▶</span> 📁 <a>docs</a>
-            </div>
-            <div class="folder-content">
-                <div class="tree-item">
-                    📄 <a href="VIEW-FILE.html?f=VERSIONS.md&c=%23%20%F0%9F%93%8B%20Mga%20Bersyon%0A%0A##%202026-08-16%20%E2%80%94%20Unang%20Paglulunsad">VERSIONS.md</a>
-                </div>
-                <div class="tree-item">
-                    📄 <a href="VIEW-FILE.html?f=USAPAN.md&c=%23%20%F0%9F%92%AC%20Lahat%20ng%20Pinag-usapan%0A%0A-%20Lahat%20ng%20pagbabago%20dadaan%20sa%20Termux">USAPAN.md</a>
-                </div>
-                <div class="tree-item">
-                    📄 <a href="VIEW-FILE.html?f=SOLUSYON.md&c=%23%20%E2%9C%85%20Problema%20at%20Solusyon%0A%0A##%20Token%20na%20nakalantad%0A%E2%9C%85%20Solusyon:%20Secret%20lamang%20sa%20GitHub">SOLUSYON.md</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="folder-open">
-            <div class="tree-item" onclick="toggleFolder(this.parentElement)">
-                <span class="chevron">▶</span> 📁 <a>.github</a>
-            </div>
-            <div class="folder-content">
-                <div class="folder-open">
-                    <div class="tree-item" onclick="toggleFolder(this.parentElement)">
-                        <span class="chevron">▶</span> 📁 <a>workflows</a>
-                    </div>
-                    <div class="folder-content">
-                        <div class="tree-item">
-                            📄 <a href="VIEW-FILE.html?f=build.yml&c=name:%20Build%20APK%0Aon:%0A%20%20push:%0A%20%20%20%20paths:%0A%20%20%20%20%20%20-%20%22apps/**%22%0Ajobs:%0A%20%20build:%0A%20%20%20%20runs-on:%20ubuntu-latest%0A%20%20%20%20steps:%0A%20%20%20%20%20%20-%20uses:%20actions/checkout@v4">build.yml</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="folder-open">
-            <div class="tree-item" onclick="toggleFolder(this.parentElement)">
-                <span class="chevron">▶</span> 📁 <a>apps</a>
-            </div>
-            <div class="folder-content">
-                <div class="folder-open">
-                    <div class="tree-item" onclick="toggleFolder(this.parentElement)">
-                        <span class="chevron">▶</span> 📁 <a>GuitarFX</a>
-                    </div>
-                    <div class="folder-content">
-                        <div class="tree-item">
-                            📄 <a href="VIEW-FILE.html?f=README.md&c=%23%20GuitarFX%0A%0AAplikasyon%20para%20sa%20Guitar%20Effects.">README.md</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div id="repoTree" class="folder-open">
+            <div class="loading">⏳ Binabasa ang buong repositoryo...</div>
         </div>
     </div>
 
 <script>
+// ✅ ITO ANG PANGALAN NG REPOSITORYO MO
+const REPO_OWNER = "fbvlink2026";
+const REPO_NAME  = "apk-generator";
+
+// ✅ BABASAHIN ANG BUONG REPOSITORYO MULA SA UGAT!
+async function loadRepoTree() {
+    const container = document.getElementById("repoTree");
+    container.innerHTML = "<div class='loading'>⏳ Binabasa...</div>";
+
+    try {
+        // ✅ KUNIN ANG LISTAHAN NG LAHAT NG FILES MULA SA UGAT
+        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/trees/main?recursive=1`;
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+
+        if (!data.tree) {
+            container.innerHTML = "<div class='loading'>❌ Hindi mabasa ang repositoryo</div>";
+            return;
+        }
+
+        // ✅ BUUIN ANG ISTRAKTURA NG PUNO
+        const root = { children: {} };
+        data.tree.forEach(item => {
+            const parts = item.path.split("/");
+            let current = root;
+            parts.forEach((part, idx) => {
+                if (!current.children[part]) {
+                    current.children[part] = {
+                        name: part,
+                        path: parts.slice(0, idx+1).join("/"),
+                        type: idx === parts.length-1 ? item.type : "tree",
+                        children: {}
+                    };
+                }
+                current = current.children[part];
+            });
+        });
+
+        // ✅ LIKHA ANG HTML MULA SA ISTRAKTURA
+        function renderFolder(node, fullPath = "") {
+            let html = "";
+            for (const name in node.children) {
+                const item = node.children[name];
+                const itemPath = fullPath ? `${fullPath}/${name}` : name;
+
+                if (item.type === "tree") {
+                    // 📁 FOLDER
+                    html += `
+                        <div class="folder-open">
+                            <div class="tree-item" onclick="toggleFolder(this.parentElement)">
+                                <span class="chevron">▶</span> 📁 <span>${name}</span>
+                            </div>
+                            <div class="folder-content">
+                                ${renderFolder(item, itemPath)}
+                            </div>
+                        </div>`;
+                } else {
+                    // 📄 FILE — PUPUNTA SA VIEW-MD.html + TUNAY NA LAMAN
+                    const encodedPath = encodeURIComponent(itemPath);
+                    html += `
+                        <div class="tree-item">
+                            📄 <a href="VIEW-MD.html?f=${encodedPath}">${name}</a>
+                        </div>`;
+                }
+            }
+            return html;
+        }
+
+        container.innerHTML = renderFolder(root);
+
+    } catch(err) {
+        container.innerHTML = `<div class='loading'>❌ May mali: ${err.message}</div>`;
+    }
+}
+
 function toggleFolder(el) { el.classList.toggle('folder-open'); }
+
+window.onload = loadRepoTree;
 </script>
 
 </body>
