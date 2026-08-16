@@ -76,7 +76,6 @@ $ERROR_LINES
 Created by MartoDosko © Copyright 2026
 "
 
-# ✅ ANG errors.md MO AY NASA UGAT — HINDI SA docs/
 echo "$NEW_CONTENT" > errors.md
 
 echo "✅ Nailagay na ang detalye sa errors.md"
