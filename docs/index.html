@@ -70,6 +70,7 @@
 const REPO_OWNER = "fbvlink2026-lab";
 const REPO_NAME  = "apk-generator";
 const BRANCH      = "main";
+const BASE_RAW    = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/docs/`;
 
 window.onload = loadAllMdFiles;
 
@@ -99,19 +100,20 @@ async function loadAllMdFiles() {
     }
 
     for (const file of mdFiles) {
+      // ✅ TANGGALIN ANG "docs/" — PANGALAN LANG ANG IPAPASA!
       const fileName = file.path.replace("docs/", "");
       
       let title = fileName.replace(".md", "");
 
       try {
-        const rawUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/docs/${encodeURIComponent(fileName)}`;
-        const textRes = await fetch(rawUrl);
+        const textRes = await fetch(BASE_RAW + encodeURIComponent(fileName));
         const text = await textRes.text();
         const match = text.match(/^#\s+([^\n]+)/);
         if (match) title = match[1].trim();
       } catch(e) { }
 
       const btn = document.createElement("a");
+      // ✅ IPASA LANG ANG PANGALAN — WALANG "docs/"!
       btn.href = "BASAHIN.html?f=" + encodeURIComponent(fileName);
       btn.target = "_blank";
       btn.className = "btn";
