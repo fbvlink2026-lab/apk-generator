@@ -40,9 +40,8 @@
       <li>✅ <code>.apk</code> lamang ang ilalabas — HINDI ZIP</li>
       <li>✅ Lahat ng pagbabago dadaan sa Termux</li>
       <li>✅ Protektadong Workflow — hindi tatakbo kung hindi APK ang binago</li>
-      <li>✅ Website na naglilista ng lahat ng Dokumento + Buong File-Manager</li>
-      <li>✅ Awtomatikong pagkuha ng pamagat mula sa .md file → PANGALAN NG PINDUTAN!</li>
-      <li>✅ AWTO-DETEK NG LAHAT NG .md FILE — BAGONG DOKUMENTO → AWTO LALABAS!</li>
+      <li>✅ AWTO-DETEK NG LAHAT NG .md — BAGONG DOKUMENTO → AWTO LALABAS!</li>
+      <li>✅ PINDUTIN ANG PINDUTAN → DIREKTA SA LAMAN NG .md!</li>
       <li>⏳ Sa loob ng APK: Loading Page + Auto-Update + Update Button</li>
       <li>✅ Pasulong lamang — hindi na babalik sa mga lumang sira</li>
       <li>✅ Lahat ng nakasulat ay Taglish — madaling maintindihan</li>
@@ -51,7 +50,7 @@
 
   <div class="card">
     <h2>📄 Lahat ng Talaan ng Dokumento</h2>
-    <p>✅ <strong>Awtomatikong nakikita ang lahat ng .md file!</strong> Kahit bagong dagdag — lalabas agad!</p>
+    <p>✅ <strong>Pindutin ang pindutan → Bubukas sa bagong tab ang buong laman ng dokumento!</strong></p>
     <div id="mdButtons"><p class="loading">⏳ Binabasa ang lahat ng dokumento...</p></div>
   </div>
 
@@ -63,15 +62,15 @@
 
   <div class="card">
     <h2>📂 Buong Istraktura ng Repositoryo</h2>
-    <p>Makikita ang buong laman ng repositoryo — mula ugat hanggang subfolder. Pindutin ang file → Bubukas sa bagong tab.</p>
-    <a href="FILE-MANAGER.html" class="btn btn-green">📂 Buksan ang Buong File-Manager</a>
+    <p>Gusto mong makita ang lahat ng folder at file? Buksan ang Buong File-Manager.</p>
+    <a href="FILE-MANAGER.html" class="btn btn-green" target="_blank">📂 Buksan ang Buong File-Manager</a>
   </div>
 
 <script>
 const REPO_OWNER = "fbvlink2026-lab";
 const REPO_NAME  = "apk-generator";
 const BRANCH      = "main";
-const BASE_RAW    = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/docs/`;
+const BASE_RAW   = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/docs/`;
 
 window.onload = loadAllMdFiles;
 
@@ -114,7 +113,7 @@ async function loadAllMdFiles() {
       } catch(e) { }
 
       const btn = document.createElement("a");
-      btn.href = "FILE-MANAGER.html";
+      btn.href = rawUrl;
       btn.target = "_blank";
       btn.className = "btn";
       btn.textContent = "📄 " + title;
