@@ -8,6 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      STATUS: ${{ steps.check.outputs.STATUS }}
 
     steps:
       - uses: actions/checkout@v4
@@ -35,49 +37,57 @@ jobs:
         working-directory: apps/GuitarFX
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace 2>&1 > build_log.txt
-          exit ${PIPESTATUS[0]}
-        continue-on-error: true
+          ./gradlew assembleDebug --stacktrace 2>&1 > build_log.txt || true
 
-      - name: ✅ ISULAT SA errors.md — GUMAGAMIT NG GITHUB API!
+      - name: ✅ TINGNAN KUNG MAY APK
+        id: check
+        working-directory: apps/GuitarFX
+        run: |
+          if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
+            echo "STATUS=SUCCESS" >> $GITHUB_OUTPUT
+          else
+            echo "STATUS=ERROR" >> $GITHUB_OUTPUT
+          fi
+
+      - name: ✅ ISULAT SA errors.md — GITHUB API!
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OWNER: fbvlink2026-lab
-          REPO: apk-generator
         run: |
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
           cd apps/GuitarFX
-          if [ "${{ steps.build.outcome }}" = "success" ] && [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
+          if [ "${{ steps.check.outputs.STATUS }}" = "SUCCESS" ]; then
             SIZE=$(du -h app/build/outputs/apk/debug/app-debug.apk | cut -f1)
-            NEW_ENTRY="✅ TAGUMPAY — GuitarFX — $DATE\n✅ APK Nabuo! Laki: $SIZE"
+            HEADER="✅ TAGUMPAY — GuitarFX — $DATE"
+            DETAILS="✅ APK Nabuo! Laki: $SIZE"
           else
-            NEW_ENTRY="❌ ERROR — GuitarFX — $DATE\n❌ Nabigo ang pagbuo.\n---\n$(tail -25 build_log.txt)"
+            HEADER="❌ ERROR — GuitarFX — $DATE"
+            DETAILS="❌ Nabigo ang pagbuo.\n---\n$(tail -25 build_log.txt)"
           fi
 
-          # Kunin ang kasalukuyang laman ng errors.md
+          # Kunin ang lumang laman
           RESP=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-            "https://api.github.com/repos/$OWNER/$REPO/contents/errors.md")
+            "https://api.github.com/repos/fbvlink2026-lab/apk-generator/contents/errors.md")
           SHA=$(echo "$RESP" | grep -o '"sha": "[^"]*"' | cut -d'"' -f4)
-          OLD_CONTENT=$(echo "$RESP" | grep -o '"content": "[^"]*"' | cut -d'"' -f4 | base64 -d)
+          OLD=$(echo "$RESP" | grep -o '"content": "[^"]*"' | cut -d'"' -f4 | base64 -d)
 
-          # BAGONG LAMAN — Bagong entry sa itaas!
-          NEW_CONTENT="$(echo -e "$NEW_ENTRY")\n---\n$OLD_CONTENT"
+          # Bagong laman — bagong entry sa itaas
+          NEW_CONTENT="$(echo -e "$HEADER\n$DETAILS")\n---\n$OLD"
           ENCODED=$(echo -e "$NEW_CONTENT" | base64 -w 0)
 
-          # I-UPDAT GAMIT ANG API!
+          # I-save gamit ang API
           curl -s -X PUT -H "Authorization: token $GITHUB_TOKEN" \
             -H "Content-Type: application/json" \
-            "https://api.github.com/repos/$OWNER/$REPO/contents/errors.md" \
+            "https://api.github.com/repos/fbvlink2026-lab/apk-generator/contents/errors.md" \
             -d '{
-              "message": "🔄 Auto-Update: GuitarFX Status",
+              "message": "🔄 Auto-Update: errors.md",
               "content": "'"$ENCODED"'",
               "sha": "'"$SHA"'"
             }'
 
       - name: 📦 Upload APK
         uses: actions/upload-artifact@v4
-        if: steps.build.outcome == 'success'
+        if: steps.check.outputs.STATUS == 'SUCCESS'
         with:
           name: GuitarFX-APK
           path: apps/GuitarFX/app/build/outputs/apk/debug/app-debug.apk
