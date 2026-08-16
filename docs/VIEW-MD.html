@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="tl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📄 Laman ng File</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+        body { background: #f6f8fa; padding: 20px; max-width: 900px; margin: 0 auto; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: #0969da; text-decoration: none; }
+        .file-box { background: white; border-radius: 10px; border: 2px solid #28c76f; overflow: hidden; }
+        .file-header { background: #28c76f; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+        .file-name { font-weight: bold; color: white; font-size: 15px; }
+        .copy-btn { background: white; color: #28c76f; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .content { padding: 20px; font-size: 15px; line-height: 1.8; color: #24292f; white-space: pre-wrap; min-height: 100px; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">← Bumalik sa Pangunahing Pahina</a>
+    <div class="file-box">
+        <div class="file-header">
+            <span class="file-name" id="fileName">📄 filename</span>
+            <button class="copy-btn" onclick="copyCode()">📋 Kopyahin</button>
+        </div>
+        <div class="content" id="fileContent">Lalabas dito ang buong laman...</div>
+    </div>
+<script>
+let currentCode = "";
+window.onload = function() {
+    const p = new URLSearchParams(location.search);
+    const name = p.get('f') || 'Walang Pangalan';
+    const content = p.get('c') || 'Walang Laman';
+    document.getElementById('fileName').textContent = '📄 ' + name;
+    document.getElementById('fileContent').textContent = decodeURIComponent(content);
+    currentCode = decodeURIComponent(content);
+};
+function copyCode() {
+    navigator.clipboard.writeText(currentCode).then(() => {
+        const b = document.querySelector('.copy-btn');
+        const orig = b.textContent;
+        b.textContent = "✅ Nakopya!";
+        setTimeout(() => b.textContent = orig, 2000);
+    });
+}
+</script>
+</body>
+</html>
