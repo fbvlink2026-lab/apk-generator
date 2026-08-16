@@ -41,7 +41,7 @@
       <li>✅ Lahat ng pagbabago dadaan sa Termux</li>
       <li>✅ Protektadong Workflow — hindi tatakbo kung hindi APK ang binago</li>
       <li>✅ AWTO-DETEK NG LAHAT NG .md — BAGONG DOKUMENTO → AWTO LALABAS!</li>
-      <li>✅ PINDUTIN ANG PINDUTAN → DIREKTA SA LAMAN NG .md!</li>
+      <li>✅ PINDUTIN ANG PINDUTAN → BUBUKAS SA BAGONG PAHINA MAY LAMAN + PABALIK + KOPYAHIN!</li>
       <li>⏳ Sa loob ng APK: Loading Page + Auto-Update + Update Button</li>
       <li>✅ Pasulong lamang — hindi na babalik sa mga lumang sira</li>
       <li>✅ Lahat ng nakasulat ay Taglish — madaling maintindihan</li>
@@ -50,7 +50,7 @@
 
   <div class="card">
     <h2>📄 Lahat ng Talaan ng Dokumento</h2>
-    <p>✅ <strong>Pindutin ang pindutan → Bubukas sa bagong tab ang buong laman ng dokumento!</strong></p>
+    <p>✅ <strong>Pindutin ang pindutan → Bubukas ang laman sa bagong pahina!</strong> May pindutang pabalik at kopyahin.</p>
     <div id="mdButtons"><p class="loading">⏳ Binabasa ang lahat ng dokumento...</p></div>
   </div>
 
@@ -101,19 +101,18 @@ async function loadAllMdFiles() {
 
     for (const file of mdFiles) {
       const fileName = file.path.replace("docs/", "");
-      const rawUrl = BASE_RAW + encodeURIComponent(fileName);
       
       let title = fileName.replace(".md", "");
 
       try {
-        const textRes = await fetch(rawUrl);
+        const textRes = await fetch(BASE_RAW + encodeURIComponent(fileName));
         const text = await textRes.text();
         const match = text.match(/^#\s+([^\n]+)/);
         if (match) title = match[1].trim();
       } catch(e) { }
 
       const btn = document.createElement("a");
-      btn.href = rawUrl;
+      btn.href = "BASAHIN.html?f=" + encodeURIComponent(fileName);
       btn.target = "_blank";
       btn.className = "btn";
       btn.textContent = "📄 " + title;
