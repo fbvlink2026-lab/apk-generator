@@ -9,7 +9,6 @@
         body { background: #f6f8fa; padding: 20px; max-width: 1000px; margin: 0 auto; }
         .back-link { display: inline-block; margin-bottom: 20px; color: #0969da; text-decoration: none; }
         h1 { color: #24292f; text-align: center; margin-bottom: 20px; }
-        .intro { background: white; padding: 16px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ddd; }
         .tree { background: white; border-radius: 10px; border: 1px solid #ddd; }
         .tree-header { background: #f3f4f6; padding: 12px 16px; border-bottom: 1px solid #ddd; font-weight: bold; }
         .tree-item { padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f3f4f6; }
@@ -20,11 +19,7 @@
         .folder-open > .folder-content { display: block; }
         .chevron { transition: transform 0.2s; font-size: 12px; width: 16px; display: inline-block; }
         .folder-open > .tree-item > .chevron { transform: rotate(90deg); }
-        .file-viewer { margin-top: 24px; background: white; border-radius: 10px; border: 2px solid #28c76f; overflow: hidden; display: block; }
-        .file-header { background: #28c76f; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
-        .file-name { font-weight: bold; color: white; }
-        .copy-btn { background: white; color: #28c76f; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .code-box { padding: 16px; background: #f6f8fa; margin: 0; font-family: monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; min-height: 80px; border-top: 1px solid #ddd; }
+        a { text-decoration: none; color: inherit; flex: 1; }
     </style>
 </head>
 <body>
@@ -32,27 +27,21 @@
     <a href="index.html" class="back-link">← Bumalik sa Pangunahing Pahina</a>
     <h1>📂 Buong Istraktura ng Repositoryo</h1>
 
-    <div class="intro">
-        <p><strong>📂 Pindutin ang Folder</strong> → Lalawak</p>
-        <p><strong>📄 Pindutin ang File</strong> → Lalabas ang laman sa kahon sa ibaba</p>
-        <p><strong>📋 Pindutin ang Kopyahin</strong> → Makokopya ang laman</p>
-    </div>
-
     <div class="tree">
-        <div class="tree-header">📂 apk-generator /</div>
+        <div class="tree-header">📂 apk-generator / — Ugat ng Repositoryo</div>
 
         <div class="folder-open">
             <div class="tree-item" onclick="toggleFolder(this.parentElement)">
-                <span class="chevron">▶</span> 📁 <span>.github</span>
+                <span class="chevron">▶</span> 📁 <a>.github</a>
             </div>
             <div class="folder-content">
                 <div class="folder-open">
                     <div class="tree-item" onclick="toggleFolder(this.parentElement)">
-                        <span class="chevron">▶</span> 📁 <span>workflows</span>
+                        <span class="chevron">▶</span> 📁 <a>workflows</a>
                     </div>
                     <div class="folder-content">
-                        <div class="tree-item" onclick="showFile('build.yml', 'name: Build APK\non:\n  push:\n    paths:\n      - \"apps/**\"\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4')">
-                            📄 <span>build.yml</span>
+                        <div class="tree-item">
+                            📄 <a href="VIEW-FILE.html?f=build.yml&c=name:%20Build%20APK%0Aon:%0A%20%20push:%0A%20%20%20%20paths:%0A%20%20%20%20%20%20-%20%22apps/**%22%0Ajobs:%0A%20%20build:%0A%20%20%20%20runs-on:%20ubuntu-latest%0A%20%20%20%20steps:%0A%20%20%20%20%20%20-%20uses:%20actions/checkout@v4">build.yml</a>
                         </div>
                     </div>
                 </div>
@@ -61,16 +50,19 @@
 
         <div class="folder-open">
             <div class="tree-item" onclick="toggleFolder(this.parentElement)">
-                <span class="chevron">▶</span> 📁 <span>apps</span>
+                <span class="chevron">▶</span> 📁 <a>apps</a>
             </div>
             <div class="folder-content">
                 <div class="folder-open">
                     <div class="tree-item" onclick="toggleFolder(this.parentElement)">
-                        <span class="chevron">▶</span> 📁 <span>GuitarFX</span>
+                        <span class="chevron">▶</span> 📁 <a>GuitarFX</a>
                     </div>
                     <div class="folder-content">
-                        <div class="tree-item" onclick="showFile('README.md', '# GuitarFX\nAplikasyon para sa Guitar Effects.')">
-                            📄 <span>README.md</span>
+                        <div class="tree-item">
+                            📄 <a href="VIEW-FILE.html?f=README.md&c=%23%20GuitarFX%0A%0AAplikasyon%20para%20sa%20Guitar%20Effects.">README.md</a>
+                        </div>
+                        <div class="tree-item">
+                            📄 <a href="VIEW-FILE.html?f=build.gradle&c=plugins%20%7B%0A%20%20id%20%22com.android.application%22%0A%7D%0A%0Aandroid%20%7B%0A%20%20compileSdkVersion%2034%0A%20%20defaultConfig%20%7B%0A%20%20%20%20applicationId%20%22com.guitarfx.app%22%0A%20%20%20%20minSdkVersion%2024%0A%20%20%7D%0A%7D">build.gradle</a>
                         </div>
                     </div>
                 </div>
@@ -79,49 +71,25 @@
 
         <div class="folder-open">
             <div class="tree-item" onclick="toggleFolder(this.parentElement)">
-                <span class="chevron">▶</span> 📁 <span>docs</span>
+                <span class="chevron">▶</span> 📁 <a>docs</a>
             </div>
             <div class="folder-content">
-                <div class="tree-item" onclick="showFile('VERSIONS.md', '# Bersyon — Kasaysayan')">
-                    📄 <span>VERSIONS.md</span>
+                <div class="tree-item">
+                    📄 <a href="VIEW-FILE.html?f=VERSIONS.md&c=%23%20%F0%9F%93%8B%20Mga%20Bersyon%0A%0A##%202026-08-16%20%E2%80%94%20Unang%20Paglulunsad">VERSIONS.md</a>
                 </div>
-                <div class="tree-item" onclick="showFile('USAPAN.md', '# Usapan — Lahat ng pinag-usapan')">
-                    📄 <span>USAPAN.md</span>
+                <div class="tree-item">
+                    📄 <a href="VIEW-FILE.html?f=USAPAN.md&c=%23%20%F0%9F%92%AC%20Lahat%20ng%20Pinag-usapan%0A%0A-%20Lahat%20ng%20pagbabago%20dadaan%20sa%20Termux">USAPAN.md</a>
                 </div>
             </div>
         </div>
 
-        <div class="tree-item" onclick="showFile('README.md', '# APK Generator — Buong Gabay')">
-            📄 <span>README.md</span>
+        <div class="tree-item">
+            📄 <a href="VIEW-FILE.html?f=README.md&c=%23%20APK%20Generator%0A%0ABuong%20gabay%20at%20listahan%20ng%20lahat%20ng%20tampok.">README.md</a>
         </div>
-    </div>
-
-    <div class="file-viewer" id="fileViewer">
-        <div class="file-header">
-            <span class="file-name" id="fileName">📄 Pumili ka ng file sa itaas</span>
-            <button class="copy-btn" onclick="copyCode()">📋 Kopyahin</button>
-        </div>
-        <pre class="code-box" id="fileContent">Lalabas dito ang laman ng file...</pre>
     </div>
 
 <script>
 function toggleFolder(el) { el.classList.toggle('folder-open'); }
-let currentCode = "";
-function showFile(name, content) {
-    document.getElementById('fileName').textContent = '📄 ' + name;
-    document.getElementById('fileContent').textContent = content;
-    currentCode = content;
-    document.getElementById('fileViewer').style.display = 'block';
-}
-function copyCode() {
-    if (!currentCode) return;
-    navigator.clipboard.writeText(currentCode).then(() => {
-        const btn = document.querySelector('.copy-btn');
-        const orig = btn.textContent;
-        btn.textContent = "✅ Nakopya!";
-        setTimeout(() => btn.textContent = orig, 2000);
-    });
-}
 </script>
 
 </body>

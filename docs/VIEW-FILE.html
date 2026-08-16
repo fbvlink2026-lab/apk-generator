@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="tl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📄 Laman ng File</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+        body { background: #f6f8fa; padding: 20px; max-width: 1000px; margin: 0 auto; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: #0969da; text-decoration: none; }
+        h1 { color: #24292f; margin-bottom: 16px; font-size: 20px; }
+        .file-box { background: white; border-radius: 10px; border: 2px solid #28c76f; overflow: hidden; }
+        .file-header { background: #28c76f; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+        .file-name { font-weight: bold; color: white; font-size: 15px; }
+        .copy-btn { background: white; color: #28c76f; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; }
+        .code-box { padding: 16px; background: #f6f8fa; margin: 0; font-family: monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; min-height: 100px; border-top: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+
+    <a href="FILE-MANAGER.html" class="back-link">← Bumalik sa Listahan</a>
+
+    <div class="file-box">
+        <div class="file-header">
+            <h1 class="file-name" id="fileName">📄 filename</h1>
+            <button class="copy-btn" onclick="copyCode()">📋 Kopyahin</button>
+        </div>
+        <pre class="code-box" id="fileContent">Lalabas dito ang laman...</pre>
+    </div>
+
+<script>
+let currentCode = "";
+window.onload = function() {
+    const params = new URLSearchParams(window.location.search);
+    const name = params.get('f') || 'Walang Pangalan';
+    const content = params.get('c') || 'Walang Laman';
+    document.getElementById('fileName').textContent = '📄 ' + name;
+    document.getElementById('fileContent').textContent = decodeURIComponent(content);
+    currentCode = decodeURIComponent(content);
+};
+function copyCode() {
+    if (!currentCode) return;
+    navigator.clipboard.writeText(currentCode).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        const orig = btn.textContent;
+        btn.textContent = "✅ Nakopya!";
+        setTimeout(() => btn.textContent = orig, 2000);
+    });
+}
+</script>
+
+</body>
+</html>
