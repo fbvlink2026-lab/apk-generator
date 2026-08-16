@@ -13,21 +13,23 @@
         .intro { background: white; padding: 16px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #d0d7de; font-size: 14px; line-height: 1.7; }
         .tree { background: white; border-radius: 10px; border: 1px solid #d0d7de; overflow: hidden; }
         .tree-header { background: #f3f4f6; padding: 12px 16px; border-bottom: 1px solid #d0d7de; font-weight: bold; color: #24292f; }
-        .tree-item { padding: 8px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f3f4f6; }
-        .tree-item:hover { background: #f6f8fa; }
+        .tree-item { padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f3f4f6; }
+        .tree-item:hover { background: #eaf4ff; }
         .folder-icon { color: #9e6a00; font-size: 18px; }
         .file-icon { color: #0969da; font-size: 16px; }
-        .folder-content { display: none; padding-left: 24px; }
+        .folder-content { display: none; padding-left: 28px; }
         .folder-open > .folder-content { display: block; }
         .name { flex: 1; color: #24292f; font-size: 14px; }
-        .file-viewer { margin-top: 20px; background: white; border-radius: 10px; border: 1px solid #d0d7de; overflow: hidden; display: none; }
-        .file-header { background: #f3f4f6; padding: 10px 16px; border-bottom: 1px solid #d0d7de; display: flex; justify-content: space-between; align-items: center; }
-        .file-name { font-weight: bold; color: #24292f; font-size: 14px; }
-        .copy-btn { background: #28c76f; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
-        .copy-btn:hover { background: #1fb05f; }
-        .code-box { padding: 16px; background: #f6f8fa; margin: 0; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; color: #24292f; white-space: pre-wrap; word-break: break-all; max-height: 500px; overflow-y: auto; }
         .chevron { transition: transform 0.2s; font-size: 12px; color: #656d76; display: inline-block; width: 16px; }
         .folder-open > .tree-item > .chevron { transform: rotate(90deg); }
+
+        /* ✅ INAYOS — SIGURADONG LALABAS ANG KAHON! */
+        .file-viewer { margin-top: 24px; background: white; border-radius: 10px; border: 2px solid #28c76f; overflow: hidden; display: none; }
+        .file-header { background: #28c76f; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+        .file-name { font-weight: bold; color: white; font-size: 15px; }
+        .copy-btn { background: white; color: #28c76f; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; }
+        .copy-btn:hover { background: #f0fff4; }
+        .code-box { padding: 16px; background: #f6f8fa; margin: 0; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; color: #24292f; white-space: pre-wrap; word-break: break-all; min-height: 80px; border-top: 1px solid #d0d7de; }
     </style>
 </head>
 <body>
@@ -38,8 +40,8 @@
 
     <div class="intro">
         <p><strong>📂 Pindutin ang Pangalan ng Folder</strong> → Lalawak at lalabas ang mga file sa loob</p>
-        <p><strong>📄 Pindutin ang Pangalan ng File</strong> → Lalabas ang buong laman sa kodigong kahon sa ibaba</p>
-        <p><strong>📋 Pindutin ang "Kopyahin"</strong> → Makokopya agad ang buong laman ng file</p>
+        <p><strong>📄 Pindutin ang Pangalan ng File</strong> → Lalabas ang buong laman sa kahon sa ibaba</p>
+        <p><strong>📋 Pindutin ang "Kopyahin"</strong> → Makokopya agad ang buong laman</p>
     </div>
 
     <div class="tree">
@@ -60,7 +62,7 @@
                         <span class="name">workflows</span>
                     </div>
                     <div class="folder-content">
-                        <div class="tree-item" onclick="showFile(this, 'build.yml', 'name: Build APK\non:\n  push:\n    paths:\n      - \"apps/**\"\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4')">
+                        <div class="tree-item" onclick="showFile('build.yml', 'name: Build APK\non:\n  push:\n    paths:\n      - \"apps/**\"\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Build APK\n        run: echo \"Building...\"')">
                             <span class="file-icon">📄</span>
                             <span class="name">build.yml</span>
                         </div>
@@ -84,9 +86,13 @@
                         <span class="name">GuitarFX</span>
                     </div>
                     <div class="folder-content">
-                        <div class="tree-item" onclick="showFile(this, 'README.md', '# GuitarFX\nAplikasyon para sa Guitar Effects.')">
+                        <div class="tree-item" onclick="showFile('README.md', '# GuitarFX\n\nAplikasyon para sa Guitar Effects.\n\n## Istraktura\n- app/ — Kodigo ng aplikasyon\n- build.gradle — Pagtatakda ng pagbuo')">
                             <span class="file-icon">📄</span>
                             <span class="name">README.md</span>
+                        </div>
+                        <div class="tree-item" onclick="showFile('build.gradle', '// Build Configuration\n// GuitarFX App\n\nplugins {\n    id \"com.android.application\"\n}\n\nandroid {\n    compileSdkVersion 34\n    defaultConfig {\n        applicationId \"com.guitarfx.app\"\n        minSdkVersion 24\n    }\n}')">
+                            <span class="file-icon">📄</span>
+                            <span class="name">build.gradle</span>
                         </div>
                     </div>
                 </div>
@@ -101,15 +107,15 @@
                 <span class="name">docs</span>
             </div>
             <div class="folder-content">
-                <div class="tree-item" onclick="showFile(this, 'VERSIONS.md', '# Bersyon — Kasaysayan')">
+                <div class="tree-item" onclick="showFile('VERSIONS.md', '# 📋 Mga Bersyon\n\n## 2026-08-16 — Unang Paglulunsad\n- Hiwalay na subfolder\n- Awtomatikong pagbuo ng APK')">
                     <span class="file-icon">📄</span>
                     <span class="name">VERSIONS.md</span>
                 </div>
-                <div class="tree-item" onclick="showFile(this, 'USAPAN.md', '# Usapan — Lahat ng pinag-usapan')">
+                <div class="tree-item" onclick="showFile('USAPAN.md', '# 💬 Lahat ng Pinag-usapan\n\n- Lahat dadaan sa Termux\n- Token — Secret lamang sa GitHub')">
                     <span class="file-icon">📄</span>
                     <span class="name">USAPAN.md</span>
                 </div>
-                <div class="tree-item" onclick="showFile(this, 'SOLUSYON.md', '# Solusyon — Problema at Solusyon')">
+                <div class="tree-item" onclick="showFile('SOLUSYON.md', '# ✅ Problema at Solusyon\n\n## Token na nakalantad\n✅ Solusyon: Secret lamang — hindi sa loob ng file')">
                     <span class="file-icon">📄</span>
                     <span class="name">SOLUSYON.md</span>
                 </div>
@@ -117,35 +123,49 @@
         </div>
 
         <!-- 📄 Ugat na mga file -->
-        <div class="tree-item" onclick="showFile(this, 'README.md', '# APK Generator — Buong Gabay')">
+        <div class="tree-item" onclick="showFile('README.md', '# APK Generator\n\nBuong gabay at listahan ng lahat ng tampok.')">
             <span class="file-icon">📄</span>
             <span class="name">README.md</span>
         </div>
     </div>
 
+    <!-- ✅ SIGURADONG LALABAS ANG KAHON -->
     <div class="file-viewer" id="fileViewer">
         <div class="file-header">
-            <span class="file-name" id="fileName">filename</span>
+            <span class="file-name" id="fileName">📄 filename</span>
             <button class="copy-btn" onclick="copyCode()">📋 Kopyahin</button>
         </div>
-        <pre class="code-box" id="fileContent">Laman ng file...</pre>
+        <pre class="code-box" id="fileContent">Pumili ka ng file sa itaas...</pre>
     </div>
 
 <script>
-function toggleFolder(el) { el.classList.toggle('folder-open'); }
+// ✅ BUKAS/Takpan ang Folder
+function toggleFolder(el) {
+    el.classList.toggle('folder-open');
+}
+
+// ✅ IPAKITA ANG LAMAN — INAYOS! SIGURADONG LALABAS!
 let currentCode = "";
-function showFile(item, name, content) {
-    document.getElementById('fileName').textContent = name;
+function showFile(name, content) {
+    document.getElementById('fileName').textContent = '📄 ' + name;
     document.getElementById('fileContent').textContent = content;
     currentCode = content;
     document.getElementById('fileViewer').style.display = 'block';
+    window.scrollTo({ top: document.getElementById('fileViewer').offsetTop - 10, behavior: 'smooth' });
 }
+
+// ✅ KOPYAHIN ANG LAMAN
 function copyCode() {
+    if (!currentCode) return;
     navigator.clipboard.writeText(currentCode).then(() => {
         const btn = document.querySelector('.copy-btn');
-        const orig = btn.textContent;
+        const orihinal = btn.textContent;
         btn.textContent = "✅ Nakopya!";
-        setTimeout(() => btn.textContent = orig, 2000);
+        btn.style.background = '#eaf4ff';
+        setTimeout(() => {
+            btn.textContent = orihinal;
+            btn.style.background = '';
+        }, 2000);
     });
 }
 </script>
