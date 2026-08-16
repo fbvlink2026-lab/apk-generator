@@ -1,0 +1,13 @@
+name: Build APK
+on:
+  push:
+    paths:
+      - 'apps/**'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: startsWith(github.event.head_commit.message, 'apk:') || contains(github.event.head_commit.message, 'apps/')
+    steps:
+      - uses: actions/checkout@v4
+      - name: ✅ APK detected — Building...
+        run: echo "Tumatakbo LAMANG para sa APK files sa apps/"
