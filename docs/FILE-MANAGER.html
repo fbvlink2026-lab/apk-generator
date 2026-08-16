@@ -1,169 +1,178 @@
 <!DOCTYPE html>
 <html lang="tl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📂 Buong Istraktura ng Repositoryo</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
-        body { background: #f6f8fa; padding: 20px; max-width: 1000px; margin: 0 auto; }
-        .back-link { display: inline-block; margin-bottom: 20px; color: #0969da; text-decoration: none; }
-        h1 { color: #24292f; text-align: center; margin-bottom: 20px; }
-        .tree { background: white; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 20px; }
-        .tree-header { background: #f3f4f6; padding: 12px 16px; border-bottom: 1px solid #ddd; font-weight: bold; }
-        .tree-item { padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f3f4f6; }
-        .tree-item:hover { background: #eaf4ff; }
-        .folder-content { display: none; padding-left: 28px; }
-        .folder-open > .folder-content { display: block; }
-        .chevron { transition: transform 0.2s; font-size: 12px; width: 16px; display: inline-block; }
-        .folder-open > .tree-item > .chevron { transform: rotate(90deg); }
-        a { text-decoration: none; color: inherit; flex: 1; }
-        .loading { padding: 20px; text-align: center; color: #666; }
-        
-        /* ✅ PAHINA NG LAMAN NG FILE — NASA LOOB NA! WALANG KAILANGANG IBANG PAHINA! */
-        .file-viewer { background: white; border-radius: 10px; border: 2px solid #28c76f; margin-top: 20px; overflow: hidden; display: none; }
-        .file-viewer.show { display: block; }
-        .file-header { background: #28c76f; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
-        .file-name { font-weight: bold; color: white; font-size: 15px; }
-        .close-btn, .copy-btn { background: white; color: #28c76f; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-left: 8px; }
-        .file-content { padding: 20px; font-size: 14px; line-height: 1.8; color: #24292f; white-space: pre-wrap; min-height: 100px; max-height: 600px; overflow: auto; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>apk-generator/docs — Lahat ng File</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #0d1117; padding: 10px; color: #e6edf3; }
+    h1 { text-align: center; color: #58a6ff; margin-bottom: 15px; font-size: 22px; }
+    
+    .container { display: flex; flex-wrap: wrap; gap: 15px; max-width: 100%; margin: 0; }
+    
+    .file-list { 
+      width: 300px; flex-shrink: 0; background: #161b22; 
+      border-radius: 8px; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); 
+      max-height: 85vh; overflow-y: auto; border: 1px solid #30363d;
+    }
+    
+    .file-content { 
+      flex: 1; min-width: 320px; background: #161b22; 
+      border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); 
+      min-height: 80vh; overflow-y: auto; border: 1px solid #30363d;
+    }
+    
+    .file-item { padding: 6px 10px; margin: 2px 0; cursor: pointer; border-radius: 4px; font-size: 14px; }
+    .file-item:hover { background: #21262d; }
+    .file-item.active { background: #238636; color: white; }
+    .folder-item { padding: 8px 10px; margin: 4px 0; cursor: pointer; border-radius: 4px; font-weight: bold; background: #21262d; }
+    .folder-item:hover { background: #30363d; }
+    
+    .code-wrapper { position: relative; margin-top: 10px; }
+    
+    .copy-button {
+      position: absolute; top: 6px; right: 6px;
+      background: #238636; color: white; border: none;
+      border-radius: 4px; padding: 5px 12px;
+      font-size: 13px; font-weight: bold; cursor: pointer;
+      z-index: 999; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .copy-button:hover { background: #2ea043; }
+    .copy-button.copied { background: #28A745; }
+    
+    pre {
+      white-space: pre; overflow-x: auto;
+      font-family: Consolas, monospace; font-size: 13px; line-height: 1.5;
+      padding: 42px 12px 12px 12px; margin: 0;
+      background: #0d1117; border-radius: 6px; border: 1px solid #30363d;
+      color: #d4d4d4;
+    }
+    
+    .loading { color: #8b949e; font-style: italic; }
+    .path { color: #8b949e; font-size: 12px; margin-bottom: 10px; word-break: break-all; }
+    h3 { font-size: 16px; margin-bottom: 8px; color: #58a6ff; }
+    
+    .back-link { display: inline-block; margin-bottom: 15px; color: #58a6ff; text-decoration: none; font-size: 14px; }
+    .back-link:hover { text-decoration: underline; }
+  </style>
 </head>
 <body>
 
-    <a href="index.html" class="back-link">← Bumalik sa Pangunahing Pahina</a>
-    <h1>📂 Buong Istraktura ng Repositoryo</h1>
+  <a href="index.html" class="back-link">← Bumalik sa Pangunahing Pahina</a>
+  <h1>🎸 apk-generator — Lahat ng File mula sa Ugat</h1>
 
-    <div class="tree">
-        <div class="tree-header">📂 apk-generator / — Ugat ng Repositoryo</div>
-        <div id="repoTree" class="folder-open">
-            <div class="loading">⏳ Binabasa ang buong repositoryo...</div>
-        </div>
+  <div class="container">
+    <div class="file-list">
+      <h3>📂 Mga File</h3>
+      <div id="file-list-area"><p class="loading">Naglo-load...</p></div>
     </div>
 
-    <!-- ✅ NASA LOOB NA ANG PAGBASA NG LAMAN! WALANG IBANG PAHINA! -->
-    <div class="file-viewer" id="fileViewer">
-        <div class="file-header">
-            <span class="file-name" id="fileName">📄 filename</span>
-            <div>
-                <button class="copy-btn" onclick="copyContent()">📋 Kopyahin</button>
-                <button class="close-btn" onclick="closeFile()">✖ Isara</button>
-            </div>
-        </div>
-        <div class="file-content" id="fileContent">⏳ Binabasa ang laman...</div>
+    <div class="file-content">
+      <h3 id="filename">Pumili ng file sa kaliwa</h3>
+      <div id="filepath" class="path"></div>
+      <div id="content-area" class="loading">Pumili ng file...</div>
     </div>
+  </div>
 
-<script>
-const REPO_OWNER = "fbvlink2026";
-const REPO_NAME  = "apk-generator";
-const BRANCH      = "main";
-let currentContent = "";
+  <script>
+    // ✅ NA-AYOS NA ANG DALAWANG LINK — WALANG DAGDAG NA /docs/
+    const BASE_RAW = "https://raw.githubusercontent.com/fbvlink2026-lab/apk-generator/main/";
+    const BASE_API = "https://api.github.com/repos/fbvlink2026-lab/apk-generator/git/trees/main?recursive=1";
 
-// ✅ BABASAHIN ANG BUONG REPOSITORYO MULA UGAT
-async function loadRepoTree() {
-    const container = document.getElementById("repoTree");
-    container.innerHTML = "<div class='loading'>⏳ Binabasa...</div>";
+    let allFiles = [], currentFile = null;
 
-    try {
-        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/trees/${BRANCH}?recursive=1`;
-        const res = await fetch(apiUrl);
-        const data = await res.json();
-
-        if (!data.tree) {
-            container.innerHTML = "<div class='loading'>❌ Hindi mabasa. Siguraduhin na tama ang pangalan ng repositoryo at branch.</div>";
-            return;
+    fetch(BASE_API)
+      .then(r => {
+        if (!r.ok) throw new Error("API Error: " + r.status);
+        return r.json();
+      })
+      .then(d => {
+        if (!d.tree) {
+          document.getElementById("file-list-area").innerHTML = "<p class='loading'>❌ Walang nakitang file.</p>";
+          return;
         }
+        allFiles = d.tree.filter(x => x.type === "blob").sort((a,b) => a.path.localeCompare(b.path));
+        renderFileList();
+      })
+      .catch(err => {
+        document.getElementById("file-list-area").innerHTML = `<p class='loading'>❌ Hindi mabasa: ${err.message}</p>`;
+      });
 
-        // ✅ BUUIN ANG ISTRAKTURA
-        const root = { children: {} };
-        data.tree.forEach(item => {
-            const parts = item.path.split("/");
-            let current = root;
-            parts.forEach((part, idx) => {
-                if (!current.children[part]) {
-                    current.children[part] = {
-                        name: part,
-                        path: parts.slice(0, idx+1).join("/"),
-                        type: idx === parts.length-1 ? item.type : "tree",
-                        children: {}
-                    };
-                }
-                current = current.children[part];
-            });
+    function renderFileList() {
+      const list = document.getElementById("file-list-area");
+      list.innerHTML = "";
+      let structure = {};
+      allFiles.forEach(file => {
+        const parts = file.path.split("/");
+        let cur = structure;
+        parts.forEach((p, i) => {
+          if (i === parts.length - 1) { 
+            if (!cur._files) cur._files = []; 
+            cur._files.push({n:p, p:file.path}); 
+          } else { 
+            if (!cur[p]) cur[p] = {_files:[]}; 
+            cur = cur[p]; 
+          }
         });
-
-        // ✅ LIKHA ANG LISTAHAN — PINDUTAN ANG FILE → BABASAHIN ANG LAMAN DITO!
-        function renderFolder(node) {
-            let html = "";
-            for (const name in node.children) {
-                const item = node.children[name];
-                if (item.type === "tree") {
-                    html += `
-                        <div class="folder-open">
-                            <div class="tree-item" onclick="toggleFolder(this.parentElement)">
-                                <span class="chevron">▶</span> 📁 <span>${name}</span>
-                            </div>
-                            <div class="folder-content">
-                                ${renderFolder(item)}
-                            </div>
-                        </div>`;
-                } else {
-                    // ✅ PINDUTAN → BABASAHIN ANG LAMAN DITO SA PAHINA! WALANG LILIPAT!
-                    html += `
-                        <div class="tree-item" onclick="openFile('${item.path.replace(/'/g, "\\'")}')">
-                            📄 <span>${name}</span>
-                        </div>`;
-                }
-            }
-            return html;
-        }
-
-        container.innerHTML = renderFolder(root);
-
-    } catch(err) {
-        container.innerHTML = `<div class='loading'>❌ May mali: ${err.message}</div>`;
+      });
+      function render(o, par, ind="") {
+        if (o._files) o._files.forEach(f=>{
+          const el = document.createElement("div");
+          el.className = "file-item" + (currentFile===f.p?" active":"");
+          el.textContent = "📄 "+f.n; 
+          el.style.paddingLeft = (ind.length*8+10)+"px";
+          el.onclick = ()=>loadFile(f.p); 
+          par.appendChild(el);
+        });
+        Object.keys(o).forEach(k=>{
+          if(k==="_files") return;
+          const el = document.createElement("div");
+          el.className = "folder-item"; 
+          el.textContent = "📁 "+k+"/";
+          el.style.paddingLeft = (ind.length*8+10)+"px"; 
+          par.appendChild(el);
+          render(o[k], par, ind+"  ");
+        });
+      }
+      render(structure, list);
     }
-}
 
-// ✅ BABASAHIN ANG TUNAY NA LAMAN NG FILE — KAHIT SAANG FOLDER!
-async function openFile(filePath) {
-    const viewer = document.getElementById("fileViewer");
-    document.getElementById("fileName").textContent = "📄 " + filePath;
-    document.getElementById("fileContent").textContent = "⏳ Binabasa ang laman...";
-    viewer.classList.add("show");
-    currentContent = "";
+    function loadFile(path) {
+      currentFile = path;
+      document.getElementById("filename").textContent = "📄 " + path.split("/").pop();
+      document.getElementById("filepath").textContent = "📍 " + path;
+      document.getElementById("content-area").innerHTML = "<p class='loading'>Naglo-load...</p>";
+      renderFileList();
 
-    try {
-        // ✅ Direktang kukuha mula sa GitHub — SIGURADONG MABABASA LAHAT!
-        const rawUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${filePath}`;
-        const res = await fetch(rawUrl);
-        if (!res.ok) throw new Error("Hindi mabasa ang file");
-        currentContent = await res.text();
-        document.getElementById("fileContent").textContent = currentContent;
-    } catch(err) {
-        document.getElementById("fileContent").textContent = 
-            "❌ Hindi mabasa ang file:\n" + filePath + 
-            "\n\nDahilan: " + err.message +
-            "\n\nPakisiguro na nandoon ang file sa repositoryo.";
+      fetch(BASE_RAW + path)
+        .then(r => {
+          if (!r.ok) throw new Error("Hindi mabasa");
+          return r.text();
+        })
+        .then(text => {
+          document.getElementById("content-area").innerHTML = `
+            <div class="code-wrapper">
+              <button class="copy-button" onclick="copyText(this)">📋 KOPYA</button>
+              <pre>${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+            </div>`;
+        })
+        .catch(err => {
+          document.getElementById("content-area").innerHTML = `<p class='loading'>❌ Hindi mabasa: ${err.message}</p>`;
+        });
     }
-}
 
-function closeFile() {
-    document.getElementById("fileViewer").classList.remove("show");
-    currentContent = "";
-}
-
-function copyContent() {
-    if (!currentContent) return;
-    navigator.clipboard.writeText(currentContent).then(() => {
-        alert("✅ Nakopya na!");
-    });
-}
-
-function toggleFolder(el) { el.classList.toggle('folder-open'); }
-
-window.onload = loadRepoTree;
-</script>
-
+    function copyText(btn) {
+      const txt = btn.nextElementSibling.textContent;
+      navigator.clipboard.writeText(txt).then(()=>{
+        btn.textContent = "✅ NAKOPYA!"; 
+        btn.classList.add("copied");
+        setTimeout(()=>{ 
+          btn.textContent = "📋 KOPYA"; 
+          btn.classList.remove("copied"); 
+        }, 2000);
+      });
+    }
+  </script>
 </body>
 </html>
