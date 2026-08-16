@@ -39,8 +39,7 @@
             <li>✅ Lahat ng pagbabago dadaan sa Termux</li>
             <li>✅ Protektadong Workflow — hindi tatakbo kung hindi APK ang binago</li>
             <li>✅ Website na naglilista ng lahat ng APK + Download Button</li>
-            <li>✅ Awtomatikong Error Logging — kahit tagumpay man o nabigo</li>
-            <li>✅ Hiwalay na pahina: Versions, Usapan, Solusyon ← ✅ NANDOON NA!</li>
+            <li>✅ Awtomatikong pagkuha ng pamagat mula sa .md file → PANGALAN NG PINDUTAN!</li>
             <li>⏳ Sa loob ng APK: Loading Page + Auto-Update + Update Button</li>
             <li>✅ Pasulong lamang — hindi na babalik sa mga lumang sira</li>
             <li>✅ Lahat ng nakasulat ay Taglish — madaling maintindihan</li>
@@ -48,12 +47,9 @@
     </div>
 
     <div class="card">
-        <h2>📄 Tatlong Hiwalay na Pahina</h2>
-        <p>Ang lahat ng talaan — hiwalay at maayos na nakabukod:</p>
-        <a href="VIEW-MD.html?f=VERSIONS.md&c=%23%20%F0%9F%93%8B%20Mga%20Bersyon%0A%0A##%202026-08-16%20%E2%80%94%20Unang%20Paglulunsad%0A-%20Hiwalay%20na%20subfolder%0A-%20Awtomatikong%20pagbuo%20ng%20APK" class="btn">📋 Bersyon at Kasaysayan</a>
-        <a href="VIEW-MD.html?f=USAPAN.md&c=%23%20%F0%9F%92%AC%20Lahat%20ng%20Pinag-usapan%0A%0A-%20Lahat%20ng%20pagbabago%20dadaan%20sa%20Termux%0A-%20Token%20%E2%80%94%20Secret%20lamang%20sa%20GitHub" class="btn">💬 Lahat ng Pinag-usapan</a>
-        <a href="VIEW-MD.html?f=SOLUSYON.md&c=%23%20%E2%9C%85%20Problema%20at%20Solusyon%0A%0A##%20Token%20na%20nakalantad%0A%E2%9C%85%20Solusyon:%20Secret%20lamang%20%E2%80%94%20hindi%20sa%20loob%20ng%20file" class="btn">✅ Problema at Solusyon</a>
-        <a href="VIEW-MD.html?f=ERRORS.md&c=%23%20%F0%9F%93%8A%20Talaan%20ng%20Katayuan%0A%0A##%20Lahat%20ng%20Resulta%0A%0A-%20Tagumpay%20%E2%9C%85%0A-%20Nabigo%20%E2%9D%8C" class="btn">📊 Talaan ng Katayuan</a>
+        <h2>📄 Lahat ng Talaan</h2>
+        <p>✅ Awtomatikong kinukuha ang pamagat mula sa loob ng .md file!</p>
+        <div id="mdButtons">⏳ Binabasa...</div>
     </div>
 
     <div class="card">
@@ -62,12 +58,48 @@
         <a href="https://github.com/fbvlink2026-lab/apk-generator/actions" class="btn btn-green" target="_blank">🔍 Tingnan sa Actions Page</a>
     </div>
 
-    <!-- ✅ PINDUTAN NG FILE-MANAGER — WALANG BINAGO! MANANATILI! -->
+    <!-- ✅ FILE-MANAGER — WALANG BINAGO! -->
     <div class="card">
         <h2>📂 Buong Istraktura ng Repositoryo</h2>
         <p>Makikita ang buong laman ng repositoryo — mula ugat hanggang subfolder. Pindutin ang folder upang lawakan, pindutin ang file upang makita ang laman.</p>
         <a href="FILE-MANAGER.html" class="btn btn-green">📂 Buksan ang Buong Istraktura</a>
     </div>
+
+<script>
+// ✅ ILISTA LANG ANG MGA .md FILE — AWTO KUKUNIN ANG PAMAGAT MULA SA LOOB NILA!
+const mdFiles = [
+    "VERSIONS.md",
+    "USAPAN.md",
+    "SOLUSYON.md",
+    "ERRORS.md"
+    // ✅ MAY BAGONG .md KA? IDAGDAG MO LANG DITO — MAY PINDUTAN AGAD!
+];
+
+// ✅ KUKUNIN ANG PAMAGAT MULA SA .md → YUN ANG PANGALAN NG PINDUTAN!
+async function loadButtons() {
+    const container = document.getElementById('mdButtons');
+    container.innerHTML = "";
+    
+    for (const file of mdFiles) {
+        let title = file.replace('.md', ''); // Kung walang mabasa, pangalan ng file muna
+        try {
+            const res = await fetch(file);
+            const text = await res.text();
+            // ✅ Hanapin ang unang pamagat na nagsisimula sa #
+            const match = text.match(/^#\s+(.+)$/m);
+            if (match) title = match[1].trim();
+        } catch(e) { /* gamitin ang default na pangalan */ }
+        
+        const a = document.createElement('a');
+        a.href = "VIEW-MD.html?f=" + encodeURIComponent(file);
+        a.className = "btn";
+        a.textContent = "📄 " + title;
+        container.appendChild(a);
+    }
+}
+
+window.onload = loadButtons;
+</script>
 
 </body>
 </html>

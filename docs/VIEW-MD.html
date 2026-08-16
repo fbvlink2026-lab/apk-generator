@@ -22,24 +22,27 @@
             <span class="file-name" id="fileName">📄 filename</span>
             <button class="copy-btn" onclick="copyCode()">📋 Kopyahin</button>
         </div>
-        <div class="content" id="fileContent">Lalabas dito ang buong laman...</div>
+        <div class="content" id="fileContent">⏳ Binabasa...</div>
     </div>
 <script>
 let currentCode = "";
-window.onload = function() {
+window.onload = async () => {
     const p = new URLSearchParams(location.search);
-    const name = p.get('f') || 'Walang Pangalan';
-    const content = p.get('c') || 'Walang Laman';
-    document.getElementById('fileName').textContent = '📄 ' + name;
-    document.getElementById('fileContent').textContent = decodeURIComponent(content);
-    currentCode = decodeURIComponent(content);
+    const fn = p.get('f') || 'VERSIONS.md';
+    document.getElementById('fileName').textContent = '📄 ' + fn;
+    try {
+        const res = await fetch(fn);
+        currentCode = await res.text();
+        document.getElementById('fileContent').textContent = currentCode;
+    } catch {
+        document.getElementById('fileContent').textContent = "❌ Hindi mabasa: " + fn;
+    }
 };
 function copyCode() {
     navigator.clipboard.writeText(currentCode).then(() => {
         const b = document.querySelector('.copy-btn');
-        const orig = b.textContent;
         b.textContent = "✅ Nakopya!";
-        setTimeout(() => b.textContent = orig, 2000);
+        setTimeout(() => b.textContent = "📋 Kopyahin", 2000);
     });
 }
 </script>
