@@ -1,104 +1,130 @@
 <!DOCTYPE html>
 <html lang="tl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GuitarFX — APK Generator</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
-        body { background: #f0f4f8; padding: 20px; max-width: 900px; margin: 0 auto; }
-        h1 { color: #1a202c; text-align: center; margin-bottom: 30px; }
-        .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        h2 { color: #2d3748; margin-bottom: 16px; font-size: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
-        p { color: #374151; line-height: 1.7; margin-bottom: 12px; }
-        ul { padding-left: 20px; margin-bottom: 12px; }
-        li { margin-bottom: 8px; color: #374151; line-height: 1.6; }
-        a { color: #3b82f6; text-decoration: none; font-weight: 500; }
-        .btn { display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; font-weight: bold; margin: 8px 12px 8px 0; text-decoration: none; }
-        .btn:hover { background: #2563eb; }
-        .btn-green { background: #28c76f; }
-        .btn-green:hover { background: #1fb05f; }
-        .tag { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-right: 6px; margin-bottom: 6px; }
-        .tag-ok { background: #dcfce7; color: #166534; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GuitarFX — APK Generator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+    body { background: #f0f4f8; padding: 20px; max-width: 900px; margin: 0 auto; }
+    h1 { color: #1a202c; text-align: center; margin-bottom: 30px; }
+    .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    h2 { color: #2d3748; margin-bottom: 16px; font-size: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+    p { color: #374151; line-height: 1.7; margin-bottom: 12px; }
+    ul { padding-left: 20px; margin-bottom: 12px; }
+    li { margin-bottom: 8px; color: #374151; line-height: 1.6; }
+    a { color: #3b82f6; text-decoration: none; font-weight: 500; }
+    .btn { display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; font-weight: bold; margin: 8px 12px 8px 0; text-decoration: none; }
+    .btn:hover { background: #2563eb; }
+    .btn-green { background: #28c76f; }
+    .btn-green:hover { background: #1fb05f; }
+    .tag { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-right: 6px; margin-bottom: 6px; }
+    .tag-ok { background: #dcfce7; color: #166534; }
+    .loading { color: #666; font-style: italic; padding: 10px; }
+  </style>
 </head>
 <body>
-    <h1>🎸 GuitarFX — APK Generator</h1>
 
-    <div class="card">
-        <h2>👋 Tungkol sa Proyekto</h2>
-        <p>Awtomatikong bumubuo ng APK gamit GitHub Actions — may talaan ng katayuan, gabay sa paggawa, at pahina ng pag-download.</p>
-        <span class="tag tag-ok">✅ Handa na!</span>
-    </div>
+  <h1>🎸 GuitarFX — APK Generator</h1>
 
-    <div class="card">
-        <h2>📋 Gabay sa Paggawa</h2>
-        <ul>
-            <li>✅ Hiwalay na subfolder bawat aplikasyon sa <code>apps/</code></li>
-            <li>✅ <code>.apk</code> lamang ang ilalabas — HINDI ZIP</li>
-            <li>✅ Lahat ng pagbabago dadaan sa Termux</li>
-            <li>✅ Protektadong Workflow — hindi tatakbo kung hindi APK ang binago</li>
-            <li>✅ Website na naglilista ng lahat ng APK + Download Button</li>
-            <li>✅ Awtomatikong pagkuha ng pamagat mula sa .md file → PANGALAN NG PINDUTAN!</li>
-            <li>⏳ Sa loob ng APK: Loading Page + Auto-Update + Update Button</li>
-            <li>✅ Pasulong lamang — hindi na babalik sa mga lumang sira</li>
-            <li>✅ Lahat ng nakasulat ay Taglish — madaling maintindihan</li>
-        </ul>
-    </div>
+  <div class="card">
+    <h2>👋 Tungkol sa Proyekto</h2>
+    <p>Awtomatikong bumubuo ng APK gamit GitHub Actions — may talaan ng katayuan, gabay sa paggawa, at pahina ng pag-download.</p>
+    <span class="tag tag-ok">✅ Handa na!</span>
+  </div>
 
-    <div class="card">
-        <h2>📄 Lahat ng Talaan</h2>
-        <p>✅ Awtomatikong kinukuha ang pamagat mula sa loob ng .md file!</p>
-        <div id="mdButtons">⏳ Binabasa...</div>
-    </div>
+  <div class="card">
+    <h2>📋 Gabay sa Paggawa</h2>
+    <ul>
+      <li>✅ Hiwalay na subfolder bawat aplikasyon sa <code>apps/</code></li>
+      <li>✅ <code>.apk</code> lamang ang ilalabas — HINDI ZIP</li>
+      <li>✅ Lahat ng pagbabago dadaan sa Termux</li>
+      <li>✅ Protektadong Workflow — hindi tatakbo kung hindi APK ang binago</li>
+      <li>✅ Website na naglilista ng lahat ng Dokumento + Buong File-Manager</li>
+      <li>✅ Awtomatikong pagkuha ng pamagat mula sa .md file → PANGALAN NG PINDUTAN!</li>
+      <li>✅ AWTO-DETEK NG LAHAT NG .md FILE — BAGONG DOKUMENTO → AWTO LALABAS!</li>
+      <li>⏳ Sa loob ng APK: Loading Page + Auto-Update + Update Button</li>
+      <li>✅ Pasulong lamang — hindi na babalik sa mga lumang sira</li>
+      <li>✅ Lahat ng nakasulat ay Taglish — madaling maintindihan</li>
+    </ul>
+  </div>
 
-    <div class="card">
-        <h2>📥 I-download ang APK</h2>
-        <p>Kapag matagumpay na nabuo — makikita mo sa Actions page ang APK.</p>
-        <a href="https://github.com/fbvlink2026-lab/apk-generator/actions" class="btn btn-green" target="_blank">🔍 Tingnan sa Actions Page</a>
-    </div>
+  <div class="card">
+    <h2>📄 Lahat ng Talaan ng Dokumento</h2>
+    <p>✅ <strong>Awtomatikong nakikita ang lahat ng .md file!</strong> Kahit bagong dagdag — lalabas agad!</p>
+    <div id="mdButtons"><p class="loading">⏳ Binabasa ang lahat ng dokumento...</p></div>
+  </div>
 
-    <!-- ✅ FILE-MANAGER — WALANG BINAGO! -->
-    <div class="card">
-        <h2>📂 Buong Istraktura ng Repositoryo</h2>
-        <p>Makikita ang buong laman ng repositoryo — mula ugat hanggang subfolder. Pindutin ang folder upang lawakan, pindutin ang file upang makita ang laman.</p>
-        <a href="FILE-MANAGER.html" class="btn btn-green">📂 Buksan ang Buong Istraktura</a>
-    </div>
+  <div class="card">
+    <h2>📥 I-download ang APK</h2>
+    <p>⏳ <strong>Hinihintay ang unang nabuong APK...</strong> Kapag handa na — lalabas dito ang direktang link.</p>
+    <a href="https://github.com/fbvlink2026-lab/apk-generator/actions" class="btn btn-green" target="_blank">🔍 Tingnan sa Actions Page</a>
+  </div>
+
+  <div class="card">
+    <h2>📂 Buong Istraktura ng Repositoryo</h2>
+    <p>Makikita ang buong laman ng repositoryo — mula ugat hanggang subfolder. Pindutin ang file → Bubukas sa bagong tab.</p>
+    <a href="FILE-MANAGER.html" class="btn btn-green">📂 Buksan ang Buong File-Manager</a>
+  </div>
 
 <script>
-// ✅ ILISTA LANG ANG MGA .md FILE — AWTO KUKUNIN ANG PAMAGAT MULA SA LOOB NILA!
-const mdFiles = [
-    "VERSIONS.md",
-    "USAPAN.md",
-    "SOLUSYON.md",
-    "ERRORS.md"
-    // ✅ MAY BAGONG .md KA? IDAGDAG MO LANG DITO — MAY PINDUTAN AGAD!
-];
+const REPO_OWNER = "fbvlink2026-lab";
+const REPO_NAME  = "apk-generator";
+const BRANCH      = "main";
+const BASE_RAW    = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/docs/`;
 
-// ✅ KUKUNIN ANG PAMAGAT MULA SA .md → YUN ANG PANGALAN NG PINDUTAN!
-async function loadButtons() {
-    const container = document.getElementById('mdButtons');
-    container.innerHTML = "";
-    
-    for (const file of mdFiles) {
-        let title = file.replace('.md', ''); // Kung walang mabasa, pangalan ng file muna
-        try {
-            const res = await fetch(file);
-            const text = await res.text();
-            // ✅ Hanapin ang unang pamagat na nagsisimula sa #
-            const match = text.match(/^#\s+(.+)$/m);
-            if (match) title = match[1].trim();
-        } catch(e) { /* gamitin ang default na pangalan */ }
-        
-        const a = document.createElement('a');
-        a.href = "VIEW-MD.html?f=" + encodeURIComponent(file);
-        a.className = "btn";
-        a.textContent = "📄 " + title;
-        container.appendChild(a);
+window.onload = loadAllMdFiles;
+
+async function loadAllMdFiles() {
+  const container = document.getElementById("mdButtons");
+  container.innerHTML = "";
+
+  try {
+    const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/trees/${BRANCH}?recursive=1`;
+    const res = await fetch(apiUrl);
+    const data = await res.json();
+
+    if (!data.tree) {
+      container.innerHTML = "<p class='loading'>❌ Hindi mabasa ang listahan.</p>";
+      return;
     }
-}
 
-window.onload = loadButtons;
+    const mdFiles = data.tree.filter(item => 
+      item.path.startsWith("docs/") && 
+      item.path.endsWith(".md") && 
+      item.type === "blob"
+    );
+
+    if (mdFiles.length === 0) {
+      container.innerHTML = "<p class='loading'>❌ Walang nakitang dokumento.</p>";
+      return;
+    }
+
+    for (const file of mdFiles) {
+      const fileName = file.path.replace("docs/", "");
+      const rawUrl = BASE_RAW + encodeURIComponent(fileName);
+      
+      let title = fileName.replace(".md", "");
+
+      try {
+        const textRes = await fetch(rawUrl);
+        const text = await textRes.text();
+        const match = text.match(/^#\s+([^\n]+)/);
+        if (match) title = match[1].trim();
+      } catch(e) { }
+
+      const btn = document.createElement("a");
+      btn.href = "FILE-MANAGER.html";
+      btn.target = "_blank";
+      btn.className = "btn";
+      btn.textContent = "📄 " + title;
+      container.appendChild(btn);
+    }
+
+  } catch(err) {
+    container.innerHTML = `<p class='loading'>❌ May mali: ${err.message}</p>`;
+  }
+}
 </script>
 
 </body>
