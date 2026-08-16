@@ -94,3 +94,7 @@ apk-generator/
 ---
 
 > ✅ **ITO ANG ATING GABAY — HABANG-BUHAY! PASULONG LAMANG! WALANG BALIK SA LUMANG SIRA!**
+
+---
+> 📋 Gabay at Listahan ng Paggawa
+> Created by MartoDosko © Copyright 2026
