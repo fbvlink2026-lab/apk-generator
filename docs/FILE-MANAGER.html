@@ -3,104 +3,103 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>apk-generator/docs — Lahat ng File</title>
+  <title>apk-generator — Listahan ng Lahat ng File</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; background: #0d1117; padding: 10px; color: #e6edf3; }
-    h1 { text-align: center; color: #58a6ff; margin-bottom: 15px; font-size: 22px; }
-    
-    .file-list { 
-      background: #161b22; border-radius: 8px; padding: 12px; 
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3); 
-      max-height: 90vh; overflow-y: auto; border: 1px solid #30363d;
-    }
-    
-    .file-item { padding: 8px 12px; margin: 2px 0; cursor: pointer; border-radius: 4px; font-size: 14px; }
-    .file-item:hover { background: #238636; color: white; }
-    .folder-item { padding: 10px 12px; margin: 4px 0; cursor: pointer; border-radius: 4px; font-weight: bold; background: #21262d; font-size: 14px; }
-    .folder-item:hover { background: #30363d; }
-    
-    .loading { color: #8b949e; font-style: italic; padding: 15px; }
-    h3 { font-size: 16px; margin-bottom: 12px; color: #58a6ff; }
-    
-    .back-link { display: inline-block; margin-bottom: 15px; color: #58a6ff; text-decoration: none; font-size: 14px; }
-    .back-link:hover { text-decoration: underline; }
-    .hint { color: #8b949e; font-size: 13px; margin-bottom: 10px; }
+    body { font-family: system-ui, sans-serif; background: #f0f4f8; padding: 20px; max-width: 900px; margin: 0 auto; }
+    .back-bar { margin-bottom: 20px; }
+    .back-link { display: inline-block; background: #3b82f6; color: white; padding: 10px 20px; border-radius: 8px; font-weight: bold; text-decoration: none; }
+    .back-link:hover { background: #2563eb; }
+    h1 { text-align: center; color: #1a202c; margin-bottom: 20px; font-size: 20px; }
+    .hint { color: #4b5563; font-size: 14px; text-align: center; margin-bottom: 20px; }
+    .container { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .file-item { padding: 10px 14px; margin: 3px 0; cursor: pointer; border-radius: 6px; font-size: 14px; color: #1f2937; }
+    .file-item:hover { background: #dbeafe; color: #1e40af; font-weight: 500; }
+    .folder-item { padding: 12px 14px; margin: 6px 0 4px 0; font-weight: bold; background: #f3f4f6; border-radius: 6px; font-size: 14px; color: #374151; }
+    .loading { color: #6b7280; font-style: italic; padding: 20px; text-align: center; }
+    .dev { text-align:center; margin-top:30px; padding-top:20px; border-top:1px solid #e5e7eb; color:#6b7280; font-size:14px; }
   </style>
 </head>
 <body>
 
-  <a href="index.html" class="back-link">← Bumalik sa Pangunahing Pahina</a>
-  <h1>🎸 apk-generator — Lahat ng File mula sa Ugat</h1>
-  <p class="hint">💡 Pindutin ang anumang file → Magbubukas sa BAGONG TAB</p>
-
-  <div class="file-list">
-    <h3>📂 Mga File</h3>
-    <div id="file-list-area"><p class="loading">Naglo-load...</p></div>
+  <div class="back-bar">
+    <a href="index.html" class="back-link">🔙 Bumalik sa Pangunahing Pahina</a>
   </div>
 
-  <script>
-    const BASE_RAW = "https://raw.githubusercontent.com/fbvlink2026-lab/apk-generator/main/";
-    const BASE_API = "https://api.github.com/repos/fbvlink2026-lab/apk-generator/git/trees/main?recursive=1";
+  <h1>🎸 apk-generator — Listahan ng Lahat ng File</h1>
+  <p class="hint">💡 Pindutin ang anumang file → Bubukas sa bagong pahina na may laman, pabalik, at kopyahin</p>
 
-    let allFiles = [];
+  <div class="container">
+    <div id="file-list"><p class="loading">⏳ Binabasa ang lahat ng file...</p></div>
+  </div>
 
-    fetch(BASE_API)
-      .then(r => {
-        if (!r.ok) throw new Error("API Error: " + r.status);
-        return r.json();
-      })
-      .then(d => {
-        if (!d.tree) {
-          document.getElementById("file-list-area").innerHTML = "<p class='loading'>❌ Walang nakitang file.</p>";
-          return;
-        }
-        allFiles = d.tree.filter(x => x.type === "blob").sort((a,b) => a.path.localeCompare(b.path));
-        renderFileList();
-      })
-      .catch(err => {
-        document.getElementById("file-list-area").innerHTML = `<p class='loading'>❌ Hindi mabasa: ${err.message}</p>`;
-      });
+<script>
+const API_URL = "https://api.github.com/repos/fbvlink2026-lab/apk-generator/git/trees/main?recursive=1";
+const fileListArea = document.getElementById("file-list");
 
-    function renderFileList() {
-      const list = document.getElementById("file-list-area");
-      list.innerHTML = "";
-      let structure = {};
-      allFiles.forEach(file => {
-        const parts = file.path.split("/");
-        let cur = structure;
-        parts.forEach((p, i) => {
-          if (i === parts.length - 1) { 
-            if (!cur._files) cur._files = []; 
-            cur._files.push({n:p, p:file.path}); 
-          } else { 
-            if (!cur[p]) cur[p] = {_files:[]}; 
-            cur = cur[p]; 
-          }
-        });
-      });
-      function render(o, par, ind="") {
-        if (o._files) o._files.forEach(f=>{
-          const el = document.createElement("div");
-          el.className = "file-item";
-          el.textContent = "📄 "+f.n; 
-          el.style.paddingLeft = (ind.length*8+10)+"px";
-          // ✅ PINDUTIN → MAGBUBUKAS NG BAGONG TAB!
-          el.onclick = ()=>window.open(BASE_RAW + encodeURI(f.p), "_blank");
-          par.appendChild(el);
-        });
-        Object.keys(o).forEach(k=>{
-          if(k==="_files") return;
-          const el = document.createElement("div");
-          el.className = "folder-item"; 
-          el.textContent = "📁 "+k+"/";
-          el.style.paddingLeft = (ind.length*8+10)+"px"; 
-          par.appendChild(el);
-          render(o[k], par, ind+"  ");
-        });
-      }
-      render(structure, list);
+fetch(API_URL)
+  .then(r => {
+    if (!r.ok) throw new Error("Hindi mabasa ang listahan");
+    return r.json();
+  })
+  .then(d => {
+    if (!d.tree) {
+      fileListArea.innerHTML = "<p class='loading'>❌ Walang nakitang file.</p>";
+      return;
     }
-  </script>
+    const files = d.tree.filter(x => x.type === "blob").sort((a,b) => a.path.localeCompare(b.path));
+    renderList(files);
+  })
+  .catch(err => {
+    fileListArea.innerHTML = `<p class='loading'>❌ ${err.message}</p>`;
+  });
+
+function renderList(files) {
+  fileListArea.innerHTML = "";
+  let structure = {};
+  files.forEach(file => {
+    const parts = file.path.split("/");
+    let cur = structure;
+    parts.forEach((p, i) => {
+      if (i === parts.length - 1) {
+        if (!cur._files) cur._files = [];
+        cur._files.push({name:p, path:file.path});
+      } else {
+        if (!cur[p]) cur[p] = {_files:[]};
+        cur = cur[p];
+      }
+    });
+  });
+
+  function render(o, parent, indent="") {
+    if (o._files) {
+      o._files.forEach(f => {
+        const el = document.createElement("div");
+        el.className = "file-item";
+        el.textContent = "📄 " + f.name;
+        el.style.paddingLeft = (indent.length * 8 + 12) + "px";
+        // ✅ AYOS NA: Pumupunta sa BASAHIN.html + may m=1 para malaman na galing dito!
+        el.onclick = () => {
+          window.open("BASAHIN.html?f=" + encodeURIComponent(f.path) + "&m=1", "_blank");
+        };
+        parent.appendChild(el);
+      });
+    }
+    Object.keys(o).forEach(k => {
+      if (k === "_files") return;
+      const el = document.createElement("div");
+      el.className = "folder-item";
+      el.textContent = "📁 " + k + "/";
+      el.style.paddingLeft = (indent.length * 8 + 8) + "px";
+      parent.appendChild(el);
+      render(o[k], parent, indent + "  ");
+    });
+  }
+  render(structure, fileListArea);
+}
+</script>
+
+  <div class="dev">Developed by MartoDosko © Copyright 2026</div>
+
 </body>
 </html>
