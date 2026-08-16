@@ -14,12 +14,13 @@
     .btn-green:hover { background: #1fb05f; }
     .content-box { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); min-height: 300px; white-space: pre-wrap; word-wrap: break-word; line-height: 1.7; color: #1f2937; font-size: 15px; }
     .loading { color: #666; font-style: italic; text-align: center; padding: 40px; }
+    .dev { text-align:center; margin-top:30px; padding-top:20px; border-top:1px solid #e5e7eb; color:#6b7280; font-size:14px; }
   </style>
 </head>
 <body>
 
   <div class="top-bar">
-    <a href="index.html" class="btn">🔙 Bumalik sa Pangunahing Pahina</a>
+    <a id="backLink" href="index.html" class="btn">🔙 Bumalik sa Pangunahing Pahina</a>
     <button id="copyBtn" class="btn btn-green">📋 Kopyahin ang Laman</button>
   </div>
 
@@ -28,24 +29,33 @@
   </div>
 
 <script>
-const BASE_RAW = "https://raw.githubusercontent.com/fbvlink2026-lab/apk-generator/main/docs/";
+// ✅ ITINAMA: Buong ugat ng repositoryo — HINDI docs/ lamang
+const BASE_RAW = "https://raw.githubusercontent.com/fbvlink2026-lab/apk-generator/main/";
 
 window.onload = loadFile;
 
 async function loadFile() {
   const params = new URLSearchParams(window.location.search);
-  const fileName = params.get("f");
+  const filePath = params.get("f");
+  const fromMgr = params.get("m") === "1";
   const contentBox = document.getElementById("content");
   const copyBtn = document.getElementById("copyBtn");
+  const backLink = document.getElementById("backLink");
 
-  if (!fileName) {
+  // ✅ Kung galing sa File-Manager → Pabalik sa Listahan ng File
+  if (fromMgr) {
+    backLink.href = "FILE-MANAGER.html";
+    backLink.textContent = "🔙 Bumalik sa Listahan ng File";
+  }
+
+  if (!filePath) {
     contentBox.textContent = "❌ Walang napiling dokumento.";
     copyBtn.style.display = "none";
     return;
   }
 
   try {
-    const res = await fetch(BASE_RAW + encodeURIComponent(fileName));
+    const res = await fetch(BASE_RAW + encodeURIComponent(filePath));
     if (!res.ok) throw new Error("Hindi makuha ang file");
     const text = await res.text();
     contentBox.textContent = text;
@@ -73,6 +83,8 @@ async function loadFile() {
   }
 }
 </script>
+
+  <div class="dev">Developed by MartoDosko © Copyright 2026</div>
 
 </body>
 </html>
