@@ -70,7 +70,6 @@
 const REPO_OWNER = "fbvlink2026-lab";
 const REPO_NAME  = "apk-generator";
 const BRANCH      = "main";
-const BASE_RAW   = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/docs/`;
 
 window.onload = loadAllMdFiles;
 
@@ -100,18 +99,21 @@ async function loadAllMdFiles() {
     }
 
     for (const file of mdFiles) {
+      // ✅ KUNIN LANG ANG PANGALAN — TANGGALIN ANG docs/ SA UNAHAN
       const fileName = file.path.replace("docs/", "");
       
       let title = fileName.replace(".md", "");
 
       try {
-        const textRes = await fetch(BASE_RAW + encodeURIComponent(fileName));
+        const rawUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/docs/${encodeURIComponent(fileName)}`;
+        const textRes = await fetch(rawUrl);
         const text = await textRes.text();
         const match = text.match(/^#\s+([^\n]+)/);
         if (match) title = match[1].trim();
       } catch(e) { }
 
       const btn = document.createElement("a");
+      // ✅ IPASA LANG ANG PANGALAN — WALANG docs/
       btn.href = "BASAHIN.html?f=" + encodeURIComponent(fileName);
       btn.target = "_blank";
       btn.className = "btn";
@@ -128,5 +130,6 @@ async function loadAllMdFiles() {
   <div style="text-align:center; margin-top:30px; padding-top:20px; border-top:1px solid #e2e8f0; color:#6b7280; font-size:14px;">
     Developed by MartoDosko © Copyright 2026
   </div>
+
 </body>
 </html>

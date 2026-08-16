@@ -29,18 +29,19 @@
   </div>
 
 <script>
-const BASE_RAW = "https://raw.githubusercontent.com/fbvlink2026-lab/apk-generator/main/";
+const BASE_ROOT = "https://raw.githubusercontent.com/fbvlink2026-lab/apk-generator/main/";
 
 window.onload = loadFile;
 
 async function loadFile() {
   const params = new URLSearchParams(window.location.search);
-  const filePath = params.get("f");
+  let filePath = params.get("f");
   const fromMgr = params.get("m") === "1";
   const contentBox = document.getElementById("content");
   const copyBtn = document.getElementById("copyBtn");
   const backLink = document.getElementById("backLink");
 
+  // ✅ Kung galing sa File-Manager → Pabalik sa Listahan
   if (fromMgr) {
     backLink.href = "FILE-MANAGER.html";
     backLink.textContent = "🔙 Bumalik sa Listahan ng File";
@@ -52,8 +53,13 @@ async function loadFile() {
     return;
   }
 
+  // ✅ KUNG GALING SA INDEX → DAGDAGAN NG docs/
+  if (!fromMgr) {
+    filePath = "docs/" + filePath;
+  }
+
   try {
-    const res = await fetch(BASE_RAW + encodeURIComponent(filePath));
+    const res = await fetch(BASE_ROOT + encodeURI(filePath));
     if (!res.ok) throw new Error("Hindi makuha ang file");
     const text = await res.text();
     contentBox.textContent = text;
@@ -76,7 +82,7 @@ async function loadFile() {
     };
 
   } catch(err) {
-    contentBox.textContent = "❌ Hindi mabasa ang dokumento:\n\n" + err.message;
+    contentBox.textContent = "❌ Hindi mabasa:\n\n" + err.message;
     copyBtn.style.display = "none";
   }
 }
