@@ -5,45 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GuitarFX — APK Generator</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
         body { background: #f0f4f8; padding: 20px; max-width: 900px; margin: 0 auto; }
-        h1 { color: #1a202c; text-align: center; margin-bottom: 30px; font-size: 28px; }
+        h1 { color: #1a202c; text-align: center; margin-bottom: 30px; }
         .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
         h2 { color: #2d3748; margin-bottom: 16px; font-size: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
         p { color: #374151; line-height: 1.7; margin-bottom: 12px; }
         ul { padding-left: 20px; margin-bottom: 12px; }
         li { margin-bottom: 8px; color: #374151; line-height: 1.6; }
         a { color: #3b82f6; text-decoration: none; font-weight: 500; }
-        a:hover { text-decoration: underline; }
-        .btn { display: inline-block; background: #3b82f6; color: white !important; padding: 12px 24px; border-radius: 8px; font-weight: bold; margin: 8px 12px 8px 0; transition: background 0.2s; text-decoration: none; }
-        .btn:hover { background: #2563eb; text-decoration: none; }
+        .btn { display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; font-weight: bold; margin: 8px 12px 8px 0; text-decoration: none; }
+        .btn:hover { background: #2563eb; }
         .btn-green { background: #28c76f; }
         .btn-green:hover { background: #1fb05f; }
-        .btn-gray { background: #6b7280; }
-        .btn-gray:hover { background: #4b5563; }
-        .updated { color: #6b7280; font-size: 13px; margin-top: 4px; }
         pre { background: #f7fafc; padding: 16px; border-radius: 8px; white-space: pre-wrap; word-wrap: break-word; font-size: 13px; line-height: 1.6; color: #2d3748; max-height: 300px; overflow-y: auto; margin-top: 12px; }
         .tag { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-right: 6px; margin-bottom: 6px; }
         .tag-ok { background: #dcfce7; color: #166534; }
-        .tag-info { background: #dbeafe; color: #1e40af; }
     </style>
 </head>
 <body>
-
     <h1>🎸 GuitarFX — APK Generator</h1>
-
     <div class="card">
         <h2>👋 Tungkol sa Proyekto</h2>
-        <p>Awtomatikong bumubuo ng APK gamit ang GitHub Actions — may talaan ng katayuan, gabay sa paggawa, at pahina ng pag-download.</p>
-        <span class="tag tag-ok">✅ Live na!</span>
-        <span class="tag tag-info">Awtomatikong Pagbuo</span>
+        <p>Awtomatikong bumubuo ng APK gamit GitHub Actions — may talaan ng katayuan, gabay, at pahina ng pag-download.</p>
+        <span class="tag tag-ok">✅ Handa na!</span>
     </div>
-
     <div class="card">
         <h2>📋 Gabay sa Paggawa</h2>
-        <p>Ang 10 pangunahing kasunduan na sinusunod sa buong proyekto:</p>
         <ul>
-            <li>✅ Hiwalay na subfolder bawat aplikasyon sa loob ng <code>apps/</code></li>
+            <li>✅ Hiwalay na subfolder bawat aplikasyon sa <code>apps/</code></li>
             <li>✅ <code>.apk</code> lamang ang ilalabas — HINDI ZIP</li>
             <li>✅ Lahat ng pagbabago dadaan sa Termux</li>
             <li>✅ Protektadong Workflow — hindi tatakbo kung hindi APK ang binago</li>
@@ -56,30 +46,15 @@
         </ul>
         <a href="TALAAN.md" class="btn">📄 Basahin ang Buong Talaan</a>
     </div>
-
     <div class="card">
         <h2>📥 I-download ang APK</h2>
-        <p>Kapag matagumpay na nabuo ang APK — makikita mo ito sa Actions page at dito rin lalabas ang pindutan ng pag-download.</p>
+        <p>Kapag matagumpay na nabuo — makikita mo sa Actions page ang APK.</p>
         <a href="https://github.com/fbvlink2026-lab/apk-generator/actions" class="btn btn-green" target="_blank">🔍 Tingnan sa Actions Page</a>
-        <a href="https://github.com/fbvlink2026-lab/apk-generator/releases" class="btn" target="_blank">📦 Tingnan sa Releases</a>
     </div>
-
     <div class="card">
         <h2>📊 Katayuan — Tagumpay o Pagkabigo</h2>
-        <p class="updated">Kasalukuyang nilalaman ng errors.md:</p>
-        <pre id="log">Naglo-load...</pre>
-        <a href="ERRORS.md" class="btn btn-gray mt-2">📖 Basahin ang Buong Talaan ng Katayuan</a>
+        <p>Talaan ng lahat ng resulta ng bawat pagbuo:</p>
+        <a href="ERRORS.md" class="btn">📖 Basahin ang Talaan ng Katayuan</a>
     </div>
-
-    <div class="card">
-        <h2>🔗 Mahahalagang Link</h2>
-        <ul>
-            <li><a href="TALAAN.md">📋 Gabay, Tagumpay, at Solusyon</a></li>
-            <li><a href="ERRORS.md">📊 Talaan ng Katayuan</a></li>
-            <li><a href="https://github.com/fbvlink2026-lab/apk-generator" target="_blank">💻 Tingnan sa GitHub Repository</a></li>
-            <li><a href="https://github.com/fbvlink2026-lab/apk-generator/actions" target="_blank">⚙️ Tingnan ang mga Build</a></li>
-        </ul>
-    </div>
-
 </body>
 </html>
