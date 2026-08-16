@@ -55,6 +55,11 @@
 - Bagong simula, malinis na kasaysayan
 
 ### 10. Lahat ng Detalye — Nakasulat sa README.md
+
+### 11. Awtomatikong Pagpapadala sa GitHub mula Termux
+- Unang beses lamang hihingi ng **Username at Token**
+- Sa mga susunod na pag-update — **hindi na hihingi! Awtomatikong na maipapadala na!**
+- Ikaw lang mag-paste ng script sa Termux — **ako na ang bahala sa pagpapadala sa GitHub! Walang ibang kailangang ilagay!
 - Hindi makakalimutan — babasahin muli kung kinakailangan
 
 ---
