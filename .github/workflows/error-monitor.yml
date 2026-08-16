@@ -1,0 +1,20 @@
+name: Error Monitor
+on:
+  workflow_run:
+    workflows: ["Build APK"]
+    types: [completed]
+
+jobs:
+  check-errors:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+      - name: Kunin ang kopya ng repositoryo
+        uses: actions/checkout@v4
+
+      - name: Patakbuhin ang script na kumukuha ng error
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x .github/scripts/kumuha-errors.sh
+          .github/scripts/kumuha-errors.sh
