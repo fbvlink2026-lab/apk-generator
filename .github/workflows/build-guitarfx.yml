@@ -49,10 +49,10 @@ jobs:
             echo "STATUS=ERROR" >> $GITHUB_OUTPUT
           fi
 
-      - name: ✅ ISULAT SA errors.md — GITHUB API!
+      - name: ✅ ISULAT SA errors.md — GAMIT ANG IYONG TOKEN!
         if: always()
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOKEN: ${{ secrets.TOKEN }}
         run: |
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
           cd apps/GuitarFX
@@ -65,18 +65,15 @@ jobs:
             DETAILS="❌ Nabigo ang pagbuo.\n---\n$(tail -25 build_log.txt)"
           fi
 
-          # Kunin ang lumang laman
-          RESP=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          RESP=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/fbvlink2026-lab/apk-generator/contents/errors.md")
           SHA=$(echo "$RESP" | grep -o '"sha": "[^"]*"' | cut -d'"' -f4)
           OLD=$(echo "$RESP" | grep -o '"content": "[^"]*"' | cut -d'"' -f4 | base64 -d)
 
-          # Bagong laman — bagong entry sa itaas
           NEW_CONTENT="$(echo -e "$HEADER\n$DETAILS")\n---\n$OLD"
           ENCODED=$(echo -e "$NEW_CONTENT" | base64 -w 0)
 
-          # I-save gamit ang API
-          curl -s -X PUT -H "Authorization: token $GITHUB_TOKEN" \
+          curl -s -X PUT -H "Authorization: token $TOKEN" \
             -H "Content-Type: application/json" \
             "https://api.github.com/repos/fbvlink2026-lab/apk-generator/contents/errors.md" \
             -d '{
