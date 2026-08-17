@@ -2,7 +2,62 @@
 
 > Created & Developed by MartoDosko © Copyright 2026
 
-❌ ERROR — GuitarFX — 2026-08-17 12:22 UTC — Nabigo ang pagbuo
+❌ ERROR — GuitarFX — 2026-08-17 12:55 UTC — Nabigo ang pagbuo
+---
+### 📋 BUONG LOG:
+```
+License for package Android SDK Build-Tools 33.0.1 accepted.
+Preparing "Install Android SDK Build-Tools 33.0.1 v.33.0.1".
+"Install Android SDK Build-Tools 33.0.1 v.33.0.1" ready.
+Installing Android SDK Build-Tools 33.0.1 in /usr/local/lib/android/sdk/build-tools/33.0.1
+"Install Android SDK Build-Tools 33.0.1 v.33.0.1" complete.
+"Install Android SDK Build-Tools 33.0.1 v.33.0.1" finished.
+> Task :preBuild UP-TO-DATE
+> Task :preDebugBuild UP-TO-DATE
+> Task :mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :generateDebugResValues
+> Task :checkDebugAarMetadata
+> Task :mapDebugSourceSetPaths
+> Task :generateDebugResources
+> Task :packageDebugResources
+> Task :mergeDebugResources
+> Task :createDebugCompatibleScreenManifests
+> Task :extractDeepLinksDebug
+> Task :parseDebugLocalResources
+> Task :processDebugMainManifest
+> Task :processDebugManifest
+> Task :javaPreCompileDebug
+> Task :mergeDebugShaders
+> Task :compileDebugShaders NO-SOURCE
+> Task :generateDebugAssets UP-TO-DATE
+> Task :mergeDebugAssets FROM-CACHE
+> Task :compressDebugAssets
+> Task :desugarDebugFileDependencies
+> Task :processDebugManifestForPackage
+> Task :checkDebugDuplicateClasses
+> Task :processDebugResources FAILED
+> Task :mergeExtDexDebug
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':processDebugResources'.
+> A failure occurred while executing com.android.build.gradle.internal.res.LinkApplicationAndroidResourcesTask$TaskAction
+   > Android resource linking failed
+     /home/runner/work/apk-generator/apk-generator/apps/GuitarFX/build/intermediates/packaged_manifests/debug/AndroidManifest.xml:17: error: resource mipmap/ic_launcher (aka com.guitarfx.app:mipmap/ic_launcher) not found.
+     error: failed processing manifest.
+
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1m 19s
+19 actionable tasks: 18 executed, 1 from cache
+```
+
 ---
 ### 📋 BUONG LOG:
 ```
