@@ -22,15 +22,65 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      - name: 📦 List Files — PARA MALAMAN ANG PATH
+        run: |
+          echo "=== Root ==="
+          ls -la
+          echo ""
+          echo "=== apps/GuitarFX ==="
+          ls -la apps/GuitarFX/
+
       - name: 📦 Grant Execute Permission
-        run: chmod +x apps/GuitarFX/gradlew
+        run: |
+          chmod +x apps/GuitarFX/gradlew
+          ls -la apps/GuitarFX/gradlew
 
       - name: 🔨 Build APK
+        id: build
         run: |
           cd apps/GuitarFX
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug 2>&1 | tee /tmp/build_output.log
+        shell: bash
 
-      - name: 📤 Upload APK — TAMA NA ANG PATH!
+      - name: 📝 Update errors.md
+        if: always()
+        run: |
+          DATE=$(date "+%Y-%m-%d %H:%M UTC")
+          cd apps/GuitarFX
+          
+          BUILD_LOG="/tmp/build_output.log"
+          
+          # ✅ AYUS ANG APK PATH — WALANG "app/" SA UNA!
+          if [ -f "build/outputs/apk/debug/GuitarFX-debug.apk" ]; then
+            SIZE=$(du -h build/outputs/apk/debug/GuitarFX-debug.apk | cut -f1)
+            LINE="✅ TAGUMPAY — GuitarFX — $DATE — Laki: $SIZE"
+            EXTRA=""
+          else
+            LINE="❌ ERROR — GuitarFX — $DATE — Nabigo ang pagbuo"
+            if [ -f "$BUILD_LOG" ]; then
+              EXTRA="\n---\n### 📋 BUONG LOG:\n\`\`\`\n$(tail -50 "$BUILD_LOG")\n\`\`\`\n"
+            else
+              EXTRA="\n---\n> ⚠️ Walang log file"
+            fi
+          fi
+          
+          cd $GITHUB_WORKSPACE
+          
+          NEW_ENTRY="$LINE$EXTRA\n---\n"
+          
+          if [ -f errors.md ]; then
+            OLD_CONTENT=$(cat errors.md)
+            OLD_CONTENT=$(echo "$OLD_CONTENT" | sed '/^# Talaan ng mga Error$/d' | sed '/^---$/!b' | sed '1,/^---$/d')
+            FINAL="# Talaan ng mga Error\n\n> Created & Developed by MartoDosko © Copyright 2026\n\n$NEW_ENTRY$OLD_CONTENT"
+          else
+            FINAL="# Talaan ng mga Error\n\n> Created & Developed by MartoDosko © Copyright 2026\n\n$NEW_ENTRY"
+          fi
+          
+          echo -e "$FINAL" > errors.md
+          echo "✅ Na-update ang errors.md"
+        shell: /usr/bin/bash -e {0}
+
+      - name: 📤 Upload APK — ✅ AYUS ANG PATH + ALWAYS!
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -38,31 +88,12 @@ jobs:
           path: apps/GuitarFX/build/outputs/apk/debug/GuitarFX-debug.apk
           retention-days: 30
 
-      - name: 📝 Update errors.md — NASA ROOT!
+      - name: ✅ Commit errors.md
         if: always()
         run: |
-          DATE=$(date "+%Y-%m-%d %H:%M UTC")
-          APK_FILE="apps/GuitarFX/build/outputs/apk/debug/GuitarFX-debug.apk"
-          
-          # ✅ BUMABALIK SA ROOT — ITO ANG MAHALAGA!
-          cd $GITHUB_WORKSPACE
-          
-          if [ -f "$APK_FILE" ]; then
-            SIZE=$(du -h "$APK_FILE" | cut -f1)
-            LINE="✅ TAGUMPAY — GuitarFX — $DATE — Laki: $SIZE"
-          else
-            LINE="❌ ERROR — GuitarFX — $DATE — Hindi nakita ang APK"
-          fi
-          
-          NEW_ENTRY="$LINE\n---\n"
-          
-          if [ -f errors.md ]; then
-            OLD_CONTENT=$(cat errors.md)
-            FINAL="# Talaan ng mga Error\n\n> Created & Developed by MartoDosko © Copyright 2026\n\n$NEW_ENTRY$OLD_CONTENT"
-          else
-            FINAL="# Talaan ng mga Error\n\n> Created & Developed by MartoDosko © Copyright 2026\n\n$NEW_ENTRY"
-          fi
-          
-          echo -e "$FINAL" > errors.md
-          echo "✅ Na-update ang errors.md — NASA ROOT!"
-        shell: /usr/bin/bash -e {0}
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add errors.md
+          git commit -m "🔄 Auto-Update: errors.md" || true
+          git push || true
+        shell: bash
