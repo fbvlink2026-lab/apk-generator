@@ -22,58 +22,52 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: 📦 List Files — PARA MALAMAN ANG PATH
-        run: |
-          echo "=== Root ==="
-          ls -la
-          echo ""
-          echo "=== apps/GuitarFX ==="
-          ls -la apps/GuitarFX/
-
       - name: 📦 Grant Execute Permission
-        run: |
-          chmod +x apps/GuitarFX/gradlew
+        run: chmod +x apps/GuitarFX/gradlew
 
       - name: 🔨 Build APK
-        id: build
         run: |
           cd apps/GuitarFX
           ./gradlew assembleDebug 2>&1 | tee /tmp/build_output.log
         shell: bash
 
-      - name: 📤 Upload APK — LAGING I-UPLOAD!
+      - name: 🔍 HANAPIN ANG APK — SIGURADUHIN NASAAN!
+        id: find_apk
+        run: |
+          echo "=== HINAHANAP ANG APK FILE... ==="
+          find apps/GuitarFX -name "*.apk"
+          
+          APK_FILE=$(find apps/GuitarFX -name "*debug*.apk" | head -1)
+          if [ -n "$APK_FILE" ]; then
+            echo "✅ NAKITA ANG APK SA: $APK_FILE"
+            echo "APK_PATH=$APK_FILE" >> $GITHUB_OUTPUT
+          else
+            echo "❌ HINDI NAKITA ANG APK!"
+            exit 1
+          fi
+
+      - name: 📤 Upload APK — GAMIT ANG TAMANG PATH!
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: GuitarFX-APK
-          path: apps/GuitarFX/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ steps.find_apk.outputs.APK_PATH }}
           retention-days: 30
 
-      - name: 📝 Update errors.md
+      - name: 📝 Update errors.md — WALANG PUSH!
         if: always()
         run: |
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
-          cd apps/GuitarFX
+          APK_FILE=$(find apps/GuitarFX -name "*debug*.apk" | head -1)
           
-          BUILD_LOG="/tmp/build_output.log"
-          APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
-          
-          if [ -f "$APK_PATH" ]; then
-            SIZE=$(du -h "$APK_PATH" | cut -f1)
+          if [ -f "$APK_FILE" ]; then
+            SIZE=$(du -h "$APK_FILE" | cut -f1)
             LINE="✅ TAGUMPAY — GuitarFX — $DATE — Laki: $SIZE"
-            EXTRA=""
           else
-            LINE="❌ ERROR — GuitarFX — $DATE — Nabigo ang pagbuo"
-            if [ -f "$BUILD_LOG" ]; then
-              EXTRA="\n---\n### 📋 BUONG LOG:\n\`\`\`\n$(tail -50 "$BUILD_LOG")\n\`\`\`\n"
-            else
-              EXTRA="\n---\n> ⚠️ Walang log file"
-            fi
+            LINE="❌ ERROR — GuitarFX — $DATE — Hindi nakita ang APK"
           fi
           
-          cd $GITHUB_WORKSPACE
-          
-          NEW_ENTRY="$LINE$EXTRA\n---\n"
+          NEW_ENTRY="$LINE\n---\n"
           
           if [ -f errors.md ]; then
             OLD_CONTENT=$(cat errors.md)
