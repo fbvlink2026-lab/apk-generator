@@ -1,5 +1,4 @@
 package com.martodosko.guitarfx
-
 object AudioWrapper {
     init { System.loadLibrary("guitarfx") }
     external fun nativeInit()
