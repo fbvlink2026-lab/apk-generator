@@ -1,13 +1,95 @@
 name: Build APK
+
 on:
   push:
     paths:
       - 'apps/**'
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: startsWith(github.event.head_commit.message, 'apk:') || contains(github.event.head_commit.message, 'apps/')
+    if: startsWith(github.event.head_commit.message, 'apk:') || contains(github.event.head_commit.message, 'apps/') || github.event_name == 'workflow_dispatch'
+    
     steps:
-      - uses: actions/checkout@v4
-      - name: ✅ APK detected — Building...
-        run: echo "Tumatakbo LAMANG para sa APK files sa apps/"
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: 📦 Grant Execute Permission
+        run: |
+          chmod +x apps/GuitarFX/gradlew
+          echo "✅ Permission granted"
+
+      - name: 🔨 Build APK — CAPTURE LOGS
+        id: build
+        run: |
+          cd apps/GuitarFX
+          ./gradlew assembleDebug 2>&1 | tee /tmp/build_output.log
+        shell: bash
+
+      - name: 📝 Update errors.md — MAY DETALYADONG ERROR!
+        run: |
+          DATE=$(date "+%Y-%m-%d %H:%M UTC")
+          cd apps/GuitarFX
+          
+          BUILD_LOG="/tmp/build_output.log"
+          
+          if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
+            SIZE=$(du -h app/build/outputs/apk/debug/app-debug.apk | cut -f1)
+            LINE="✅ TAGUMPAY — GuitarFX — $DATE — Laki: $SIZE"
+            ERROR_DETAILS=""
+          else
+            LINE="❌ ERROR — GuitarFX — $DATE — Nabigo ang pagbuo"
+            echo "🔍 Kinukuha ang detalye ng error..."
+            
+            if [ -f "$BUILD_LOG" ]; then
+              ERROR_LINES=$(grep -n -i -E 'error:|Error: |ERROR:|FAILED|FAILURE|exception:|Exception:|BUILD FAILED|cannot find|unresolved|invalid|returned non-zero|exit code [1-9]|Compilation failed|Execution failed|command failed|not found' "$BUILD_LOG" | head -20)
+              
+              if [ -n "$ERROR_LINES" ]; then
+                ERROR_DETAILS="\n### 🔴 MGA LYNANG MAY ERROR:\n\`\`\`\n$ERROR_LINES\n\`\`\`\n"
+              else
+                LAST_LINES=$(tail -50 "$BUILD_LOG")
+                ERROR_DETAILS="\n### 🔴 HULING 50 LINYA NG LOG:\n\`\`\`\n$LAST_LINES\n\`\`\`\n"
+              fi
+            else
+              ERROR_DETAILS="\n> ⚠️ Hindi mahanap ang log file — tingnan ang Actions page.\n"
+            fi
+          fi
+          
+          cd $GITHUB_WORKSPACE
+          
+          if [ -n "$ERROR_DETAILS" ]; then
+            NEW_ENTRY="$LINE\n$ERROR_DETAILS\n---\n"
+          else
+            NEW_ENTRY="$LINE\n---\n"
+          fi
+          
+          OLD_CONTENT=$(cat errors.md 2>/dev/null | sed '/^# Talaan ng mga Error$/d' | sed '/^---$/d' | sed '/^Created & Developed by MartoDosko/d')
+          FINAL="# Talaan ng mga Error\n\n> Awtomatikong talaan ng mga pagkabigo habang pagbuo ng aplikasyon.\n> Created & Developed by MartoDosko © Copyright 2026\n\n$NEW_ENTRY$OLD_CONTENT"
+          
+          echo -e "$FINAL" > errors.md
+          echo "✅ Na-update ang errors.md — may detalyadong linyang error na!"
+        shell: /usr/bin/bash -e {0}
+
+      - name: 📤 Upload APK
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: GuitarFX-APK
+          path: apps/GuitarFX/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+      - name: 📤 Upload Build Log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Build-Log
+          path: /tmp/build_output.log
+          retention-days: 30
