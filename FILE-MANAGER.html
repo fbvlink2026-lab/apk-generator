@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="tl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>apk-generator — Listahan ng Lahat ng File</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f0f4f8; padding: 20px; max-width: 900px; margin: 0 auto; }
+    .back-bar { margin-bottom: 20px; }
+    .back-link { display: inline-block; background: #3b82f6; color: white; padding: 10px 20px; border-radius: 8px; font-weight: bold; text-decoration: none; }
+    .back-link:hover { background: #2563eb; }
+    h1 { text-align: center; color: #1a202c; margin-bottom: 20px; font-size: 20px; }
+    .hint { color: #4b5563; font-size: 14px; text-align: center; margin-bottom: 20px; }
+    .container { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .file-item { padding: 10px 14px; margin: 3px 0; cursor: pointer; border-radius: 6px; font-size: 14px; color: #1f2937; }
+    .file-item:hover { background: #dbeafe; color: #1e40af; font-weight: 500; }
+    .folder-item { padding: 12px 14px; margin: 6px 0 4px 0; font-weight: bold; background: #f3f4f6; border-radius: 6px; font-size: 14px; color: #374151; }
+    .loading { color: #6b7280; font-style: italic; padding: 20px; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <div class="back-bar">
+    <a href="index.html" class="back-link">🔙 Bumalik sa Pangunahing Pahina</a>
+  </div>
+
+  <h1>🎸 apk-generator — Listahan ng Lahat ng File</h1>
+  <p class="hint">💡 Pindutin ang anumang file → Bubukas sa bagong pahina na may laman, pindutang pabalik, at kopyahin</p>
+
+  <div class="container">
+    <div id="file-list"><p class="loading">⏳ Binabasa ang lahat ng file...</p></div>
+  </div>
+
+<script>
+const API_URL = "https://api.github.com/repos/fbvlink2026-lab/apk-generator/git/trees/main?recursive=1";
+const fileListArea = document.getElementById("file-list");
+
+fetch(API_URL)
+  .then(r => {
+    if (!r.ok) throw new Error("Hindi mabasa ang listahan");
+    return r.json();
+  })
+  .then(d => {
+    if (!d.tree) {
+      fileListArea.innerHTML = "<p class='loading'>❌ Walang nakitang file.</p>";
+      return;
+    }
+    const files = d.tree.filter(x => x.type === "blob").sort((a,b) => a.path.localeCompare(b.path));
+    renderList(files);
+  })
+  .catch(err => {
+    fileListArea.innerHTML = `<p class='loading'>❌ ${err.message}</p>`;
+  });
+
+function renderList(files) {
+  fileListArea.innerHTML = "";
+  let structure = {};
+  files.forEach(file => {
+    const parts = file.path.split("/");
+    let cur = structure;
+    parts.forEach((p, i) => {
+      if (i === parts.length - 1) {
+        if (!cur._files) cur._files = [];
+        cur._files.push({name:p, path:file.path});
+      } else {
+        if (!cur[p]) cur[p] = {_files:[]};
+        cur = cur[p];
+      }
+    });
+  });
+
+  function render(o, parent, indent="") {
+    if (o._files) {
+      o._files.forEach(f => {
+        const el = document.createElement("div");
+        el.className = "file-item";
+        el.textContent = "📄 " + f.name;
+        el.style.paddingLeft = (indent.length * 8 + 12) + "px";
+        el.onclick = () => {
+          window.open("BASAHIN.html?f=" + encodeURIComponent(f.path) + "&m=1", "_blank");
+        };
+        parent.appendChild(el);
+      });
+    }
+    Object.keys(o).forEach(k => {
+      if (k === "_files") return;
+      const el = document.createElement("div");
+      el.className = "folder-item";
+      el.textContent = "📁 " + k + "/";
+      el.style.paddingLeft = (indent.length * 8 + 8) + "px";
+      parent.appendChild(el);
+      render(o[k], parent, indent + "  ");
+    });
+  }
+  render(structure, fileListArea);
+}
+</script>
+
+  <div style="text-align:center; margin-top:30px; padding-top:20px; border-top:1px solid #e5e7eb; color:#6b7280; font-size:14px;">
+    Developed by MartoDosko © Copyright 2026
+  </div>
+
+</body>
+</html>
