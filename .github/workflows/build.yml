@@ -30,7 +30,7 @@ jobs:
           cd apps/GuitarFX
           ./gradlew assembleDebug
 
-      - name: 📤 Upload APK — ✅ TAMA NA ANG PATH! LUMAHAS NA!
+      - name: 📤 Upload APK — TAMA NA ANG PATH!
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -38,13 +38,13 @@ jobs:
           path: apps/GuitarFX/build/outputs/apk/debug/GuitarFX-debug.apk
           retention-days: 30
 
-      - name: 📝 Update errors.md — ✅ IBINALIK SA DATI! NASA ROOT!
+      - name: 📝 Update errors.md — NASA ROOT!
         if: always()
         run: |
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
           APK_FILE="apps/GuitarFX/build/outputs/apk/debug/GuitarFX-debug.apk"
           
-          # ✅ BUMABALIK SA ROOT — ITO ANG KULANG! KAYA NAGSUSULAT ULIT SA TAMA!
+          # ✅ BUMABALIK SA ROOT — ITO ANG MAHALAGA!
           cd $GITHUB_WORKSPACE
           
           if [ -f "$APK_FILE" ]; then
@@ -64,5 +64,5 @@ jobs:
           fi
           
           echo -e "$FINAL" > errors.md
-          echo "✅ Na-update ang errors.md — NASA ROOT! MAKIKITA MO NA!"
+          echo "✅ Na-update ang errors.md — NASA ROOT!"
         shell: /usr/bin/bash -e {0}
