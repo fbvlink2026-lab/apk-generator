@@ -1,6 +1,10 @@
 package com.martodosko.guitarfx
+
 object AudioWrapper {
-    init { System.loadLibrary("guitarfx") }
+    init {
+        System.loadLibrary("guitarfx")
+    }
+
     external fun nativeInit()
     external fun nativeStart()
     external fun nativeStop()
