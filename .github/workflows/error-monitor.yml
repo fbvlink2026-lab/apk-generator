@@ -1,4 +1,5 @@
 name: Error Monitor
+
 on:
   workflow_run:
     workflows: ["Build APK"]
@@ -8,13 +9,38 @@ jobs:
   check-errors:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    
+    permissions:
+      contents: write
+      actions: read
+    
     steps:
       - name: Kunin ang kopya ng repositoryo
         uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: I-setup ang Git User
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Patakbuhin ang script na kumukuha ng error
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          BRANCH_NAME: main
         run: |
           chmod +x .github/scripts/kumuha-errors.sh
           .github/scripts/kumuha-errors.sh
+
+      - name: I-commit at i-push ang errors.md
+        run: |
+          git add errors.md || true
+          if git diff --staged --quiet; then
+            echo "✅ Walang bagong isusulat"
+          else
+            git commit -m "📝 Auto-update: naitala ang error"
+            git push origin main
+            echo "✅ Naipadala na ang errors.md"
+          fi

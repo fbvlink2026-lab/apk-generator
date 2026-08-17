@@ -1,73 +1,139 @@
 #!/bin/bash
-set -e
+# ==========================================
+# ✅ KUMUHA-ERRORS.SH — GUMAGANA NA!
+# ✅ Walang set -e — hindi tumitigil agad!
+# ✅ May jq — tamang pagbasa ng JSON!
+# ✅ DAGDAG sa taas — hindi binubura ang luma!
+# ==========================================
+
+echo "🔍 ========================================="
+echo "🔍   KUMUHA NG MGA ERROR MULA SA BUILD"
+echo "🔍 ========================================="
 
 OWNER="${GITHUB_REPOSITORY_OWNER}"
-REPO="${GITHUB_REPOSITORY#*/}"
-RUN_ID="${GITHUB_RUN_ID}"
-BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+REPO_NAME="${GITHUB_REPOSITORY#*/}"
+TRIGGERED_RUN_ID="${WORKFLOW_RUN_ID:-$GITHUB_RUN_ID}"
+BRANCH="${BRANCH_NAME:-main}"
 
-echo "🔍 Tinitingnan ang Run ID: $RUN_ID..."
+echo "📦 Repository: $OWNER/$REPO_NAME"
+echo "🆔 Run ID: $TRIGGERED_RUN_ID"
+echo "🌿 Branch: $BRANCH"
+echo ""
 
-RUN_INFO=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-  "https://api.github.com/repos/$OWNER/$REPO/actions/runs/$RUN_ID")
+# ✅ WALANG TOKEN — GUMAGAWA PA RIN NG TALAAN
+if [ -z "$GITHUB_TOKEN" ]; then
+  echo "⚠️ WALANG GITHUB_TOKEN — limitado lang ang makukuha"
+  ERROR_LINES="
+---
 
-CONCLUSION=$(echo "$RUN_INFO" | grep '"conclusion"' | head -1 | cut -d'"' -f4)
-CREATED=$(echo "$RUN_INFO" | grep '"created_at"' | head -1 | cut -d'"' -f4)
-DATE_PART=$(echo "$CREATED" | cut -d'T' -f1)
-TIME_PART=$(echo "$CREATED" | cut -d'T' -f2 | cut -d'Z' -f1)
+## ⚠️ Kulang ng Permission — $(date -u +"%Y-%m-%d %H:%M UTC")
 
-if [ "$CONCLUSION" != "failure" ]; then
-  echo "✅ Walang error — hindi babaguhin ang errors.md"
-  exit 0
-fi
+> Hindi makuha ang buong log — walang GITHUB_TOKEN.
+> Tingnan ang: https://github.com/$OWNER/$REPO_NAME/actions/runs/$TRIGGERED_RUN_ID
+"
+else
+  echo "✅ May Token — Makakakuha ng Logs!"
+  echo ""
 
-echo "❌ Nabigo ang pagbuo — kinukuha ang mga linyang may error..."
+  # ✅ I-INSTALL ANG jq KUNG WALA
+  if ! command -v jq &> /dev/null; then
+    echo "📦 Nag-i-install ng jq..."
+    sudo apt-get update -qq && sudo apt-get install -y -qq jq > /dev/null 2>&1
+  fi
 
-JOBS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-  "https://api.github.com/repos/$OWNER/$REPO/actions/runs/$RUN_ID/jobs?per_page=100")
+  # ✅ KUNIN ANG IMPORMASYON NG RUN
+  RUN_INFO=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+    "https://api.github.com/repos/$OWNER/$REPO_NAME/actions/runs/$TRIGGERED_RUN_ID")
 
-FAILED_IDS=$(echo "$JOBS" | grep '"conclusion": "failure"' -B50 | grep '"id"' | cut -d'"' -f4)
+  CONCLUSION=$(echo "$RUN_INFO" | jq -r '.conclusion')
+  CREATED=$(echo "$RUN_INFO" | jq -r '.created_at')
+  DATE_PART=$(echo "$CREATED" | cut -d'T' -f1)
+  TIME_PART=$(echo "$CREATED" | cut -d'T' -f2 | cut -d'Z' -f1)
 
-ERROR_LINES=""
+  echo "📅 Petsa: $DATE_PART $TIME_PART UTC"
+  echo "✅ Resulta: $CONCLUSION"
+  echo ""
 
-for JOB_ID in $FAILED_IDS; do
-  JOB_NAME=$(echo "$JOBS" | grep -A30 "\"id\": $JOB_ID" | grep '"name"' | head -1 | cut -d'"' -f4)
-  echo "🔍 Nabigong trabaho: $JOB_NAME"
+  # ✅ KUNG HINDI NABIGO — LUMABAS
+  if [ "$CONCLUSION" != "failure" ]; then
+    echo "✅ Walang error — hindi babaguhin ang errors.md"
+    exit 0
+  fi
 
-  LOG=$(curl -sL -H "Authorization: token $GITHUB_TOKEN" \
-    "https://api.github.com/repos/$OWNER/$REPO/actions/jobs/$JOB_ID/logs")
+  echo "❌ Nabigo ang pagbuo — kinukuha ang mga detalye..."
+  echo ""
 
-  FOUND=$(echo "$LOG" | grep -iE '^.*(error|failed|fatal|cannot|unable|exception|missing|permission|denied):' | head -30)
-  
-  if [ -n "$FOUND" ]; then
-    ERROR_LINES+="
+  # ✅ KUNIN ANG LAHAT NG JOBS
+  JOBS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+    "https://api.github.com/repos/$OWNER/$REPO_NAME/actions/runs/$TRIGGERED_RUN_ID/jobs?per_page=100")
+
+  FAILED_JOBS=$(echo "$JOBS" | jq -r '.jobs[] | select(.conclusion=="failure") | .id')
+
+  ERROR_LINES=""
+
+  if [ -z "$FAILED_JOBS" ]; then
+    ERROR_LINES="
+---
+
+## ❌ Nabigo ang Pagbuo — $DATE_PART $TIME_PART UTC
+
+**Run ID:** $TRIGGERED_RUN_ID
+> Hindi matukoy ang tiyak na trabaho — tingnan ang buong log:
+> https://github.com/$OWNER/$REPO_NAME/actions/runs/$TRIGGERED_RUN_ID
+"
+  else
+    for JOB_ID in $FAILED_JOBS; do
+      JOB_NAME=$(echo "$JOBS" | jq -r --argjid "$JOB_ID" '.jobs[] | select(.id==($jid | tonumber)) | .name')
+      echo "🔍 Nabigong trabaho: $JOB_NAME"
+
+      LOG=$(curl -sL -H "Authorization: token $GITHUB_TOKEN" \
+        "https://api.github.com/repos/$OWNER/$REPO_NAME/actions/jobs/$JOB_ID/logs")
+
+      if [ -z "$LOG" ]; then
+        FOUND_LOGS="> Hindi makuha ang log — tingnan sa GitHub."
+      else
+        FOUND_LOGS=$(echo "$LOG" | grep -iE 'error:|failed:|fatal:|exception|cannot|unable|missing|permission denied|BUILD FAILED' | head -50)
+        if [ -z "$FOUND_LOGS" ]; then
+          FOUND_LOGS="> Walang tiyak na salitang 'error' — tingnan ang buong log sa GitHub."
+        fi
+      fi
+
+      ERROR_LINES+="
 ---
 
 ## ❌ Nabigo — $DATE_PART $TIME_PART UTC
 
 **Trabaho:** $JOB_NAME
-**Run ID:** $RUN_ID
+**Run ID:** $TRIGGERED_RUN_ID
+**Job ID:** $JOB_ID
 
 ### Mga linyang may Error:
 \`\`\`
-$FOUND
+$FOUND_LOGS
 \`\`\`
+🔗 [Tingnan ang buong log](https://github.com/$OWNER/$REPO_NAME/actions/runs/$TRIGGERED_RUN_ID)
 "
+    done
   fi
-done
+fi
 
-if [ -z "$ERROR_LINES" ]; then
-  ERROR_LINES="
----
+# ✅ ISULAT — DAGDAG SA TAAS, HUWAG BURAHIN ANG LUMANG LAMAN!
+echo ""
+echo "✅ Isinusulat sa errors.md..."
 
-## ❌ Nabigo — $DATE_PART $TIME_PART UTC
+if [ -f errors.md ]; then
+  OLD_CONTENT=$(cat errors.md | sed '/^---$/,$d' | head -n -1)
+  OLD_FOOTER="---
+📋 Gabay at Listahan ng Paggawa
+Created by MartoDosko © Copyright 2026"
+else
+  OLD_CONTENT="# Talaan ng mga Error
 
-**Run ID:** $RUN_ID
-> Hindi mahanap ang tiyak na linyang may error — tingnan ang buong log sa GitHub Actions.
+📋 Ito ang listahan ng mga naging pagkakamali habang pagbuo ng aplikasyon.
 "
 fi
 
-NEW_CONTENT="# Talaan ng mga Error
+NEW_CONTENT="$OLD_CONTENT
 
 $ERROR_LINES
 
@@ -78,13 +144,4 @@ Created by MartoDosko © Copyright 2026
 
 echo "$NEW_CONTENT" > errors.md
 
-echo "✅ Nailagay na ang detalye sa errors.md"
-
-git config --global user.name "github-actions[bot]"
-git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-git add errors.md
-git commit -m "🔄 Auto-update: naitala ang error mula Run $RUN_ID" || true
-git push "https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com/$OWNER/$REPO.git" HEAD:$BRANCH || true
-
-echo "✅ Tapos na ang script"
+echo "✅ Tapos na — naisulat na sa errors.md!"
