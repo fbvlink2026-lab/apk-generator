@@ -28,37 +28,21 @@ jobs:
       - name: 🔨 Build APK
         run: |
           cd apps/GuitarFX
-          ./gradlew assembleDebug 2>&1 | tee /tmp/build_output.log
-        shell: bash
+          ./gradlew assembleDebug
 
-      - name: 🔍 HANAPIN ANG APK — SIGURADUHIN NASAAN!
-        id: find_apk
-        run: |
-          echo "=== HINAHANAP ANG APK FILE... ==="
-          find apps/GuitarFX -name "*.apk"
-          
-          APK_FILE=$(find apps/GuitarFX -name "*debug*.apk" | head -1)
-          if [ -n "$APK_FILE" ]; then
-            echo "✅ NAKITA ANG APK SA: $APK_FILE"
-            echo "APK_PATH=$APK_FILE" >> $GITHUB_OUTPUT
-          else
-            echo "❌ HINDI NAKITA ANG APK!"
-            exit 1
-          fi
-
-      - name: 📤 Upload APK — GAMIT ANG TAMANG PATH!
+      - name: 📤 Upload APK — TAMA NA ANG PATH!
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: GuitarFX-APK
-          path: ${{ steps.find_apk.outputs.APK_PATH }}
+          path: apps/GuitarFX/build/outputs/apk/debug/GuitarFX-debug.apk
           retention-days: 30
 
       - name: 📝 Update errors.md — WALANG PUSH!
         if: always()
         run: |
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
-          APK_FILE=$(find apps/GuitarFX -name "*debug*.apk" | head -1)
+          APK_FILE="apps/GuitarFX/build/outputs/apk/debug/GuitarFX-debug.apk"
           
           if [ -f "$APK_FILE" ]; then
             SIZE=$(du -h "$APK_FILE" | cut -f1)
