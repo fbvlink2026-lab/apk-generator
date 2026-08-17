@@ -71,8 +71,13 @@ jobs:
             NEW_ENTRY="$LINE\n---\n"
           fi
           
-          OLD_CONTENT=$(cat errors.md 2>/dev/null | sed '/^# Talaan ng mga Error$/d' | sed '/^---$/d' | sed '/^Created & Developed by MartoDosko/d')
-          FINAL="# Talaan ng mga Error\n\n> Awtomatikong talaan ng mga pagkabigo habang pagbuo ng aplikasyon.\n> Created & Developed by MartoDosko © Copyright 2026\n\n$NEW_ENTRY$OLD_CONTENT"
+          if [ -f errors.md ]; then
+            OLD_CONTENT=$(cat errors.md)
+            OLD_CONTENT=$(echo "$OLD_CONTENT" | sed '/^# Talaan ng mga Error$/d' | sed '/^Created & Developed by MartoDosko/d' | sed '/^---$/!b' | sed '1,/^---$/d')
+            FINAL="# Talaan ng mga Error\n\n> Awtomatikong talaan ng mga pagkabigo habang pagbuo ng aplikasyon.\n> Created & Developed by MartoDosko © Copyright 2026\n\n$NEW_ENTRY$OLD_CONTENT"
+          else
+            FINAL="# Talaan ng mga Error\n\n> Awtomatikong talaan ng mga pagkabigo habang pagbuo ng aplikasyon.\n> Created & Developed by MartoDosko © Copyright 2026\n\n$NEW_ENTRY"
+          fi
           
           echo -e "$FINAL" > errors.md
           echo "✅ Na-update ang errors.md — may detalyadong linyang error na!"
@@ -93,3 +98,11 @@ jobs:
           name: Build-Log
           path: /tmp/build_output.log
           retention-days: 30
+
+      - name: ✅ Commit & Update errors.md
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          file_pattern: errors.md
+          commit_message: 🔄 Auto-Update: errors.md — May Detalye!
+          commit_user_name: fbvlink2026-lab
+          commit_user_email: 302709664+fbvlink2026-lab@users.noreply.github.com
