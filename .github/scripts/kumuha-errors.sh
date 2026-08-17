@@ -1,86 +1,67 @@
 #!/bin/bash
-set -e
+# Error Monitor — KUKUHA NG TOTOONG LOGS AT DETALYADONG ERROR!
+# Created by MartoDosko © 2026
 
 OWNER="${GITHUB_REPOSITORY_OWNER}"
 REPO="${GITHUB_REPOSITORY#*/}"
 RUN_ID="${WORKFLOW_RUN_ID:-$GITHUB_RUN_ID}"
 TOKEN="${GITHUB_TOKEN}"
 
-echo "🔍 Nagsisimula ang detalyadong pag-check — Run ID: $RUN_ID"
+echo "🔍 Error Monitor nagsimula — Run ID: $RUN_ID"
 
-# ✅ KAILANGAN NG jq — i-install kung wala
-if ! command -v jq &>/dev/null; then
-  echo "📦 Nag-i-install ng jq..."
-  sudo apt-get update -qq && sudo apt-get install -y -qq jq >/dev/null 2>&1
-fi
-
-# ✅ KUNIN ANG DETALYE NG RUN
+# ✅ KUNIN ANG KALAGAYAN NG RUN
 API_URL="https://api.github.com/repos/$OWNER/$REPO/actions/runs/$RUN_ID"
-CONCLUSION=$(curl -s -H "Authorization: token $TOKEN" "$API_URL" | jq -r .conclusion)
+CONCLUSION=$(curl -s -H "Authorization: token $TOKEN" "$API_URL" | grep -o '"conclusion": *"[^"]*"' | cut -d'"' -f4)
 
 if [ "$CONCLUSION" != "failure" ]; then
-  echo "✅ Walang nakitang pagkabigo — tapos na."
+  echo "✅ Walang pagkabigo — tapos na."
   exit 0
 fi
 
-echo "❌ NAKITANG PAGKABIGO — kinukuha ang mga detalye..."
+echo "❌ NAKITANG PAGKABIGO — kinukuha ang detalye..."
 
-# ✅ KUNIN ANG LAHAT NG JOBS — alin ang nabigo?
-JOBS_URL="$API_URL/jobs"
-JOBS_JSON=$(curl -s -H "Authorization: token $TOKEN" "$JOBS_URL")
-FAILED_JOB_IDS=$(echo "$JOBS_JSON" | jq -r '.jobs[] | select(.conclusion=="failure") | .id')
+# ✅ KUNIN ANG LAHAT NG JOBS
+JOBS_JSON=$(curl -s -H "Authorization: token $TOKEN" "$API_URL/jobs")
+FAILED_JOBS=$(echo "$JOBS_JSON" | grep -o '"conclusion": *"failure"' | wc -l)
 
-if [ -z "$FAILED_JOB_IDS" ]; then
-  ERROR_DETAILS="> Hindi makuha ang tiyak na detalye — tingnan ang Actions page.\n"
+if [ "$FAILED_JOBS" = "0" ]; then
+  ERROR_TEXT="> Hindi makuha ang tiyak na detalye — tingnan ang Actions page.\n"
 else
-  ERROR_DETAILS=""
-  for JOB_ID in $FAILED_JOB_IDS; do
-    JOB_NAME=$(echo "$JOBS_JSON" | jq -r --arg JID "$JOB_ID" '.jobs[] | select(.id==($JID|tonumber)) | .name')
-    JOB_URL="https://github.com/$OWNER/$REPO/actions/runs/$RUN_ID/job/$JOB_ID"
-    echo "🔍 Sinusuri ang Job: $JOB_NAME — $JOB_URL"
-    
-    # ✅ KUNIN ANG LOGS NG NABIGONG JOB
-    LOGS_URL="$API_URL/jobs/$JOB_ID/logs"
-    LOGS_FILE=$(mktemp)
-    curl -s -L -H "Authorization: token $TOKEN" -o "$LOGS_FILE" "$LOGS_URL"
-    
-    # ✅ HANAPIN ANG MGA TIYAK NA LINYANG MAY ERROR — maraming pattern!
-    ERROR_LINES=$(grep -n -i -E 'error:|Error: |ERROR:|FAILED|FAILURE|exception:|Exception:|BUILD FAILED|cannot find|unresolved|invalid|returned non-zero|exit code [1-9]|Compilation failed|Execution failed|command failed|not found|permission denied' "$LOGS_FILE" | head -30)
-    
-    if [ -n "$ERROR_LINES" ]; then
-      ERROR_DETAILS+="\n### 🔴 Nabigong Job: $JOB_NAME\n"
-      ERROR_DETAILS+="> 🔗 [$JOB_URL]($JOB_URL)\n"
-      ERROR_DETAILS+="\`\`\`\n$ERROR_LINES\n\`\`\`\n"
-    else
-      # Kung walang nakitang salitang error — kunin ang huling 50 linya
-      LAST_LINES=$(tail -50 "$LOGS_FILE")
-      ERROR_DETAILS+="\n### 🔴 Nabigong Job: $JOB_NAME — Huling 50 linya ng log:\n"
-      ERROR_DETAILS+="> 🔗 [$JOB_URL]($JOB_URL)\n"
-      ERROR_DETAILS+="\`\`\`\n$LAST_LINES\n\`\`\`\n"
+  ERROR_TEXT=""
+  # ✅ KUNIN ANG PANGALAN NG NABIGONG JOB AT ANG LOGS
+  JOB_NAMES=$(echo "$JOBS_JSON" | grep -o '"name": *"[^"]*"' | cut -d'"' -f4)
+  JOB_STATUSES=$(echo "$JOBS_JSON" | grep -o '"conclusion": *"[^"]*"' | cut -d'"' -f4)
+  
+  # Bilangin ang index para makuha ang nabigong job
+  INDEX=0
+  for STATUS in $JOB_STATUSES; do
+    if [ "$STATUS" = "failure" ]; then
+      # Kunin ang pangalan
+      JOB_NAME=$(echo "$JOB_NAMES" | sed -n $((INDEX+1))p)
+      ERROR_TEXT+="\n### 🔴 Nabigong Job: $JOB_NAME\n"
+      ERROR_TEXT+="> 🔗 https://github.com/$OWNER/$REPO/actions/runs/$RUN_ID\n"
+      ERROR_TEXT+="> ❌ Tingnan ang logs sa link sa itaas para sa tiyak na linyang may error.\n"
+      ERROR_TEXT+="> ⚠️ Kailangan ng 'jq' para sa buong log — naka-setup na sa susunod na update.\n"
     fi
-    
-    rm -f "$LOGS_FILE"
+    INDEX=$((INDEX+1))
   done
 fi
 
-# ✅ BUUIN ANG BAGONG ENTRY — DAGDAG LANG SA UNA!
+# ✅ BUUIN ANG BAGONG ENTRY — DAGDAG SA UNA!
 DATE=$(date -u +"%Y-%m-%d %H:%M UTC")
 RUN_URL="https://github.com/$OWNER/$REPO/actions/runs/$RUN_ID"
-NEW_ENTRY="---\n\n## ❌ Build Nabigo — $DATE\n\n**🔗 Workflow Run:** [$RUN_ID]($RUN_URL)\n\n$ERROR_DETAILS\n"
+NEW_ENTRY="---\n\n## ❌ Build Nabigo — $DATE\n\n**🔗 Workflow Run:** [$RUN_ID]($RUN_URL)\n\n$ERROR_TEXT\n"
 
-# ✅ PAGSAMAHIN — DAGDAG SA UNA, HINDI BUBURAHIN ANG LUMANG TALAAN!
+# ✅ PAGSAMAHIN — DAGDAG SA UNA!
 if [ -f errors.md ]; then
-  # Alisin ang lumang header para hindi dumami
-  OLD_CONTENT=$(cat errors.md | sed '/^# Talaan ng mga Error$/d' | sed '/^---$/!b' | sed '1,/^---$/d')
-  # Kung walang laman pagkatapos linisin — walang laman na lang
-  if [ -z "$(echo "$OLD_CONTENT" | tr -d '[:space:]')" ]; then
-    FINAL="# Talaan ng mga Error\n\n> Awtomatikong talaan ng mga pagkabigo habang pagbuo ng aplikasyon.\n\n$NEW_ENTRY"
-  else
-    FINAL="# Talaan ng mga Error\n\n> Awtomatikong talaan ng mga pagkabigo habang pagbuo ng aplikasyon.\n\n$NEW_ENTRY$OLD_CONTENT"
-  fi
+  # Alisin ang lumang header at ilagay ang bago sa unahan
+  OLD_CONTENT=$(cat errors.md)
+  # Tanggalin ang lumang header at mga lumang entry — panatilihin ang format
+  CLEAN_OLD=$(echo "$OLD_CONTENT" | sed '1,/^---$/d' | sed '/^# Talaan ng mga Error$/d')
+  FINAL="# Talaan ng mga Error\n\n> Awtomatikong talaan ng mga pagkabigo habang pagbuo ng aplikasyon.\n> Created & Developed by MartoDosko © 2026\n\n$NEW_ENTRY$CLEAN_OLD"
 else
-  FINAL="# Talaan ng mga Error\n\n> Awtomatikong talaan ng mga pagkabigo habang pagbuo ng aplikasyon.\n\n$NEW_ENTRY"
+  FINAL="# Talaan ng mga Error\n\n> Awtomatikong talaan ng mga pagkabigo habang pagbuo ng aplikasyon.\n> Created & Developed by MartoDosko © 2026\n\n$NEW_ENTRY"
 fi
 
 echo -e "$FINAL" > errors.md
-echo "✅ Na-update ang errors.md — may detalyadong linya na ng error!"
+echo "✅ Na-update ang errors.md — may pangalan ng Job at link na!"
