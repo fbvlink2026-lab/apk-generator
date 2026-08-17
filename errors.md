@@ -1,4 +1,15 @@
-❌ ERROR — GuitarFX — 2026-08-17 11:32 UTC — Nabigo ang pagbuo
+# Talaan ng mga Error
+
+> Created & Developed by MartoDosko © Copyright 2026
+
+❌ ERROR — GuitarFX — 2026-08-17 11:42 UTC — Nabigo ang pagbuo
+---
+### 📋 BUONG LOG:
+```
+Error: Could not find or load main class "-Xmx64m"
+Caused by: java.lang.ClassNotFoundException: "-Xmx64m"
+```
+
 ---
 ❌ ERROR — GuitarFX — 2026-08-17 11:25 UTC — Nabigo ang pagbuo
 ---
@@ -38,5 +49,4 @@
 ---
 ❌ ERROR — GuitarFX — 2026-08-16 08:01 UTC — Nabigo ang pagbuo
 ---
-# Talaan ng mga Error
 ---
