@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: startsWith(github.event.head_commit.message, 'apk:') || contains(github.event.head_commit.message, 'apps/') || github.event_name == 'workflow_dispatch'
+    if: startsWith(github.event.head_commit.message, 'apk:') || github.event_name == 'workflow_dispatch'
     
     steps:
       - name: 📥 Checkout Repository
@@ -22,10 +22,18 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      - name: 📦 List Files — PARA MALAMAN ANG PATH
+        run: |
+          echo "=== Root ==="
+          ls -la
+          echo ""
+          echo "=== apps/GuitarFX ==="
+          ls -la apps/GuitarFX/
+
       - name: 📦 Grant Execute Permission
         run: |
           chmod +x apps/GuitarFX/gradlew
-          echo "✅ Permission granted"
+          ls -la apps/GuitarFX/gradlew
 
       - name: 🔨 Build APK
         id: build
@@ -34,7 +42,8 @@ jobs:
           ./gradlew assembleDebug 2>&1 | tee /tmp/build_output.log
         shell: bash
 
-      - name: 📝 Update errors.md — SIMPLE + LOG!
+      - name: 📝 Update errors.md
+        if: always()
         run: |
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
           cd apps/GuitarFX
@@ -47,12 +56,10 @@ jobs:
             EXTRA=""
           else
             LINE="❌ ERROR — GuitarFX — $DATE — Nabigo ang pagbuo"
-            echo "🔍 Kinukuha ang log..."
-            
             if [ -f "$BUILD_LOG" ]; then
-              EXTRA="\n---\n### 📋 BUONG LOG:\n\`\`\`\n$(tail -80 "$BUILD_LOG")\n\`\`\`\n"
+              EXTRA="\n---\n### 📋 BUONG LOG:\n\`\`\`\n$(tail -50 "$BUILD_LOG")\n\`\`\`\n"
             else
-              EXTRA="\n---\n> ⚠️ Walang log file. Tingnan ang Actions page."
+              EXTRA="\n---\n> ⚠️ Walang log file"
             fi
           fi
           
@@ -69,7 +76,7 @@ jobs:
           fi
           
           echo -e "$FINAL" > errors.md
-          echo "✅ Na-update ang errors.md — may buong log na!"
+          echo "✅ Na-update ang errors.md"
         shell: /usr/bin/bash -e {0}
 
       - name: 📤 Upload APK
@@ -80,18 +87,12 @@ jobs:
           path: apps/GuitarFX/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
-      - name: 📤 Upload Build Log
-        uses: actions/upload-artifact@v4
+      - name: ✅ Commit errors.md
         if: always()
-        with:
-          name: Build-Log
-          path: /tmp/build_output.log
-          retention-days: 30
-
-      - name: ✅ Commit & Update
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          file_pattern: errors.md
-          commit_message: 🔄 Auto-Update: errors.md — May Log!
-          commit_user_name: fbvlink2026-lab
-          commit_user_email: 302709664+fbvlink2026-lab@users.noreply.github.com
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add errors.md
+          git commit -m "🔄 Auto-Update: errors.md" || true
+          git push || true
+        shell: bash
