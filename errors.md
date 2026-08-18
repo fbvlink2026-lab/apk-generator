@@ -2,20 +2,10 @@
 
 > Created & Developed by MartoDosko © Copyright 2026
 
-❌ NABIGO — GuitarFX — 2026-08-18 16:00 UTC — WALANG APK! Code: 0
+✅ TAGUMPAY — GuitarFX — 2026-08-18 16:08 UTC — Laki: 3.1M — APK NA SA ARTIFACTS!
 
 ### 📋 BUONG LOG:
 ```
- - Kotlin DSL: new reference documentation, assignment syntax by default
- - Kotlin DSL is now the default with Gradle init
- - Improved suggestions to resolve errors in console output
-
-For more details see https://docs.gradle.org/8.2/release-notes.html
-
-Starting a Gradle Daemon (subsequent builds will be faster)
-> Task :app:preBuild UP-TO-DATE
-> Task :app:preDebugBuild UP-TO-DATE
-> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
 > Task :app:checkKotlinGradlePluginConfigurationErrors
 > Task :app:generateDebugResValues
 > Task :app:checkDebugAarMetadata
@@ -38,14 +28,14 @@ Recommendation: remove package="com.martodosko.guitarfx" from the source Android
 > Task :app:compileDebugShaders NO-SOURCE
 > Task :app:generateDebugAssets UP-TO-DATE
 > Task :app:mergeDebugAssets
-> Task :app:processDebugManifestForPackage
 > Task :app:compressDebugAssets
 > Task :app:desugarDebugFileDependencies
-> Task :app:mergeDebugJniLibFolders
+> Task :app:processDebugManifestForPackage
 > Task :app:checkDebugDuplicateClasses
+> Task :app:mergeDebugJniLibFolders
+> Task :app:mergeLibDexDebug
 > Task :app:mergeDebugNativeLibs NO-SOURCE
 > Task :app:stripDebugDebugSymbols NO-SOURCE
-> Task :app:mergeLibDexDebug
 > Task :app:processDebugResources
 > Task :app:validateSigningDebug
 > Task :app:writeDebugAppMetadata
@@ -62,10 +52,10 @@ Recommendation: remove package="com.martodosko.guitarfx" from the source Android
 > Task :app:createDebugApkListingFileRedirect
 > Task :app:assembleDebug
 
-BUILD SUCCESSFUL in 25s
+BUILD SUCCESSFUL in 26s
 33 actionable tasks: 33 executed
 EXIT_CODE=0
-=== END BUILD: Tue Aug 18 16:00:27 UTC 2026 ===
+=== END BUILD: Tue Aug 18 16:08:38 UTC 2026 ===
 ```
 ---
 ❌ NABIGO — MartoDosko Updater — 2026-08-18 16:00 UTC — WALANG APK! Code: 
