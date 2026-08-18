@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.drawerlayout.widget.DrawerLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/drawer_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:background="#121212">
+
+        <ImageButton
+            android:id="@+id/btn_menu"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:backgroundTint="#4CAF50"
+            android:src="@android:drawable/ic_menu_sort_by_size"
+            android:contentDescription="Menu"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Martodosko Updater"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:layout_marginTop="16dp"/>
+
+        <TextView
+            android:id="@+id/tv_version"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Version: 1.0.0"
+            android:textSize="16sp"
+            android:textColor="#BBBBBB"
+            android:layout_marginTop="8dp"/>
+
+        <Button
+            android:id="@+id/btn_update_now"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🔄 CHECK FOR UPDATES"
+            android:textSize="15sp"
+            android:backgroundTint="#4CAF50"
+            android:layout_marginTop="24dp"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="280dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="left"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:background="#1A1A1A">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Martodosko"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#4CAF50"
+            android:layout_marginBottom="24dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Current Version"
+            android:textSize="14sp"
+            android:textColor="#888888"/>
+
+        <TextView
+            android:id="@+id/tv_side_version"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1.0.0"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Status"
+            android:textSize="14sp"
+            android:textColor="#888888"/>
+
+        <TextView
+            android:id="@+id/tv_side_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Checking..."
+            android:textSize="15sp"
+            android:textColor="#FFC107"
+            android:layout_marginBottom="24dp"/>
+
+        <Button
+            android:id="@+id/btn_side_update"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⬇️ UPDATE NOW"
+            android:textSize="15sp"
+            android:backgroundTint="#2196F3"/>
+
+    </LinearLayout>
+
+</androidx.drawerlayout.widget.DrawerLayout>
