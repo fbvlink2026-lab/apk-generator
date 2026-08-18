@@ -1,6 +1,6 @@
 pluginManagement {
     repositories {
-        google()       // ✅ DITO HINAHANAP ANG ANDROID PLUGIN!
+        google()
         mavenCentral()
         gradlePluginPortal()
     }
