@@ -2,10 +2,6 @@
 
 > Created & Developed by MartoDosko © Copyright 2026
 
-❌ NABIGO — MartoDosko Updater — 2026-08-18 16:00 UTC — WALANG APK! Code: 
-
-### ⚠️ WALANG LOG FILE SA: 
----
 ### 📋 BUONG LOG:
 ```
 License for package Android SDK Build-Tools 33.0.1 accepted.
