@@ -41,9 +41,6 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      # ==========================================
-      # 🎸 GUITARFX — apps/GuitarFX/
-      # ==========================================
       - name: 🎸 BUUUIN ANG GUITARFX
         if: inputs.build_target == 'guitarfx' || inputs.build_target == 'all'
         working-directory: apps/GuitarFX
@@ -58,15 +55,10 @@ jobs:
             echo "GUITARFX_APK=$PWD/$APK_FILE" >> $GITHUB_ENV
           else
             echo "❌ WALANG APK NABUO SA: $PWD/$APK_FILE"
-            echo ""
-            echo "🔍 HINAHANAP SA LAHAT..."
             find . -name "*.apk" -type f 2>/dev/null
             exit 1
           fi
 
-      # ==========================================
-      # 🔄 UPDATER — apps/GitHubUpdater/
-      # ==========================================
       - name: 🔄 BUUUIN ANG MARTODOSKO UPDATER
         if: inputs.build_target == 'updater' || inputs.build_target == 'all'
         working-directory: apps/GitHubUpdater
@@ -76,7 +68,6 @@ jobs:
             chmod +x gradlew
             ./gradlew assembleDebug --stacktrace
           else
-            echo "⚠️ Walang gradlew — gagamit ng system Gradle"
             gradle assembleDebug --stacktrace
           fi
           APK_FILE="app/build/outputs/apk/debug/app-debug.apk"
@@ -86,15 +77,10 @@ jobs:
             echo "UPDATER_APK=$PWD/$APK_FILE" >> $GITHUB_ENV
           else
             echo "❌ WALANG APK NABUO SA: $PWD/$APK_FILE"
-            echo ""
-            echo "🔍 HINAHANAP SA LAHAT..."
             find . -name "*.apk" -type f 2>/dev/null
             exit 1
           fi
 
-      # ==========================================
-      # 📤 I-UPLOAD ANG APK — SIGURADONG MAKIKITA!
-      # ==========================================
       - name: 📤 I-UPLOAD — GuitarFX APK
         if: inputs.build_target == 'guitarfx' || inputs.build_target == 'all'
         uses: actions/upload-artifact@v4
