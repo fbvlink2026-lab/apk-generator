@@ -392,7 +392,7 @@ KASALUKUYANG_BERSYON = "4.2.0-KUMPLETO"
 PANGALAN_APP = "MartoDosko"
 DEFAULT_ANUNSYO = "📢 PAALALA: Gumagamit na tayo ng bagong sistema! Siguraduhing tama ang iyong GitHub settings bago mag-publish."
 DATOS_SETTING = "marto_setting.json"
-DEFAULT_ADMIN_PASS = "Marto1234"
+DEFAULT_ADMIN_PASS = "Marto"
 
 # --- DEFAULT SUKAT PARA SA THUMBNAIL ---
 DEFAULT_THUMB_LAPAD = 1200
