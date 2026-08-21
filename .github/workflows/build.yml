@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       build_target:
-        description: '📌 Alin ang gusto mong buuin?'
+        description: 'Alin ang bubuuin?'
         required: true
         default: 'updater'
         type: choice
@@ -22,24 +22,23 @@ jobs:
     permissions: write-all
 
     steps:
-      - name: 📥 Checkout Repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: ☕ Set up JDK 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: gradle
 
-      - name: 📂 Prepare Log Folder
+      - name: Prepare Log Folder
         run: mkdir -p /tmp/build_logs
-        shell: bash
 
       # ==============================================
-      # 📱 GITHUB UPDATER — SARILING FOLDER LANG
+      # GITHUB UPDATER
       # ==============================================
-      - name: 🔨 Build GitHubUpdater
+      - name: Build GitHubUpdater
         id: build_updater
         if: github.event.inputs.build_target == 'updater' || github.event.inputs.build_target == 'all'
         run: |
@@ -52,12 +51,10 @@ jobs:
           echo "EXIT_CODE=$EXIT_CODE" >> "$LOG_FILE"
           APK_FOUND=$(find . -name "*.apk" -type f | head -1)
           echo "apk_path=$APK_FOUND" >> $GITHUB_OUTPUT
-          echo "log_file=$LOG_FILE" >> $GITHUB_OUTPUT
           echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
           exit $EXIT_CODE
-        shell: bash
 
-      - name: 📤 Upload Updater APK
+      - name: Upload Updater APK
         id: upload_updater
         uses: actions/upload-artifact@v4
         if: always() && steps.build_updater.outputs.apk_path && (github.event.inputs.build_target == 'updater' || github.event.inputs.build_target == 'all')
@@ -67,38 +64,9 @@ jobs:
           retention-days: 30
 
       # ==============================================
-      # 🎸 GUITARFX — AWTOMATIKONG ITATAMA ANG PATH
+      # GUITARFX
       # ==============================================
-      - name: 🔧 Ayusin manifest path — GuitarFX
-        if: github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all'
-        run: |
-          cd apps/GuitarFX
-          echo "📋 Bago ayusin — tinatama ang manifest reference..."
-          
-          # Suriin kung saan hinahanap at kung saan naroon
-          ls -la src/main/AndroidManifest.xml 2>&1 || echo "❌ WALA sa: src/main/AndroidManifest.xml"
-          ls -la app/src/main/AndroidManifest.xml 2>&1 && echo "✅ NASA: app/src/main/AndroidManifest.xml"
-          
-          # Para sa ugat na build.gradle — itama ang pagtukoy
-          if [ -f build.gradle ]; then
-            sed -i "s|manifest.srcFile *['\"]src/main/AndroidManifest.xml['\"]|manifest.srcFile 'app/src/main/AndroidManifest.xml'|g" build.gradle
-            sed -i "s|manifest.srcFile *[\"']src/main/AndroidManifest.xml[\"']|manifest.srcFile 'app/src/main/AndroidManifest.xml'|g" build.gradle
-            echo "✅ Na-update: apps/GuitarFX/build.gradle"
-          fi
-          
-          # Siguraduhin na tama ang sourceSets sa loob ng app/build.gradle
-          cd app
-          if grep -q "sourceSets" build.gradle; then
-            echo "✅ Nandoon na ang sourceSets — hindi babaguhin"
-          else
-            echo "🔧 Idaragdag ang tamang sourceSets..."
-            sed -i "/android {/a \    sourceSets {\n        main {\n            manifest.srcFile 'src/main/AndroidManifest.xml'\n        }\n    }" build.gradle
-          fi
-          
-          echo "✅ TAPOS NA ANG PAG-AYOS — HANDA NA ANG BUILD!"
-        shell: bash
-
-      - name: 🔨 Build GuitarFX
+      - name: Build GuitarFX
         id: build_guitarfx
         if: github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all'
         run: |
@@ -111,12 +79,10 @@ jobs:
           echo "EXIT_CODE=$EXIT_CODE" >> "$LOG_FILE"
           APK_FOUND=$(find . -name "*.apk" -type f | head -1)
           echo "apk_path=$APK_FOUND" >> $GITHUB_OUTPUT
-          echo "log_file=$LOG_FILE" >> $GITHUB_OUTPUT
           echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
           exit $EXIT_CODE
-        shell: bash
 
-      - name: 📤 Upload GuitarFX APK
+      - name: Upload GuitarFX APK
         id: upload_guitarfx
         uses: actions/upload-artifact@v4
         if: always() && steps.build_guitarfx.outputs.apk_path && (github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all')
@@ -126,9 +92,9 @@ jobs:
           retention-days: 30
 
       # ==============================================
-      # 📝 ERRORS.MD — BUO! WALANG BINAGO!
+      # UPDATE ERRORS.MD
       # ==============================================
-      - name: 📝 Update errors.md
+      - name: Update errors.md
         if: always()
         run: |
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
@@ -188,7 +154,7 @@ jobs:
           echo "✅ Na-update ang errors.md"
         shell: bash
 
-      - name: ✅ Save errors.md
+      - name: Save errors.md
         if: always()
         continue-on-error: true
         run: |
@@ -197,15 +163,5 @@ jobs:
           git add errors.md
           git commit -m "📝 Update build log" 2>/dev/null || true
           git push 2>/dev/null || true
-        shell: bash
-<<<<<<< Updated upstream
-=======
 ENDOFFILE
-
-# ==========================================
-# ✅ AYUSIN — GUITARFX BUILD CONFIGURATION
-# ✅ TATLONG FILE + MANIFEST FIX — ISANG PASTE!
-# ==========================================
-
-# ─── FILE 1: settings.gradle ───
->>>>>>> Stashed changes
+echo "✅ Na-save ang build.yml"
