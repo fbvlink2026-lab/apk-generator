@@ -7,29 +7,6 @@ on:
       - 'apps/GitHubUpdater/**'
       - '.github/workflows/build.yml'
   workflow_dispatch:
-<<<<<<< Updated upstream
-    inputs:
-      build_target:
-        description: '📌 Alin ang gusto mong buuin?'
-        required: true
-        default: 'all'
-        type: choice
-        options:
-          - 'all'
-          - 'guitarfx'
-          - 'updater'
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    permissions: write-all
-    
-    steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: ☕ Set up JDK 17
-=======
 
 jobs:
   build:
@@ -48,56 +25,11 @@ jobs:
           echo "" >> errors.md
 
       - name: ☕ I-setup ang Java 17
->>>>>>> Stashed changes
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-<<<<<<< Updated upstream
-      - name: 📂 Prepare Log Folder
-        run: |
-          mkdir -p /tmp/build_logs
-          chmod 777 /tmp/build_logs
-
-      - name: 🔨 Build GuitarFX
-        id: build_guitarfx
-        if: ${{ github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all' }}
-        run: |
-          LOG_FILE="/tmp/build_logs/guitarfx.log"
-          echo "=== START BUILD: $(date) ===" > "$LOG_FILE"
-          cd apps/GuitarFX
-          chmod +x gradlew
-          ./gradlew assembleDebug >> "$LOG_FILE" 2>&1
-          EXIT_CODE=$?
-          echo "EXIT_CODE=$EXIT_CODE" >> "$LOG_FILE"
-          echo "=== END BUILD: $(date) ===" >> "$LOG_FILE"
-          
-          echo "🔍 HINAHANAP ANG APK..."
-          APK_FOUND=$(find "$GITHUB_WORKSPACE/apps/GuitarFX" -name "*.apk" -type f 2>/dev/null | head -1)
-          
-          if [ -n "$APK_FOUND" ] && [ -f "$APK_FOUND" ]; then
-            echo "✅ NAKITA ANG APK SA: $APK_FOUND"
-            echo "apk_path=$APK_FOUND" >> $GITHUB_OUTPUT
-          else
-            echo "❌ WALANG NAKITANG APK FILE!"
-            echo "apk_path=NOT_FOUND" >> $GITHUB_OUTPUT
-            ls -laR build/ 2>/dev/null || echo "Walang build folder"
-            ls -laR app/build/ 2>/dev/null || echo "Walang app/build folder"
-          fi
-          
-          echo "log_file=$LOG_FILE" >> $GITHUB_OUTPUT
-          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
-          
-          if [ "$EXIT_CODE" -ne 0 ]; then
-            echo "❌ BUILD FAILED — Code: $EXIT_CODE"
-            exit 1
-          fi
-          echo "✅ BUILD SUCCESSFUL"
-
-      - name: 📤 Upload GuitarFX APK
-        id: upload_guitarfx
-=======
       - name: 📱 I-setup ang Android SDK
         uses: android-actions/setup-android@v3
 
@@ -175,72 +107,7 @@ jobs:
           git push || true
 
       - name: ✅ I-upload ang APK
->>>>>>> Stashed changes
         uses: actions/upload-artifact@v4
-        if: ${{ always() && steps.build_guitarfx.outputs.apk_path != 'NOT_FOUND' && (github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all') }}
         with:
-<<<<<<< Updated upstream
-          name: GuitarFX-APK
-          path: ${{ steps.build_guitarfx.outputs.apk_path }}
-          retention-days: 30
-
-      - name: 📝 Update errors.md — TOTOO NA!
-        if: always()
-        run: |
-          DATE=$(date "+%Y-%m-%d %H:%M UTC")
-          cd $GITHUB_WORKSPACE
-          
-          FINAL_CONTENT="# Talaan ng mga Error\n\n> Created & Developed by MartoDosko © Copyright 2026\n\n"
-          
-          if [[ "${{ github.event.inputs.build_target }}" == "guitarfx" || "${{ github.event.inputs.build_target }}" == "all" ]]; then
-            EXIT="${{ steps.build_guitarfx.outputs.exit_code }}"
-            APK_PATH="${{ steps.build_guitarfx.outputs.apk_path }}"
-            LOG_FILE="${{ steps.build_guitarfx.outputs.log_file }}"
-            UPLOAD_SUCCESS="${{ steps.upload_guitarfx.outcome }}"
-            
-            if [ "$EXIT" = "0" ] && [ "$APK_PATH" != "NOT_FOUND" ] && [ -f "$APK_PATH" ]; then
-              SIZE=$(du -h "$APK_PATH" | cut -f1)
-              if [ "$UPLOAD_SUCCESS" = "success" ]; then
-                FINAL_CONTENT+="✅ TAGUMPAY — GuitarFX — $DATE — Laki: $SIZE — APK NA SA ARTIFACTS!\n"
-              else
-                FINAL_CONTENT+="⚠️ NABUO ANG APK PERO HINDI NA-UPLOAD — GuitarFX — $DATE — Laki: $SIZE\n"
-              fi
-            elif [ "$EXIT" = "0" ]; then
-              FINAL_CONTENT+="⚠️ SUCCESS ANG BUILD PERO WALANG APK FILE — GuitarFX — $DATE\n"
-            else
-              FINAL_CONTENT+="❌ NABIGO ANG BUILD — GuitarFX — $DATE — Code: $EXIT\n"
-            fi
-            
-            if [ -f "$LOG_FILE" ]; then
-              LOG_CONTENT=$(tail -50 "$LOG_FILE")
-              FINAL_CONTENT+="\n### 📋 BUONG LOG:\n\`\`\`\n$LOG_CONTENT\n\`\`\`\n"
-            fi
-            FINAL_CONTENT+="---\n"
-          fi
-          
-          if [ -f errors.md ]; then
-            OLD_CONTENT=$(cat errors.md)
-            OLD_CONTENT=$(echo "$OLD_CONTENT" | sed -n '/^---$/,$p' | sed '1d')
-            if [ -n "$OLD_CONTENT" ]; then
-              FINAL_CONTENT="$FINAL_CONTENT$OLD_CONTENT"
-            fi
-          fi
-          
-          echo -e "$FINAL_CONTENT" > errors.md
-          echo "✅ Na-update ang errors.md — TOTOO NA!"
-        shell: /usr/bin/bash -e {0}
-
-      - name: ✅ Commit & Push
-        if: always()
-        continue-on-error: true
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/build.yml errors.md
-          git commit -m "🔄 FIX: Auto-hanap totoong APK path + Totoo na status" 2>/dev/null || true
-          git push 2>/dev/null || true
-        shell: bash
-=======
           name: GitHubUpdater-APK
           path: ./apps/GitHubUpdater/app/build/outputs/apk/debug/*.apk
->>>>>>> Stashed changes
