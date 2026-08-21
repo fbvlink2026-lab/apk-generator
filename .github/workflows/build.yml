@@ -34,9 +34,10 @@ jobs:
 
       - name: 📂 Prepare Log Folder
         run: mkdir -p /tmp/build_logs
+        shell: bash
 
       # ==============================================
-      # 📱 GITHUB UPDATER
+      # 📱 GITHUB UPDATER — SARILING FOLDER LANG
       # ==============================================
       - name: 🔨 Build GitHubUpdater
         id: build_updater
@@ -51,6 +52,7 @@ jobs:
           echo "EXIT_CODE=$EXIT_CODE" >> "$LOG_FILE"
           APK_FOUND=$(find . -name "*.apk" -type f | head -1)
           echo "apk_path=$APK_FOUND" >> $GITHUB_OUTPUT
+          echo "log_file=$LOG_FILE" >> $GITHUB_OUTPUT
           echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
           exit $EXIT_CODE
         shell: bash
@@ -65,8 +67,37 @@ jobs:
           retention-days: 30
 
       # ==============================================
-      # 🎸 GUITARFX — TAMA NA ANG PATH — WALANG AYOS NA KAILANGAN!
+      # 🎸 GUITARFX — AWTOMATIKONG ITATAMA ANG PATH
       # ==============================================
+      - name: 🔧 Ayusin manifest path — GuitarFX
+        if: github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all'
+        run: |
+          cd apps/GuitarFX
+          echo "📋 Bago ayusin — tinatama ang manifest reference..."
+          
+          # Suriin kung saan hinahanap at kung saan naroon
+          ls -la src/main/AndroidManifest.xml 2>&1 || echo "❌ WALA sa: src/main/AndroidManifest.xml"
+          ls -la app/src/main/AndroidManifest.xml 2>&1 && echo "✅ NASA: app/src/main/AndroidManifest.xml"
+          
+          # Para sa ugat na build.gradle — itama ang pagtukoy
+          if [ -f build.gradle ]; then
+            sed -i "s|manifest.srcFile *['\"]src/main/AndroidManifest.xml['\"]|manifest.srcFile 'app/src/main/AndroidManifest.xml'|g" build.gradle
+            sed -i "s|manifest.srcFile *[\"']src/main/AndroidManifest.xml[\"']|manifest.srcFile 'app/src/main/AndroidManifest.xml'|g" build.gradle
+            echo "✅ Na-update: apps/GuitarFX/build.gradle"
+          fi
+          
+          # Siguraduhin na tama ang sourceSets sa loob ng app/build.gradle
+          cd app
+          if grep -q "sourceSets" build.gradle; then
+            echo "✅ Nandoon na ang sourceSets — hindi babaguhin"
+          else
+            echo "🔧 Idaragdag ang tamang sourceSets..."
+            sed -i "/android {/a \    sourceSets {\n        main {\n            manifest.srcFile 'src/main/AndroidManifest.xml'\n        }\n    }" build.gradle
+          fi
+          
+          echo "✅ TAPOS NA ANG PAG-AYOS — HANDA NA ANG BUILD!"
+        shell: bash
+
       - name: 🔨 Build GuitarFX
         id: build_guitarfx
         if: github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all'
@@ -80,6 +111,7 @@ jobs:
           echo "EXIT_CODE=$EXIT_CODE" >> "$LOG_FILE"
           APK_FOUND=$(find . -name "*.apk" -type f | head -1)
           echo "apk_path=$APK_FOUND" >> $GITHUB_OUTPUT
+          echo "log_file=$LOG_FILE" >> $GITHUB_OUTPUT
           echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
           exit $EXIT_CODE
         shell: bash
@@ -166,5 +198,3 @@ jobs:
           git commit -m "📝 Update build log" 2>/dev/null || true
           git push 2>/dev/null || true
         shell: bash
-ENDOFFILE
-
