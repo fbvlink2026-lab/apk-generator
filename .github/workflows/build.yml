@@ -1,113 +1,218 @@
-name: Build GitHubUpdater APK
-
+name: Build APK
 on:
   push:
-    branches: [ main ]
     paths:
-      - 'apps/GitHubUpdater/**'
-      - '.github/workflows/build.yml'
+      - 'apps/**'
   workflow_dispatch:
-
+    inputs:
+      build_target:
+        description: '📌 Alin ang gusto mong buuin?'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - 'all'
+          - 'guitarfx'
+          - 'updater'
 jobs:
   build:
-    name: Pagbuo ng GitHubUpdater
     runs-on: ubuntu-latest
-
+    permissions: write-all
+    
     steps:
-      - name: 📥 Kunin ang lahat ng file
+      - name: 📥 Checkout Repository
         uses: actions/checkout@v4
-
-      - name: 🧹 Linisin / Gumawa ng errors.md
-        run: |
-          echo "# 📋 Build Log — GitHubUpdater" > errors.md
-          echo "---" >> errors.md
-          echo "📅 Petsa: $(date '+%Y-%m-%d %H:%M:%S')" >> errors.md
-          echo "" >> errors.md
-
-      - name: ☕ I-setup ang Java 17
+      - name: ☕ Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-
-      - name: 📱 I-setup ang Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: 📂 SURIIN — NASAAN ANG MGA FILE?
-        working-directory: ./apps/GitHubUpdater
+          cache: gradle
+      - name: 📂 Prepare Log Folder
         run: |
-          echo "## 📂 Istraktura ng GitHubUpdater" >> $GITHUB_WORKSPACE/errors.md
-          echo "" >> $GITHUB_WORKSPACE/errors.md
-          echo "### AndroidManifest.xml:" >> $GITHUB_WORKSPACE/errors.md
-          find . -name "AndroidManifest.xml" >> $GITHUB_WORKSPACE/errors.md
-          echo "" >> $GITHUB_WORKSPACE/errors.md
-          echo "### build.gradle files:" >> $GITHUB_WORKSPACE/errors.md
-          find . -name "build.gradle" >> $GITHUB_WORKSPACE/errors.md
-          echo "" >> $GITHUB_WORKSPACE/errors.md
-          echo "### Listahan ng folder:" >> $GITHUB_WORKSPACE/errors.md
-          ls -la app/src/main/ >> $GITHUB_WORKSPACE/errors.md
-          echo "" >> $GITHUB_WORKSPACE/errors.md
+          mkdir -p /tmp/build_logs
+          chmod 777 /tmp/build_logs
 
-      - name: 🔧 Ihanda ang Gradle
-        working-directory: ./apps/GitHubUpdater
+      # ==================================================
+      # ✅ UPDATER — BAGONG IDINAGDAG — WALANG BINAGO SA IBA!
+      # ==================================================
+      - name: 🔨 Build GitHubUpdater
+        id: build_updater
+        if: ${{ github.event.inputs.build_target == 'updater' || github.event.inputs.build_target == 'all' }}
         run: |
+          LOG_FILE="/tmp/build_logs/updater.log"
+          echo "=== START BUILD: $(date) ===" > "$LOG_FILE"
+          cd apps/GitHubUpdater
           if [ -f gradlew ]; then
             chmod +x gradlew
-            echo "✅ May gradlew" >> $GITHUB_WORKSPACE/errors.md
+            ./gradlew assembleDebug >> "$LOG_FILE" 2>&1
           else
-            echo "⚠️ Walang gradlew — gagamit ng system gradle" >> $GITHUB_WORKSPACE/errors.md
+            gradle assembleDebug >> "$LOG_FILE" 2>&1
+          fi
+          EXIT_CODE=$?
+          echo "EXIT_CODE=$EXIT_CODE" >> "$LOG_FILE"
+          echo "=== END BUILD: $(date) ===" >> "$LOG_FILE"
+          
+          echo "🔍 HINAHANAP ANG APK..."
+          APK_FOUND=$(find "$GITHUB_WORKSPACE/apps/GitHubUpdater" -name "*.apk" -type f 2>/dev/null | grep -v "unaligned" | head -1)
+          
+          if [ -n "$APK_FOUND" ] && [ -f "$APK_FOUND" ]; then
+            echo "✅ NAKITA ANG APK SA: $APK_FOUND"
+            echo "apk_path=$APK_FOUND" >> $GITHUB_OUTPUT
+          else
+            echo "❌ WALANG NAKITANG APK FILE!"
+            echo "apk_path=NOT_FOUND" >> $GITHUB_OUTPUT
+            ls -laR build/ 2>/dev/null || echo "Walang build folder"
+            ls -laR app/build/ 2>/dev/null || echo "Walang app/build folder"
+          fi
+          
+          echo "log_file=$LOG_FILE" >> $GITHUB_OUTPUT
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            echo "❌ BUILD FAILED — Code: $EXIT_CODE"
+            exit 1
+          fi
+          echo "✅ BUILD SUCCESSFUL"
+      - name: 📤 Upload Updater APK
+        id: upload_updater
+        uses: actions/upload-artifact@v4
+        if: ${{ always() && steps.build_updater.outputs.apk_path != 'NOT_FOUND' && (github.event.inputs.build_target == 'updater' || github.event.inputs.build_target == 'all') }}
+        with:
+          name: GitHubUpdater-APK
+          path: ${{ steps.build_updater.outputs.apk_path }}
+          retention-days: 30
+
+      # ==================================================
+      # ✅ GUITARFX — NANATILI KATULAD NG ORIHINAL — WALANG BINAGO!
+      # ==================================================
+      - name: 🔨 Build GuitarFX
+        id: build_guitarfx
+        if: ${{ github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all' }}
+        run: |
+          LOG_FILE="/tmp/build_logs/guitarfx.log"
+          echo "=== START BUILD: $(date) ===" > "$LOG_FILE"
+          cd apps/GuitarFX
+          chmod +x gradlew
+          ./gradlew assembleDebug >> "$LOG_FILE" 2>&1
+          EXIT_CODE=$?
+          echo "EXIT_CODE=$EXIT_CODE" >> "$LOG_FILE"
+          echo "=== END BUILD: $(date) ===" >> "$LOG_FILE"
+          
+          echo "🔍 HINAHANAP ANG APK..."
+          APK_FOUND=$(find "$GITHUB_WORKSPACE/apps/GuitarFX" -name "*.apk" -type f 2>/dev/null | head -1)
+          
+          if [ -n "$APK_FOUND" ] && [ -f "$APK_FOUND" ]; then
+            echo "✅ NAKITA ANG APK SA: $APK_FOUND"
+            echo "apk_path=$APK_FOUND" >> $GITHUB_OUTPUT
+          else
+            echo "❌ WALANG NAKITANG APK FILE!"
+            echo "apk_path=NOT_FOUND" >> $GITHUB_OUTPUT
+            ls -laR build/ 2>/dev/null || echo "Walang build folder"
+            ls -laR app/build/ 2>/dev/null || echo "Walang app/build folder"
+          fi
+          
+          echo "log_file=$LOG_FILE" >> $GITHUB_OUTPUT
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            echo "❌ BUILD FAILED — Code: $EXIT_CODE"
+            exit 1
+          fi
+          echo "✅ BUILD SUCCESSFUL"
+      - name: 📤 Upload GuitarFX APK
+        id: upload_guitarfx
+        uses: actions/upload-artifact@v4
+        if: ${{ always() && steps.build_guitarfx.outputs.apk_path != 'NOT_FOUND' && (github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all') }}
+        with:
+          name: GuitarFX-APK
+          path: ${{ steps.build_guitarfx.outputs.apk_path }}
+          retention-days: 30
+
+      # ==================================================
+      # ✅ ERRORS.MD — IDINAGDAG ANG UPDATER — GUITARFX NANATILI!
+      # ==================================================
+      - name: 📝 Update errors.md
+        if: always()
+        run: |
+          DATE=$(date "+%Y-%m-%d %H:%M UTC")
+          cd $GITHUB_WORKSPACE
+          
+          FINAL_CONTENT="# Talaan ng mga Error\n\n> Created & Developed by MartoDosko © Copyright 2026\n\n"
+
+          # ----- UPDATER -----
+          if [[ "${{ github.event.inputs.build_target }}" == "updater" || "${{ github.event.inputs.build_target }}" == "all" ]]; then
+            EXIT="${{ steps.build_updater.outputs.exit_code }}"
+            APK_PATH="${{ steps.build_updater.outputs.apk_path }}"
+            LOG_FILE="${{ steps.build_updater.outputs.log_file }}"
+            UPLOAD_SUCCESS="${{ steps.upload_updater.outcome }}"
+            
+            if [ "$EXIT" = "0" ] && [ "$APK_PATH" != "NOT_FOUND" ] && [ -f "$APK_PATH" ]; then
+              SIZE=$(du -h "$APK_PATH" | cut -f1)
+              if [ "$UPLOAD_SUCCESS" = "success" ]; then
+                FINAL_CONTENT+="✅ TAGUMPAY — GitHubUpdater — $DATE — Laki: $SIZE — APK NA SA ARTIFACTS!\n"
+              else
+                FINAL_CONTENT+="⚠️ NABUO ANG APK PERO HINDI NA-UPLOAD — GitHubUpdater — $DATE — Laki: $SIZE\n"
+              fi
+            elif [ "$EXIT" = "0" ]; then
+              FINAL_CONTENT+="⚠️ SUCCESS ANG BUILD PERO WALANG APK FILE — GitHubUpdater — $DATE\n"
+            else
+              FINAL_CONTENT+="❌ NABIGO ANG BUILD — GitHubUpdater — $DATE — Code: $EXIT\n"
+            fi
+            
+            if [ -f "$LOG_FILE" ]; then
+              LOG_CONTENT=$(tail -50 "$LOG_FILE")
+              FINAL_CONTENT+="\n### 📋 BUONG LOG — GitHubUpdater:\n\`\`\`\n$LOG_CONTENT\n\`\`\`\n"
+            fi
+            FINAL_CONTENT+="---\n"
           fi
 
-      - name: 🚀 BUUIN ANG APK — GITHUB UPDATER LANG
-        working-directory: ./apps/GitHubUpdater
-        run: |
-          echo "## 🚀 Proseso ng Pagbuo" >> $GITHUB_WORKSPACE/errors.md
-          echo "" >> $GITHUB_WORKSPACE/errors.md
-          set -o pipefail
-          if [ -f gradlew ]; then
-            ./gradlew :app:assembleDebug 2>&1 | tee -a $GITHUB_WORKSPACE/errors.md
-          else
-            gradle :app:assembleDebug 2>&1 | tee -a $GITHUB_WORKSPACE/errors.md
+          # ----- GUITARFX — PAREHONG PAREHO SA ORIHINAL! -----
+          if [[ "${{ github.event.inputs.build_target }}" == "guitarfx" || "${{ github.event.inputs.build_target }}" == "all" ]]; then
+            EXIT="${{ steps.build_guitarfx.outputs.exit_code }}"
+            APK_PATH="${{ steps.build_guitarfx.outputs.apk_path }}"
+            LOG_FILE="${{ steps.build_guitarfx.outputs.log_file }}"
+            UPLOAD_SUCCESS="${{ steps.upload_guitarfx.outcome }}"
+            
+            if [ "$EXIT" = "0" ] && [ "$APK_PATH" != "NOT_FOUND" ] && [ -f "$APK_PATH" ]; then
+              SIZE=$(du -h "$APK_PATH" | cut -f1)
+              if [ "$UPLOAD_SUCCESS" = "success" ]; then
+                FINAL_CONTENT+="✅ TAGUMPAY — GuitarFX — $DATE — Laki: $SIZE — APK NA SA ARTIFACTS!\n"
+              else
+                FINAL_CONTENT+="⚠️ NABUO ANG APK PERO HINDI NA-UPLOAD — GuitarFX — $DATE — Laki: $SIZE\n"
+              fi
+            elif [ "$EXIT" = "0" ]; then
+              FINAL_CONTENT+="⚠️ SUCCESS ANG BUILD PERO WALANG APK FILE — GuitarFX — $DATE\n"
+            else
+              FINAL_CONTENT+="❌ NABIGO ANG BUILD — GuitarFX — $DATE — Code: $EXIT\n"
+            fi
+            
+            if [ -f "$LOG_FILE" ]; then
+              LOG_CONTENT=$(tail -50 "$LOG_FILE")
+              FINAL_CONTENT+="\n### 📋 BUONG LOG:\n\`\`\`\n$LOG_CONTENT\n\`\`\`\n"
+            fi
+            FINAL_CONTENT+="---\n"
           fi
-
-      - name: ❌ ITALA ANG KABIGUAN
-        if: failure()
-        run: |
-          echo "" >> errors.md
-          echo "---" >> errors.md
-          echo "# ❌ NABIGO ANG PAGBUO" >> errors.md
-          echo "" >> errors.md
-          echo "> 💡 Suriin ang log sa itaas para sa detalye." >> errors.md
-          echo "" >> errors.md
-          echo "### Karaniwang Solusyon:" >> errors.md
-          echo "- ✅ Tiyaking naroon ang AndroidManifest.xml" >> errors.md
-          echo "- ✅ Suriin ang compileSdkVersion sa build.gradle" >> errors.md
-          echo "- ✅ Tiyaking tama ang lokasyon ng proyekto" >> errors.md
-
-      - name: ✅ ITALA ANG TAGUMPAY
-        if: success()
-        run: |
-          echo "" >> errors.md
-          echo "---" >> errors.md
-          echo "# ✅ MATAGUMPAY ANG PAGBUO!" >> errors.md
-          echo "" >> errors.md
-          APK_FILE=$(find ./apps/GitHubUpdater/app/build/outputs/apk/debug -name "*.apk" 2>/dev/null | head -1)
-          if [ -n "$APK_FILE" ]; then
-            echo "📦 APK: \`$APK_FILE\`" >> errors.md
-          else
-            echo "⚠️ Hindi matagpuan ang APK file" >> errors.md
+          
+          if [ -f errors.md ]; then
+            OLD_CONTENT=$(cat errors.md)
+            OLD_CONTENT=$(echo "$OLD_CONTENT" | sed -n '/^---$/,$p' | sed '1d')
+            if [ -n "$OLD_CONTENT" ]; then
+              FINAL_CONTENT="$FINAL_CONTENT$OLD_CONTENT"
+            fi
           fi
+          
+          echo -e "$FINAL_CONTENT" > errors.md
+          echo "✅ Na-update ang errors.md"
+        shell: /usr/bin/bash -e {0}
 
-      - name: 📤 I-commit ang errors.md
+      - name: ✅ Commit & Push
+        if: always()
+        continue-on-error: true
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add errors.md
-          git commit -m "📝 Build Log — GitHubUpdater" || true
-          git push || true
-
-      - name: ✅ I-upload ang APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: GitHubUpdater-APK
-          path: ./apps/GitHubUpdater/app/build/outputs/apk/debug/*.apk
+          git add .github/workflows/build.yml errors.md
+          git commit -m "🔄 FIX: Idinagdag ang GitHubUpdater build" 2>/dev/null || true
+          git push 2>/dev/null || true
+        shell: bash
