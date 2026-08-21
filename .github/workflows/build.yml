@@ -166,4 +166,4 @@ jobs:
           git commit -m "📝 Update build log" 2>/dev/null || true
           git push 2>/dev/null || true
         shell: bash
-ENDOFFILE
+ENDO
