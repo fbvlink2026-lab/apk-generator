@@ -36,15 +36,25 @@ jobs:
         run: mkdir -p /tmp/build_logs
 
       # ==============================================
+<<<<<<< Updated upstream
       # 🔧 AYUSIN MUNA ANG MANIFEST PATH — GUITARFX
       # ==============================================
       - name: 🔧 Ayusin ang daan ng manifest
+=======
+      # 🔧 AYUSIN MUNA — TAMA NA ANG DAAN NG MANIFEST!
+      # ==============================================
+      - name: 🔧 Ayusin ang manifest path — GuitarFX
+>>>>>>> Stashed changes
         if: github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all'
         working-directory: ./apps/GuitarFX
         run: |
           sed -i "s|manifest.srcFile 'src/main/AndroidManifest.xml'|manifest.srcFile 'app/src/main/AndroidManifest.xml'|g" build.gradle
           sed -i 's|manifest.srcFile "src/main/AndroidManifest.xml"|manifest.srcFile "app/src/main/AndroidManifest.xml"|g' build.gradle
+<<<<<<< Updated upstream
           echo "✅ Naayos na ang manifest path"
+=======
+          echo "✅ Itinama: app/src/main/AndroidManifest.xml"
+>>>>>>> Stashed changes
 
       # ==============================================
       # 🎸 GUITARFX BUILD
@@ -76,7 +86,11 @@ jobs:
           retention-days: 30
 
       # ==============================================
+<<<<<<< Updated upstream
       # 📱 UPDATER BUILD
+=======
+      # 📱 GITHUB UPDATER BUILD
+>>>>>>> Stashed changes
       # ==============================================
       - name: 🔨 Build GitHubUpdater
         id: build_updater
@@ -168,6 +182,7 @@ jobs:
           echo -e "$FINAL_CONTENT" > errors.md
           echo "✅ Na-update ang errors.md"
         shell: bash
+<<<<<<< Updated upstream
 
       - name: ✅ Save errors.md
         if: always()
@@ -177,3 +192,17 @@ jobs:
           git add errors.md
           git commit -m "📝 Update build log" 2>/dev/null || true
           git push 2>/dev/null || true
+=======
+
+      - name: ✅ Save errors.md
+        if: always()
+        continue-on-error: true
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add errors.md apps/GuitarFX/build.gradle
+          git commit -m "🔧 FIX: Manifest path + Update Log" 2>/dev/null || true
+          git push 2>/dev/null || true
+ENDOFFILE
+
+>>>>>>> Stashed changes
