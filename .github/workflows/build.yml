@@ -1,10 +1,13 @@
-name: Build APK
+name: Build GitHubUpdater APK
 
 on:
   push:
+    branches: [ main ]
     paths:
-      - 'apps/**'
+      - 'apps/GitHubUpdater/**'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
+<<<<<<< Updated upstream
     inputs:
       build_target:
         description: '📌 Alin ang gusto mong buuin?'
@@ -26,12 +29,32 @@ jobs:
         uses: actions/checkout@v4
 
       - name: ☕ Set up JDK 17
+=======
+
+jobs:
+  build:
+    name: Pagbuo ng GitHubUpdater
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Kunin ang lahat ng file
+        uses: actions/checkout@v4
+
+      - name: 🧹 Linisin / Gumawa ng errors.md
+        run: |
+          echo "# 📋 Build Log — GitHubUpdater" > errors.md
+          echo "---" >> errors.md
+          echo "📅 Petsa: $(date '+%Y-%m-%d %H:%M:%S')" >> errors.md
+          echo "" >> errors.md
+
+      - name: ☕ I-setup ang Java 17
+>>>>>>> Stashed changes
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
+<<<<<<< Updated upstream
       - name: 📂 Prepare Log Folder
         run: |
           mkdir -p /tmp/build_logs
@@ -74,9 +97,89 @@ jobs:
 
       - name: 📤 Upload GuitarFX APK
         id: upload_guitarfx
+=======
+      - name: 📱 I-setup ang Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 📂 SURIIN — NASAAN ANG MGA FILE?
+        working-directory: ./apps/GitHubUpdater
+        run: |
+          echo "## 📂 Istraktura ng GitHubUpdater" >> $GITHUB_WORKSPACE/errors.md
+          echo "" >> $GITHUB_WORKSPACE/errors.md
+          echo "### AndroidManifest.xml:" >> $GITHUB_WORKSPACE/errors.md
+          find . -name "AndroidManifest.xml" >> $GITHUB_WORKSPACE/errors.md
+          echo "" >> $GITHUB_WORKSPACE/errors.md
+          echo "### build.gradle files:" >> $GITHUB_WORKSPACE/errors.md
+          find . -name "build.gradle" >> $GITHUB_WORKSPACE/errors.md
+          echo "" >> $GITHUB_WORKSPACE/errors.md
+          echo "### Listahan ng folder:" >> $GITHUB_WORKSPACE/errors.md
+          ls -la app/src/main/ >> $GITHUB_WORKSPACE/errors.md
+          echo "" >> $GITHUB_WORKSPACE/errors.md
+
+      - name: 🔧 Ihanda ang Gradle
+        working-directory: ./apps/GitHubUpdater
+        run: |
+          if [ -f gradlew ]; then
+            chmod +x gradlew
+            echo "✅ May gradlew" >> $GITHUB_WORKSPACE/errors.md
+          else
+            echo "⚠️ Walang gradlew — gagamit ng system gradle" >> $GITHUB_WORKSPACE/errors.md
+          fi
+
+      - name: 🚀 BUUIN ANG APK — GITHUB UPDATER LANG
+        working-directory: ./apps/GitHubUpdater
+        run: |
+          echo "## 🚀 Proseso ng Pagbuo" >> $GITHUB_WORKSPACE/errors.md
+          echo "" >> $GITHUB_WORKSPACE/errors.md
+          set -o pipefail
+          if [ -f gradlew ]; then
+            ./gradlew :app:assembleDebug 2>&1 | tee -a $GITHUB_WORKSPACE/errors.md
+          else
+            gradle :app:assembleDebug 2>&1 | tee -a $GITHUB_WORKSPACE/errors.md
+          fi
+
+      - name: ❌ ITALA ANG KABIGUAN
+        if: failure()
+        run: |
+          echo "" >> errors.md
+          echo "---" >> errors.md
+          echo "# ❌ NABIGO ANG PAGBUO" >> errors.md
+          echo "" >> errors.md
+          echo "> 💡 Suriin ang log sa itaas para sa detalye." >> errors.md
+          echo "" >> errors.md
+          echo "### Karaniwang Solusyon:" >> errors.md
+          echo "- ✅ Tiyaking naroon ang AndroidManifest.xml" >> errors.md
+          echo "- ✅ Suriin ang compileSdkVersion sa build.gradle" >> errors.md
+          echo "- ✅ Tiyaking tama ang lokasyon ng proyekto" >> errors.md
+
+      - name: ✅ ITALA ANG TAGUMPAY
+        if: success()
+        run: |
+          echo "" >> errors.md
+          echo "---" >> errors.md
+          echo "# ✅ MATAGUMPAY ANG PAGBUO!" >> errors.md
+          echo "" >> errors.md
+          APK_FILE=$(find ./apps/GitHubUpdater/app/build/outputs/apk/debug -name "*.apk" 2>/dev/null | head -1)
+          if [ -n "$APK_FILE" ]; then
+            echo "📦 APK: \`$APK_FILE\`" >> errors.md
+          else
+            echo "⚠️ Hindi matagpuan ang APK file" >> errors.md
+          fi
+
+      - name: 📤 I-commit ang errors.md
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add errors.md
+          git commit -m "📝 Build Log — GitHubUpdater" || true
+          git push || true
+
+      - name: ✅ I-upload ang APK
+>>>>>>> Stashed changes
         uses: actions/upload-artifact@v4
         if: ${{ always() && steps.build_guitarfx.outputs.apk_path != 'NOT_FOUND' && (github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all') }}
         with:
+<<<<<<< Updated upstream
           name: GuitarFX-APK
           path: ${{ steps.build_guitarfx.outputs.apk_path }}
           retention-days: 30
@@ -137,3 +240,7 @@ jobs:
           git commit -m "🔄 FIX: Auto-hanap totoong APK path + Totoo na status" 2>/dev/null || true
           git push 2>/dev/null || true
         shell: bash
+=======
+          name: GitHubUpdater-APK
+          path: ./apps/GitHubUpdater/app/build/outputs/apk/debug/*.apk
+>>>>>>> Stashed changes
