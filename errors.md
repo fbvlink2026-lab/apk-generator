@@ -2,8 +2,6 @@
 
 > Created & Developed by MartoDosko © Copyright 2026
 
-❌ NABIGO ANG BUILD — GitHubUpdater — 2026-08-21 17:15 UTC — Code: 
----
 
 ### 📋 BUONG LOG:
 ```
