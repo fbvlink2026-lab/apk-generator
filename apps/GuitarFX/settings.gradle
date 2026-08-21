@@ -14,3 +14,7 @@ dependencyResolutionManagement {
 }
 rootProject.name = "GuitarFX"
 include ':app'
+ENDOFFILE
+echo "✅ NA-SAVE: settings.gradle"
+
+# ─── FILE 2: Ugat na build.gradle ───

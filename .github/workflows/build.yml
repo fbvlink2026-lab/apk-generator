@@ -198,3 +198,14 @@ jobs:
           git commit -m "📝 Update build log" 2>/dev/null || true
           git push 2>/dev/null || true
         shell: bash
+<<<<<<< Updated upstream
+=======
+ENDOFFILE
+
+# ==========================================
+# ✅ AYUSIN — GUITARFX BUILD CONFIGURATION
+# ✅ TATLONG FILE + MANIFEST FIX — ISANG PASTE!
+# ==========================================
+
+# ─── FILE 1: settings.gradle ───
+>>>>>>> Stashed changes

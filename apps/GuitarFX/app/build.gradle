@@ -14,15 +14,6 @@ android {
         versionName "1.0.0"
     }
 
-    // ✅ TAMA NA — SABIHIN KUNG SAAN ANG LAHAT!
-    sourceSets {
-        main {
-            manifest.srcFile 'src/main/AndroidManifest.xml'
-            java.srcDirs = ['src/main/java']
-            res.srcDirs = ['src/main/res']
-        }
-    }
-
     buildTypes {
         release {
             minifyEnabled false
@@ -40,4 +31,18 @@ dependencies {
     implementation 'com.google.android.material:material:1.11.0'
 }
 ENDOFFILE
+echo "✅ NA-SAVE: app/build.gradle"
+
+# ─── FILE 4: Ayusin AndroidManifest.xml — tanggalin ang package= ───
+MANIFEST="apps/GuitarFX/app/src/main/AndroidManifest.xml"
+if [ -f "$MANIFEST" ]; then
+    sed -i 's/[[:space:]]*package="[^"]*"//' "$MANIFEST"
+    echo "✅ NA-AYOS: AndroidManifest.xml — tinanggal na ang package="
+fi
+
+echo ""
+echo "=========================================="
+echo "   ✅ LAHAT AY NA-AYOS NA!"
+echo "   📌 Ipadala na gamit ang: martopush"
+echo "=========================================="
 
