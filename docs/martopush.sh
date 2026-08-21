@@ -1,14 +1,16 @@
+cat > /data/data/com.termux/files/usr/bin/martopush << 'ENDSCRIPT'
 #!/bin/bash
 # ==========================================
-# ✅ MARTOPUSH v3.5 — BURAHIN LAHAT NG BAHAGI NG CAT CODE!
-# 🧹 SIGURADO: Walang matirang EOF, walang matirang delimiter!
+# ✅ MARTOPUSH v4.0 — BUONG PROSESO NG APK ICON!
+# 🖼️ PILII LARAWAN → I-RESIZE SA TAMANG SUKAT → HANDANG IPADALA!
+# 📂 MAGHANAP SA ANDROID FOLDERS — Pictures, Downloads, atbp.
 # 📤 Pagpadala → Tanong kung saan pupunta → Diretso sa tamang lugar!
-# 📄 Sa loob na ng menu ang pag-paste
+# 📄 Sa loob na ng menu ang pag-paste + linisin ang cat code
 # 🛡️ Ligtas — hindi mabubura ang ipapadala!
 # ==========================================
 
 clear
-VERSION="v3.5 — Burahin lahat ng bahagi ng cat code"
+VERSION="v4.0 — APK Icon Processor + Clean Cat Code"
 echo "=========================================="
 echo "   📤 M A R T O P U S H  —  $VERSION"
 echo "=========================================="
@@ -25,6 +27,27 @@ echo "✅ Nasa Repository: $PWD"
 echo ""
 
 LAST_DEST_PATH=""
+LAST_ICON_PATH=""
+
+# 📂 MGA FOLDER SA ANDROID KUNG SAAN HAHANAPIN ANG LARAWAN
+ANDROID_FOLDERS=(
+  "$HOME/Pictures"
+  "$HOME/Downloads"
+  "$HOME/DCIM/Camera"
+  "$HOME/DCIM"
+  "$HOME/Pictures/Screenshots"
+  "$HOME"
+  "/sdcard/Pictures"
+  "/sdcard/Download"
+)
+
+# ✅ TAMANG SUKAT NG APK ICON — STANDARD
+ICON_SIZE_MDPI="48x48"
+ICON_SIZE_HDPI="72x72"
+ICON_SIZE_XHDPI="96x96"
+ICON_SIZE_XXHDPI="144x144"
+ICON_SIZE_XXXHDPI="192x192"
+ICON_OUTPUT_NAME="ic_launcher.png"
 
 # ==========================================
 # 📋 MENU
@@ -37,15 +60,19 @@ while true; do
   echo ""
   if [ -n "$LAST_DEST_PATH" ]; then
     echo "   💾 HULING LUGAR NA PINADALA: $LAST_DEST_PATH"
-    echo ""
   fi
+  if [ -n "$LAST_ICON_PATH" ]; then
+    echo "   🖼️ HULING NAPROSESONG ICON: $LAST_ICON_PATH"
+  fi
+  [ -n "$LAST_DEST_PATH" ] || [ -n "$LAST_ICON_PATH" ] && echo ""
   echo "   📋 ANO ANG GUSTO MONG GAWIN?"
   echo ""
   echo "   ┌──────────────────────────────────────────────┐"
   echo "   │  1. 📄 IPIPASTE ANG CODE → I-SAVE AGAD         │"
-  echo "   │  2. 📤 IPADALA ANG FILE NA NASA TERMUX         │"
-  echo "   │  3. 📂 TIGNAN ANG LAHAT NG FOLDER              │"
-  echo "   │  4. 📄 TIGNAN ANG MGA NABAGONG FILE            │"
+  echo "   │  2. 🖼️ PILII AT I-PROSESO ANG APK ICON         │"
+  echo "   │  3. 📤 IPADALA ANG FILE NA NASA TERMUX         │"
+  echo "   │  4. 📂 TIGNAN ANG LAHAT NG FOLDER              │"
+  echo "   │  5. 📄 TIGNAN ANG MGA NABAGONG FILE            │"
   echo "   │  0. ❌ TAPOS NA / LUMABAS                      │"
   echo "   └──────────────────────────────────────────────┘"
   echo ""
@@ -57,6 +84,141 @@ while true; do
       exit 0
       ;;
 
+    # =====================================================
+    # 🖼️ OPSYON 2 — PILII AT I-PROSESO ANG APK ICON!
+    # =====================================================
+    2)
+      echo -e "\n=========================================="
+      echo "   🖼️ PILII AT I-PROSESO ANG APK ICON"
+      echo "=========================================="
+      echo ""
+
+      # ✅ SURIIN KUNG MAY IMAGEMAGICK
+      if ! command -v magick &>/dev/null && ! command -v convert &>/dev/null; then
+        echo "❌ HINDI MAHANAP ANG IMAGEMAGICK!"
+        echo "👉 I-type: pkg install imagemagick"
+        echo "👉 Pagkatapos — subukan ulit."
+        read -rp "👉 ENTER para bumalik..."
+        continue
+      fi
+      MAGICK_CMD=$(command -v magick || echo "convert")
+      echo "✅ ImageMagick — NAKA-INSTALL NA! ($MAGICK_CMD)"
+      echo ""
+
+      # ✅ ILISTA ANG MGA FOLDER KUNG SAAN HAHANAPIN
+      echo "📂 MGA FOLDER KUNG SAAN HAHANAPIN ANG LARAWAN:"
+      FOUND_FOLDERS=()
+      IDX=1
+      for FOLDER in "${ANDROID_FOLDERS[@]}"; do
+        if [ -d "$FOLDER" ]; then
+          FOUND_FOLDERS+=("$FOLDER")
+          echo "   [$IDX] 📁 $FOLDER"
+          ((IDX++))
+        fi
+      done
+      echo "   [0] 🔍 LAHAT NG FOLDER — HANAPIN LAHAT NG LARAWAN"
+      echo ""
+      read -rp "👉 PILII ANG FOLDER: " PILI_FOLDER
+
+      SELECTED_FOLDER=""
+      if [[ "$PILI_FOLDER" == "0" ]]; then
+        SELECTED_FOLDER="ALL"
+      else
+        IDX=$((PILI_FOLDER-1))
+        if [ -n "${FOUND_FOLDERS[$IDX]}" ]; then
+          SELECTED_FOLDER="${FOUND_FOLDERS[$IDX]}"
+          echo "✅ FOLDER: $SELECTED_FOLDER"
+        else
+          echo "❌ MALING NUMERO"
+          sleep 1
+          continue
+        fi
+      fi
+      echo ""
+
+      # ✅ HANAPIN ANG MGA LARAWAN
+      echo "🔍 HINAHANAP ANG MGA LARAWAN..."
+      FOUND_IMAGES=()
+      if [[ "$SELECTED_FOLDER" == "ALL" ]]; then
+        for FOLDER in "${ANDROID_FOLDERS[@]}"; do
+          [ -d "$FOLDER" ] && FOUND_IMAGES+=($(find "$FOLDER" -maxdepth 2 -type f \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.webp" \) 2>/dev/null | head -n 50))
+        done
+      else
+        while IFS= read -r -d '' IMG; do
+          FOUND_IMAGES+=("$IMG")
+        done < <(find "$SELECTED_FOLDER" -maxdepth 2 -type f \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.webp" \) -print0 2>/dev/null)
+      fi
+
+      if [ ${#FOUND_IMAGES[@]} -eq 0 ]; then
+        echo "❌ WALANG LARAWAN NA NAHANAP"
+        sleep 1.5
+        continue
+      fi
+
+      # ✅ ILISTA ANG MGA LARAWAN — HANGGANG 20 LANG MUNA
+      echo ""
+      echo "🖼️ MGA NAHANAP NA LARAWAN:"
+      DISPLAY_LIMIT=20
+      TOTAL_SHOWN=$(( ${#FOUND_IMAGES[@]} < DISPLAY_LIMIT ? ${#FOUND_IMAGES[@]} : DISPLAY_LIMIT ))
+      for ((i=0; i<TOTAL_SHOWN; i++)); do
+        FNAME=$(basename "${FOUND_IMAGES[$i]}")
+        echo "   [$((i+1))] 🖼️ $FNAME"
+      done
+      if [ ${#FOUND_IMAGES[@]} -gt $DISPLAY_LIMIT ]; then
+        echo "   ... at $(( ${#FOUND_IMAGES[@]} - DISPLAY_LIMIT )) pa — i-type ang numero ng susunod na pahina"
+      fi
+      echo ""
+      read -rp "👉 PILII ANG LARAWAN (NUMERO): " PILI_IMG
+
+      IDX=$((PILI_IMG-1))
+      if [ -z "${FOUND_IMAGES[$IDX]}" ]; then
+        echo "❌ WALANG LARAWAN SA NUMERONG IYAN"
+        sleep 1.5
+        continue
+      fi
+
+      SELECTED_IMAGE="${FOUND_IMAGES[$IDX]}"
+      echo "✅ NAPILI: $(basename "$SELECTED_IMAGE")"
+      echo ""
+
+      # ✅ I-PROSESO GAMIT ANG IMAGEMAGICK — TAMANG SUKAT NG APK ICON!
+      echo "=========================================="
+      echo "   📐 PAGPAPROSESO NG ICON"
+      echo "=========================================="
+      echo ""
+
+      PROCESSED_DIR="$REPO_DIR/processed-icons"
+      mkdir -p "$PROCESSED_DIR"
+      OUTPUT_ICON="$PROCESSED_DIR/$ICON_OUTPUT_NAME"
+
+      echo "📐 SUKAT: $ICON_SIZE_XXXHDPI — TAMANG SUKAT NG APK ICON"
+      echo "🔄 PINAPROSESO..."
+
+      $MAGICK_CMD "$SELECTED_IMAGE" -resize "$ICON_SIZE_XXXHDPI" -gravity center -background none -extent "$ICON_SIZE_XXXHDPI" "$OUTPUT_ICON" 2>/dev/null
+
+      if [ $? -eq 0 ] && [ -f "$OUTPUT_ICON" ]; then
+        echo "✅ TAPOS NA! NAISAVE BILANG: $ICON_OUTPUT_NAME"
+        LAST_ICON_PATH="$OUTPUT_ICON"
+        echo ""
+        identify "$OUTPUT_ICON" | awk '{print "📐 SUKAT NG RESULTA: " $3}'
+      else
+        echo "❌ NABIGO ANG PAGPAPROSESO NG ICON"
+        sleep 1.5
+        continue
+      fi
+      echo ""
+
+      read -rp "✅ HANDANG HAN — IPADALA NA BA AGAD? (y/n): " IPADALA_ICON
+      [[ "$IPADALA_ICON" != "y" && "$IPADALA_ICON" != "Y" ]] && {
+        echo "✅ NAKA-SAVE NA — ipadala mamaya."
+        sleep 1
+        continue
+      }
+      ;;
+
+    # =====================================================
+    # 📄 OPSYON 1 — IPIPASTE ANG CODE SA LOOB NG MENU
+    # =====================================================
     1)
       echo -e "\n=========================================="
       echo "   📄 IPIPASTE ANG CODE DITO"
@@ -80,57 +242,40 @@ while true; do
 
       if echo "$FIRST_LINE" | grep -qE '^cat[[:space:]]+>'; then
         echo "🧹 NAKITA: cat > file — LILINISIN BUO!"
-
-        # 📄 Kunin ang pangalan ng file
         TARGET_FILE=$(echo "$FIRST_LINE" | sed -E 's/^cat[[:space:]]+>[[:space:]]*//; s/[[:space:]]+<<.*$//')
         TARGET_FILE=$(basename "$TARGET_FILE")
-
-        # 📄 Kunin ang DELIMITER (EOF o iba pa)
         DELIM=$(echo "$FIRST_LINE" | sed -E 's/^.*<<[[:space:]]*//; s/^['\''"]//; s/['\''"]$//')
         [ -z "$DELIM" ] && DELIM="EOF"
-
         echo "📄 File: $TARGET_FILE   🔍 Delimiter: [$DELIM]"
 
-        # ✂️ LINISIN — BUO!
         TEMP_CLEAN=$(mktemp)
-
-        # Hakbang 1: Tanggalin ang UNANG LINYA (yung "cat > ... << EOF")
         tail -n +2 "$TEMP_INPUT" > "$TEMP_CLEAN"
-
-        # Hakbang 2: TANGGALIN LAHAT NG LINYA MULA SA DELIMETER HANGGANG DULO!
-        # —— SIGURADO: walang matira kahit sa dulo! ——
         sed -i "/^${DELIM}\$/,\$d" "$TEMP_CLEAN"
-
-        # Hakbang 3: Tanggalin din kung may maya-maya o may espasyo sa paligid
         sed -i "/^[[:space:]]*${DELIM}[[:space:]]*$/d" "$TEMP_CLEAN"
-
         mv "$TEMP_CLEAN" "$TEMP_INPUT"
       else
         read -rp "👉 PANGALAN NG FILE: " TARGET_FILE
-        if [ -z "$TARGET_FILE" ]; then
-          rm -f "$TEMP_INPUT"
-          continue
-        fi
+        [ -z "$TARGET_FILE" ] && { rm -f "$TEMP_INPUT"; continue; }
       fi
 
       mv "$TEMP_INPUT" "$TARGET_FILE"
       echo -e "\n✅ 💾 NAISAVE: $TARGET_FILE"
-
-      # 📄 Ipakita ang huling 3 linya — para makita mo na WALA NG EOF!
       echo "------------------------------------------"
       echo "📄 HULING BAHAGI NG FILE:"
       tail -n 3 "$TARGET_FILE"
       echo "------------------------------------------"
 
       read -rp "👉 IPADALA NA BA AGAD? (y/n): " AGAD
-      if [[ "$AGAD" != "y" && "$AGAD" != "Y" ]]; then
+      [[ "$AGAD" != "y" && "$AGAD" != "Y" ]] && {
         echo "✅ Handa na — ipadala mamaya."
         sleep 1
         continue
-      fi
+      }
       ;;
 
-    3)
+    3) ;;
+
+    4)
       echo -e "\n=========================================="
       echo "   📂 LAHAT NG FOLDER"
       echo "=========================================="
@@ -141,7 +286,7 @@ while true; do
       continue
       ;;
 
-    4)
+    5)
       echo -e "\n=========================================="
       echo "   📄 MGA NABAGONG FILE"
       echo "=========================================="
@@ -149,9 +294,6 @@ while true; do
       echo ""
       read -rp "👉 ENTER para bumalik..."
       continue
-      ;;
-
-    2)
       ;;
 
     *)
@@ -162,7 +304,7 @@ while true; do
   esac
 
   # ==========================================
-  # 📤 PAGPAPADALA
+  # 📤 KARANIWANG PROSESO NG PAGPAPADALA
   # ==========================================
   echo -e "\n=========================================="
   echo "   📤 PAGPAPADALA SA GITHUB"
@@ -192,9 +334,7 @@ while true; do
   else
     for NUM in $PILI_FILES; do
       IDX=$((NUM-1))
-      if [ -n "${ALL_FILES[$IDX]}" ]; then
-        SELECTED_FILES+=("${ALL_FILES[$IDX]}")
-      fi
+      [ -n "${ALL_FILES[$IDX]}" ] && SELECTED_FILES+=("${ALL_FILES[$IDX]}")
     done
   fi
 
@@ -256,9 +396,7 @@ while true; do
   echo "   📋 BUOD NG IPAPADALA"
   echo "=========================================="
   echo "   📂 LUGAR: $DEST_PATH"
-  for f in "${FINAL_FILES[@]}"; do
-    echo "   📄 $f"
-  done
+  for f in "${FINAL_FILES[@]}"; do echo "   📄 $f"; done
   echo ""
 
   read -rp "✅ IPAPADALA NA BA? (y/n): " SIGURADO
@@ -318,3 +456,5 @@ while true; do
     sleep 2
   fi
 done
+ENDSCRIPT
+chmod +x /data/data/com.termux/files/usr/bin/martopush
