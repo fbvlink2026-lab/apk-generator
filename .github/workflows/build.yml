@@ -35,143 +35,127 @@ jobs:
       - name: 📂 Prepare Log Folder
         run: mkdir -p /tmp/build_logs
 
-<<<<<<< Updated upstream
-      # ===== GUITARFX — WALANG BINAGO =====
-=======
-      # ==================================================
-      # 🎸 GUITARFX — AYUSIN MUNA ANG DAAN BAGO MAG-BUILD
-      # ==================================================
-      - name: 🔧 Ayusin ang daan ng manifest — GuitarFX
-        if: ${{ github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all' }}
+      # ==============================================
+      # 🔧 AYUSIN MUNA ANG MANIFEST PATH — GUITARFX
+      # ==============================================
+      - name: 🔧 Ayusin ang daan ng manifest
+        if: github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all'
         working-directory: ./apps/GuitarFX
         run: |
-          # Hinahanap ba sa maling lugar? Itama agad!
-          if grep -q "manifest.srcFile.*src/main/AndroidManifest.xml" build.gradle && ! grep -q "manifest.srcFile.*app/src/main" build.gradle; then
-            echo "🔧 ITINATAMA: Maling daan ng manifest — magiging app/src/main na!"
-            sed -i "s|manifest.srcFile 'src/main/AndroidManifest.xml'|manifest.srcFile 'app/src/main/AndroidManifest.xml'|g" build.gradle
-            sed -i 's|manifest.srcFile "src/main/AndroidManifest.xml"|manifest.srcFile "app/src/main/AndroidManifest.xml"|g' build.gradle
-          fi
-          echo "✅ Tinitingnan: $(grep manifest.srcFile build.gradle)"
+          sed -i "s|manifest.srcFile 'src/main/AndroidManifest.xml'|manifest.srcFile 'app/src/main/AndroidManifest.xml'|g" build.gradle
+          sed -i 's|manifest.srcFile "src/main/AndroidManifest.xml"|manifest.srcFile "app/src/main/AndroidManifest.xml"|g' build.gradle
+          echo "✅ Naayos na ang manifest path"
 
->>>>>>> Stashed changes
+      # ==============================================
+      # 🎸 GUITARFX BUILD
+      # ==============================================
       - name: 🔨 Build GuitarFX
         id: build_guitarfx
-        if: ${{ github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all' }}
+        if: github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all'
         run: |
           LOG_FILE="/tmp/build_logs/guitarfx.log"
-          echo "=== START: $(date) ===" > "$LOG_FILE"
+          echo "=== START BUILD: $(date) ===" > "$LOG_FILE"
           cd apps/GuitarFX
           chmod +x gradlew
           ./gradlew assembleDebug >> "$LOG_FILE" 2>&1
-<<<<<<< Updated upstream
-          EXIT=$?
-          echo "EXIT=$EXIT" >> "$LOG_FILE"
-          APK=$(find . -name "*.apk" -type f | head -1)
-          echo "apk_path=$APK" >> $GITHUB_OUTPUT
-=======
           EXIT_CODE=$?
           echo "EXIT_CODE=$EXIT_CODE" >> "$LOG_FILE"
-          echo "=== END BUILD: $(date) ===" >> "$LOG_FILE"
-          
-          echo "🔍 HINAHANAP ANG APK..."
-          APK_FOUND=$(find "$GITHUB_WORKSPACE/apps/GuitarFX" -name "*.apk" -type f 2>/dev/null | head -1)
-          
-          if [ -n "$APK_FOUND" ] && [ -f "$APK_FOUND" ]; then
-            echo "✅ NAKITA ANG APK SA: $APK_FOUND"
-            echo "apk_path=$APK_FOUND" >> $GITHUB_OUTPUT
-          else
-            echo "❌ WALANG NAKITANG APK FILE!"
-            echo "apk_path=NOT_FOUND" >> $GITHUB_OUTPUT
-          fi
-          
->>>>>>> Stashed changes
+          APK_FOUND=$(find . -name "*.apk" -type f | head -1)
+          echo "apk_path=$APK_FOUND" >> $GITHUB_OUTPUT
           echo "log_file=$LOG_FILE" >> $GITHUB_OUTPUT
-          echo "exit_code=$EXIT" >> $GITHUB_OUTPUT
-          exit $EXIT
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          exit $EXIT_CODE
 
       - name: 📤 Upload GuitarFX APK
-        if: ${{ always() && steps.build_guitarfx.outputs.apk_path && (github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all') }}
+        id: upload_guitarfx
         uses: actions/upload-artifact@v4
+        if: always() && steps.build_guitarfx.outputs.apk_path && (github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all')
         with:
           name: GuitarFX-APK
           path: ${{ steps.build_guitarfx.outputs.apk_path }}
+          retention-days: 30
 
-<<<<<<< Updated upstream
-      # ===== UPDATER — IDINAGDAG LANG =====
-=======
-      # ==================================================
-      # 📱 GITHUB UPDATER — WALANG GINALAW, TAMA NA RIN
-      # ==================================================
->>>>>>> Stashed changes
+      # ==============================================
+      # 📱 UPDATER BUILD
+      # ==============================================
       - name: 🔨 Build GitHubUpdater
         id: build_updater
-        if: ${{ github.event.inputs.build_target == 'updater' || github.event.inputs.build_target == 'all' }}
+        if: github.event.inputs.build_target == 'updater' || github.event.inputs.build_target == 'all'
         run: |
           LOG_FILE="/tmp/build_logs/updater.log"
-          echo "=== START: $(date) ===" > "$LOG_FILE"
+          echo "=== START BUILD: $(date) ===" > "$LOG_FILE"
           cd apps/GitHubUpdater
           [ -f gradlew ] && chmod +x gradlew
           ./gradlew assembleDebug >> "$LOG_FILE" 2>&1
-          EXIT=$?
-          echo "EXIT=$EXIT" >> "$LOG_FILE"
-          APK=$(find . -name "*.apk" -type f | head -1)
-          echo "apk_path=$APK" >> $GITHUB_OUTPUT
+          EXIT_CODE=$?
+          echo "EXIT_CODE=$EXIT_CODE" >> "$LOG_FILE"
+          APK_FOUND=$(find . -name "*.apk" -type f | head -1)
+          echo "apk_path=$APK_FOUND" >> $GITHUB_OUTPUT
           echo "log_file=$LOG_FILE" >> $GITHUB_OUTPUT
-          echo "exit_code=$EXIT" >> $GITHUB_OUTPUT
-          exit $EXIT
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          exit $EXIT_CODE
 
       - name: 📤 Upload Updater APK
-        if: ${{ always() && steps.build_updater.outputs.apk_path && (github.event.inputs.build_target == 'updater' || github.event.inputs.build_target == 'all') }}
+        id: upload_updater
         uses: actions/upload-artifact@v4
+        if: always() && steps.build_updater.outputs.apk_path && (github.event.inputs.build_target == 'updater' || github.event.inputs.build_target == 'all')
         with:
           name: GitHubUpdater-APK
           path: ${{ steps.build_updater.outputs.apk_path }}
+          retention-days: 30
 
-<<<<<<< Updated upstream
-      # ===== ERRORS.MD — BALIK SA ORIHINAL =====
-=======
-      # ==================================================
+      # ==============================================
       # 📝 ERRORS.MD — WALANG BINAGO! KATULAD NG ORIHINAL!
-      # ==================================================
->>>>>>> Stashed changes
+      # ==============================================
       - name: 📝 Update errors.md
         if: always()
         run: |
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
           cd $GITHUB_WORKSPACE
-          OUT="# Talaan ng mga Error\n\n> Created & Developed by MartoDosko © Copyright 2026\n\n"
+          
+          FINAL_CONTENT="# Talaan ng mga Error\n\n> Created & Developed by MartoDosko © Copyright 2026\n\n"
 
           if [[ "${{ github.event.inputs.build_target }}" == "updater" || "${{ github.event.inputs.build_target }}" == "all" ]]; then
-            E="${{ steps.build_updater.outputs.exit_code }}"
-            A="${{ steps.build_updater.outputs.apk_path }}"
-            if [ "$E" = "0" ] && [ -n "$A" ] && [ -f "$A" ]; then
-              S=$(du -h "$A" | cut -f1)
-              OUT+="✅ TAGUMPAY — GitHubUpdater — $DATE — Laki: $S\n"
+            EXIT="${{ steps.build_updater.outputs.exit_code }}"
+            APK_PATH="${{ steps.build_updater.outputs.apk_path }}"
+            LOG_FILE="${{ steps.build_updater.outputs.log_file }}"
+            UPLOAD_SUCCESS="${{ steps.upload_updater.outcome }}"
+            
+            if [ "$EXIT" = "0" ] && [ -n "$APK_PATH" ] && [ -f "$APK_PATH" ]; then
+              SIZE=$(du -h "$APK_PATH" | cut -f1)
+              if [ "$UPLOAD_SUCCESS" = "success" ]; then
+                FINAL_CONTENT+="✅ TAGUMPAY — GitHubUpdater — $DATE — Laki: $SIZE — APK NA SA ARTIFACTS!\n"
+              else
+                FINAL_CONTENT+="⚠️ NABUO ANG APK PERO HINDI NA-UPLOAD — GitHubUpdater — $DATE — Laki: $SIZE\n"
+              fi
+            elif [ "$EXIT" = "0" ]; then
+              FINAL_CONTENT+="⚠️ SUCCESS ANG BUILD PERO WALANG APK FILE — GitHubUpdater — $DATE\n"
             else
-              OUT+="❌ NABIGO — GitHubUpdater — $DATE — Code: $E\n"
+              FINAL_CONTENT+="❌ NABIGO ANG BUILD — GitHubUpdater — $DATE — Code: $EXIT\n"
             fi
-            OUT+="---\n"
+            FINAL_CONTENT+="---\n"
           fi
 
-<<<<<<< Updated upstream
-=======
-          # ----- GUITARFX -----
->>>>>>> Stashed changes
           if [[ "${{ github.event.inputs.build_target }}" == "guitarfx" || "${{ github.event.inputs.build_target }}" == "all" ]]; then
-            E="${{ steps.build_guitarfx.outputs.exit_code }}"
-            A="${{ steps.build_guitarfx.outputs.apk_path }}"
-            if [ "$E" = "0" ] && [ -n "$A" ] && [ -f "$A" ]; then
-              S=$(du -h "$A" | cut -f1)
-              OUT+="✅ TAGUMPAY — GuitarFX — $DATE — Laki: $S\n"
+            EXIT="${{ steps.build_guitarfx.outputs.exit_code }}"
+            APK_PATH="${{ steps.build_guitarfx.outputs.apk_path }}"
+            LOG_FILE="${{ steps.build_guitarfx.outputs.log_file }}"
+            UPLOAD_SUCCESS="${{ steps.upload_guitarfx.outcome }}"
+            
+            if [ "$EXIT" = "0" ] && [ -n "$APK_PATH" ] && [ -f "$APK_PATH" ]; then
+              SIZE=$(du -h "$APK_PATH" | cut -f1)
+              if [ "$UPLOAD_SUCCESS" = "success" ]; then
+                FINAL_CONTENT+="✅ TAGUMPAY — GuitarFX — $DATE — Laki: $SIZE — APK NA SA ARTIFACTS!\n"
+              else
+                FINAL_CONTENT+="⚠️ NABUO ANG APK PERO HINDI NA-UPLOAD — GuitarFX — $DATE — Laki: $SIZE\n"
+              fi
+            elif [ "$EXIT" = "0" ]; then
+              FINAL_CONTENT+="⚠️ SUCCESS ANG BUILD PERO WALANG APK FILE — GuitarFX — $DATE\n"
             else
-              OUT+="❌ NABIGO — GuitarFX — $DATE — Code: $E\n"
+              FINAL_CONTENT+="❌ NABIGO ANG BUILD — GuitarFX — $DATE — Code: $EXIT\n"
             fi
-            OUT+="---\n"
+            FINAL_CONTENT+="---\n"
           fi
-<<<<<<< Updated upstream
-
-          [ -f errors.md ] && echo -e "$OUT\n$(cat errors.md | sed -n '/^---$/,$p' | sed '1d')" > errors.md || echo -e "$OUT" > errors.md
-=======
           
           if [ -f errors.md ]; then
             OLD_CONTENT=$(cat errors.md)
@@ -183,25 +167,13 @@ jobs:
           
           echo -e "$FINAL_CONTENT" > errors.md
           echo "✅ Na-update ang errors.md"
-        shell: /usr/bin/bash -e {0}
-
-      - name: ✅ Commit & Push
-        if: always()
-        continue-on-error: true
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/build.yml errors.md apps/GuitarFX/build.gradle
-          git commit -m "🔧 FIX: Auto-correct manifest path + Build Log" 2>/dev/null || true
-          git push 2>/dev/null || true
->>>>>>> Stashed changes
         shell: bash
 
       - name: ✅ Save errors.md
         if: always()
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add errors.md
-          git commit -m "📝 Update errors.md" || true
-          git push || true
+          git commit -m "📝 Update build log" 2>/dev/null || true
+          git push 2>/dev/null || true
