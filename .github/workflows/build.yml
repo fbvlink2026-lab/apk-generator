@@ -151,10 +151,3 @@ jobs:
           git add errors.md
           git commit -m "📝 Build log — kasama ang buong detalye" || true
           git push || true
-<<<<<<< Updated upstream
-=======
-ENDOFFILE
-
-echo "✅ build.yml — TAMA NA!"
-echo "   📋 NGAYON — DIRETSONG BABASAHIN ANG BUONG LOG NG GRADLE — HINDI LANG EXIT CODE!"
->>>>>>> Stashed changes
