@@ -37,7 +37,6 @@ class MainActivity : AppCompatActivity() {
 
         drawerLayout = findViewById(R.id.drawer_layout)
 
-        // ✅ IMPORMASYON SA GILID — HINDI NA SA GITNA!
         val tvCurrent = findViewById<TextView>(R.id.tvCurrentVersion)
         val tvNew = findViewById<TextView>(R.id.tvNewVersion)
         val btnCheck = findViewById<Button>(R.id.btnCheck)
@@ -47,21 +46,17 @@ class MainActivity : AppCompatActivity() {
 
         tvCurrent.text = "📌 Kasalukuyan: v$currentVersion"
 
-        // ✅ MENU SA GITNA — ANG PANGUNAHING LAMAN!
         val mainMenu = findViewById<LinearLayout>(R.id.main_menu_container)
         buildMainMenu(mainMenu)
 
-        // ✅ KUSANG TUMATSEK SA PAGBUKAS — LUMALABAS SA GILID
         checkForUpdates(tvCurrent, tvNew, btnDownload)
 
-        // ✅ MGA PINDUTAN SA GILID
         btnCheck.setOnClickListener { checkForUpdates(tvCurrent, tvNew, btnDownload) }
         btnDownload.setOnClickListener { downloadApk() }
         btnAbout.setOnClickListener { showAboutDialog() }
         btnGitHub.setOnClickListener { openGitHubPage() }
     }
 
-    // ✅ MENU SA GITNA — KOPYA MULA SA TERMUX MENU!
     private fun buildMainMenu(container: LinearLayout) {
         container.removeAllViews()
 
@@ -90,7 +85,6 @@ class MainActivity : AppCompatActivity() {
                 text = label
                 textSize = 17f
                 setPadding(32, 24, 32, 24)
-                setBackgroundResource(android.R.drawable.btn_default)
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -101,7 +95,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ✅ TUMATSEK — LUMALABAS SA GILID
     private fun checkForUpdates(
         tvCurrent: TextView,
         tvNew: TextView,
@@ -141,7 +134,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ✅ PAG-DOWNLOAD
     private fun downloadApk() {
         if (latestVersion == currentVersion || latestVersion == null) {
             Toast.makeText(this, "✅ Wala pang bagong bersyon!", Toast.LENGTH_SHORT).show()
@@ -151,7 +143,7 @@ class MainActivity : AppCompatActivity() {
         try {
             val req = DownloadManager.Request(Uri.parse(APK_URL)).apply {
                 setTitle("Updater — v$latestVersion")
-                setDescription "Dinadownload ang bagong bersyon..."
+                setDescription("Dinadownload ang bagong bersyon...")
                 setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE)
                 setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "GitHubUpdater-update.apk")
@@ -183,6 +175,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openGitHubPage() {
-        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/$REPO_OWNER/$REPO_NAME")))
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/$REPO_OWNER/$REPO_NAME"))))
     }
 }
