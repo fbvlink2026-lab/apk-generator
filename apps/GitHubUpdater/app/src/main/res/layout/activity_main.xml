@@ -5,14 +5,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- ✅ PANGUNAHING LUGAR — MAY MENU SA TAAS AGAD! -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:background="#F5F5F5">
 
-        <!-- ✅ MENU SA HARAP — AGAD MAKIKITA SA PAGBUKAS! -->
+        <!-- ✅ MENU SA HARAP — BAGONG LUGAR -->
         <LinearLayout
             android:id="@+id/menu_container"
             android:layout_width="match_parent"
@@ -21,14 +20,13 @@
             android:padding="16dp"
             android:layout_marginTop="8dp"/>
 
-        <!-- ✅ HATI — PAGHIHIWALAY NG MENU AT IMPORMASYON -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="#E0E0E0"
             android:layout_marginHorizontal="24dp"/>
 
-        <!-- ✅ ORIHINAL NA LAMAN — NANANATILI SA IBABA! -->
+        <!-- ✅ ORIHINAL NA LAMAN SA IBABA -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -67,7 +65,18 @@
                 android:textColor="#4CAF50"
                 android:padding="16dp"
                 android:background="#E8F5E9"
-                android:layout_marginBottom="30dp"/>
+                android:layout_marginBottom="20dp"/>
+
+            <!-- ✅ KULANG ITO KANINA — KAILANGANG IDAGDAG! -->
+            <Button
+                android:id="@+id/btnCheck"
+                android:layout_width="match_parent"
+                android:layout_height="55dp"
+                android:text="🔍 Tumatsek ng Bersyon"
+                android:textSize="16sp"
+                android:backgroundTint="#2196F3"
+                android:textColor="#FFFFFF"
+                android:layout_marginBottom="12dp"/>
 
             <Button
                 android:id="@+id/btnDownload"
@@ -88,7 +97,6 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- ✅ DRAWER MENU — NANANATILI SA GILID -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/nav_view"
         android:layout_width="280dp"
