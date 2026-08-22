@@ -30,10 +30,8 @@ jobs:
 
       - name: 📋 LISTAHAN NG FOLDER
         run: |
-          echo "=========================================="
-          echo "   📂 LAHAT NG FOLDER SA REPOSITORY"
-          echo "=========================================="
-          find . -maxdepth 4 -type d | grep -v '.git' | sort
+          echo "=== MGA FOLDER ==="
+          find . -maxdepth 5 -type d | grep -v '.git' | sort
 
       - name: 🔨 BUILD APK
         id: do_build
@@ -65,41 +63,45 @@ jobs:
             LOG="/tmp/$NAME-build.log"
 
             echo ""
-            echo "--- BUILD: $NAME — $DIR ---"
+            echo "--- BUILD: $NAME ---"
             cd "$DIR" || continue
 
-            # ✅ I-DOWNLOAD AT I-SETUP ANG GRADLE
             wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip -O /tmp/gradle.zip
             unzip -q /tmp/gradle.zip -d /tmp
             export PATH=/tmp/gradle-8.2/bin:$PATH
-
             gradle wrapper --gradle-version 8.2
             chmod +x gradlew
 
             ./gradlew assembleDebug > "$LOG" 2>&1
             EXIT=$?
 
-            # ✅ HANAPIN ANG APK SA LAHAT NG LUGAR — SIGURADONG MAHANAP!
-            APK=$(find "$GITHUB_WORKSPACE/$DIR" -name "*.apk" -path "*/debug/*" | head -1)
+            APK=$(find . -name "*.apk" -path "*/debug/*" | head -1)
 
             {
               echo "===== $NAME ====="
               if [ -n "$APK" ] && [ -f "$APK" ]; then
-                echo "✅ TAGUMPAY — APK NABUO!"
-                echo "📂 APK Daan: $APK"
-                echo "📏 Laki: $(du -h "$APK" | cut -f1)"
+                echo "✅ TAGUMPAY!"
+                echo "📂 Mula: $APK"
+                cp "$APK" "$GITHUB_WORKSPACE/$NAME-debug.apk"
+                echo "📂 NAKOPYA SA: $NAME-debug.apk"
               else
                 echo "❌ NABIGO — Exit: $EXIT"
-                echo "⚠️ WALANG APK NAHANAP"
               fi
-              echo "--- BUONG LOG ---"
+              echo "--- LOG ---"
               cat "$LOG"
               echo "=================="
-              echo ""
             } >> /tmp/errors-content.txt
 
             cd "$GITHUB_WORKSPACE"
           done
+
+      - name: 📂 ILIPAT SA docs/ — DIRETSONG SA WEBSITE!
+        if: always()
+        run: |
+          mkdir -p docs
+          mv -f *.apk docs/ 2>/dev/null || true
+          echo "✅ APK ILIPAT SA docs/ — LAMAN NG docs/:"
+          ls -la docs/*.apk 2>/dev/null || echo "⚠️ WALANG APK NA ILIPAT"
 
       - name: 📝 Isulat sa errors.md
         if: always()
@@ -117,30 +119,20 @@ jobs:
           } > errors.md
           cat errors.md
 
-      # ✅ IDINADAGDAG — HUTIN ANG APK SA UGAT — WALANG SUBFOLDER!
-      - name: 📂 HUTIN SA UGAT — APK LANG LANG!
-        if: always()
-        run: |
-          mkdir -p /tmp/APK_ROOT
-          find . -name "*.apk" -path "*/debug/*" -exec cp {} /tmp/APK_ROOT/ \;
-          echo "✅ APK NASA UGAT NA — WALANG FOLDER:"
-          ls -lh /tmp/APK_ROOT/
-
-      # ✅ PALITAN ANG UPLOAD — MULA SA MALINIS NA LUGAR!
-      - name: 📤 I-UPLOAD — APK LANG, WALANG SUBFOLDER!
+      - name: 📤 I-UPLOAD ARTIFACT (bilang backup)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: APKs-${{ github.event.inputs.build_target }}
-          path: /tmp/APK_ROOT/
+          path: docs/*.apk
           retention-days: 30
 
-      - name: ✅ I-commit
+      - name: ✅ I-COMMIT — APK DIRETSONG SA REPOSITORY!
         if: always()
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add errors.md
-          git commit -m "📝 Update build log + APK sa ugat — walang subfolder" || true
+          git add docs/*.apk errors.md 2>/dev/null || true
+          git commit -m "📦 APK: Diretsong sa docs/ + Log" || true
           git push || true
