@@ -136,9 +136,3 @@ jobs:
           git add errors.md
           git commit -m "📝 Update build log" || true
           git push || true
-ENDOFFILE
-
-echo "✅ build.yml — KUMPLETO NA!"
-echo "   📱 GitHubUpdater — Default — Uuna natin"
-echo "   🎸 GuitarFX — NAKAHANDA — HINDI TINANGGAL"
-echo "   📝 errors.md — Kasama pa rin!"
