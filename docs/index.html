@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GuitarFX — APK Generator</title>
+  <title>APK Generator — MartoDosko</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
     body { background: #f0f4f8; padding: 20px; max-width: 900px; margin: 0 auto; }
@@ -20,17 +20,32 @@
     .btn-green:hover { background: #1fb05f; }
     .tag { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-right: 6px; margin-bottom: 6px; }
     .tag-ok { background: #dcfce7; color: #166534; }
+    .tag-apk { background: #dbeafe; color: #1e40af; }
     .loading { color: #666; font-style: italic; padding: 10px; }
+    .apk-item { padding: 12px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .apk-item:last-child { border-bottom: none; }
+    .apk-name { font-weight: bold; color: #1f2937; }
+    .apk-meta { font-size: 13px; color: #6b7280; margin-left: 8px; }
+    .apk-link { background: #28c76f; color: white; padding: 6px 16px; border-radius: 6px; font-size: 14px; }
+    .apk-link:hover { background: #1fb05f; color: white; }
   </style>
 </head>
 <body>
 
-  <h1>🎸 GuitarFX — APK Generator</h1>
+  <h1>🎸 APK Generator</h1>
 
   <div class="card">
     <h2>👋 Tungkol sa Proyekto</h2>
     <p>Awtomatikong bumubuo ng APK gamit GitHub Actions — may talaan ng katayuan, gabay sa paggawa, at pahina ng pag-download.</p>
     <span class="tag tag-ok">✅ Handa na!</span>
+  </div>
+
+  <div class="card">
+    <h2>📥 Mga APK — Diretsong I-download!</h2>
+    <p>✅ Kusang nakikita ang lahat ng APK na nasa <code>docs/</code> folder — walang ZIP, walang i-extract!</p>
+    <div id="apkList">
+      <p class="loading">⏳ Hinahanap ang mga APK...</p>
+    </div>
   </div>
 
   <div class="card">
@@ -49,34 +64,35 @@
   </div>
 
   <div class="card">
-    <h2>📄 Lahat ng Talaan ng Dokumento</h2>
-    <p>✅ <strong>Pindutin ang pindutan → Bubukas ang laman sa bagong pahina!</strong> May pindutang pabalik at kopyahin.</p>
-    <div id="mdButtons"><p class="loading">⏳ Binabasa ang lahat ng dokumento...</p></div>
-  </div>
-
-  <div class="card">
-    <h2>📥 I-download ang APK</h2>
-    <p>⏳ <strong>Hinihintay ang unang nabuong APK...</strong> Kapag handa na — lalabas dito ang direktang link.</p>
-    <a href="https://github.com/fbvlink2026-lab/apk-generator/actions" class="btn btn-green" target="_blank">🔍 Tingnan sa Actions Page</a>
+    <h2>📄 Lahat ng Dokumento</h2>
+       <p>✅ <strong>Pindutin ang pindutan → Bubukas ang laman sa bagong pahina!</strong> May pindutang pabalik at kopyahin.</p>
+ <div id="mdButtons"><p class="loading">⏳ Binabasa ang lahat ng dokumento...</p>
+    </div>
   </div>
 
   <div class="card">
     <h2>📂 Buong Istraktura ng Repositoryo</h2>
-    <p>Gusto mong makita ang lahat ng folder at file? Buksan ang Buong File-Manager.</p>
-    <a href="FILE-MANAGER.html" class="btn btn-green" target="_blank">📂 Buksan ang Buong File-Manager</a>
+    <p>Gusto mong makita ang lahat ng folder at file?</p>
+    <a href="FILE-MANAGER.html" class="btn btn-green">📂 Buksan ang File-Manager</a>
+    <a href="https://github.com/fbvlink2026-lab/apk-generator/actions" class="btn" target="_blank">🔍 Tingnan ang Build Status</a>
   </div>
 
 <script>
 const REPO_OWNER = "fbvlink2026-lab";
 const REPO_NAME  = "apk-generator";
-const BRANCH      = "main";
-const BASE_RAW    = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/docs/`;
+const BRANCH     = "main";
 
-window.onload = loadAllMdFiles;
+window.onload = function() {
+  loadApkList();
+  loadAllMdFiles();
+};
 
-async function loadAllMdFiles() {
-  const container = document.getElementById("mdButtons");
-  container.innerHTML = "";
+// ==============================================
+// ✅ KUSANG HANAPIN ANG LAHAT NG APK SA docs/
+// ==============================================
+async function loadApkList() {
+  const container = document.getElementById("apkList");
+  container.innerHTML = "<p class='loading'>⏳ Hinahanap ang mga APK...</p>";
 
   try {
     const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/trees/${BRANCH}?recursive=1`;
@@ -88,9 +104,60 @@ async function loadAllMdFiles() {
       return;
     }
 
-    const mdFiles = data.tree.filter(item => 
-      item.path.startsWith("docs/") && 
-      item.path.endsWith(".md") && 
+    // ✅ KUNIN ANG LAHAT NG APK SA docs/
+    const apkFiles = data.tree.filter(item =>
+      item.path.startsWith("docs/") &&
+      item.path.endsWith(".apk") &&
+      item.type === "blob"
+    );
+
+    if (apkFiles.length === 0) {
+      container.innerHTML = "<p class='loading'>⏳ Wala pang nabuong APK — hintayin ang unang build sa Actions.</p>";
+      return;
+    }
+
+    // ✅ ILISTA ANG LAHAT NG APK
+    container.innerHTML = "";
+    apkFiles.sort((a,b) => b.path.localeCompare(a.path)); // bago sa una
+
+    for (const file of apkFiles) {
+      const fileName = file.path.replace("docs/", "");
+      const downloadUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/docs/${encodeURIComponent(fileName)}`;
+
+      const div = document.createElement("div");
+      div.className = "apk-item";
+      div.innerHTML = `
+        <div>
+          <span class="tag tag-apk">APK</span>
+          <span class="apk-name">${fileName}</span>
+        </div>
+        <a href="${downloadUrl}" class="apk-link" download target="_blank">⬇️ I-download</a>
+      `;
+      container.appendChild(div);
+    }
+
+  } catch(err) {
+    container.innerHTML = `<p class='loading'>❌ May mali: ${err.message}</p>`;
+  }
+}
+
+// ==============================================
+// ✅ ILISTA ANG MGA .md NA DOKUMENTO
+// ==============================================
+async function loadAllMdFiles() {
+  const container = document.getElementById("mdButtons");
+  container.innerHTML = "";
+
+  try {
+    const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/trees/${BRANCH}?recursive=1`;
+    const res = await fetch(apiUrl);
+    const data = await res.json();
+
+    if (!data.tree) return;
+
+    const mdFiles = data.tree.filter(item =>
+      item.path.startsWith("docs/") &&
+      item.path.endsWith(".md") &&
       item.type === "blob"
     );
 
@@ -100,21 +167,11 @@ async function loadAllMdFiles() {
     }
 
     for (const file of mdFiles) {
-      // ✅ TANGGALIN ANG "docs/" — PANGALAN LANG ANG IPAPASA!
       const fileName = file.path.replace("docs/", "");
-      
       let title = fileName.replace(".md", "");
 
-      try {
-        const textRes = await fetch(BASE_RAW + encodeURIComponent(fileName));
-        const text = await textRes.text();
-        const match = text.match(/^#\s+([^\n]+)/);
-        if (match) title = match[1].trim();
-      } catch(e) { }
-
       const btn = document.createElement("a");
-      // ✅ IPASA LANG ANG PANGALAN — WALANG "docs/"!
-      btn.href = "BASAHIN.html?f=" + encodeURIComponent(fileName);
+      btn.href = "BASAHIN.html?f=docs%2F" + encodeURIComponent(fileName);
       btn.target = "_blank";
       btn.className = "btn";
       btn.textContent = "📄 " + title;
@@ -127,9 +184,9 @@ async function loadAllMdFiles() {
 }
 </script>
 
-  <div style="text-align:center; margin-top:30px; padding-top:20px; border-top:1px solid #e2e8f0; color:#6b7280; font-size:14px;">
-    Developed by MartoDosko © Copyright 2026
-  </div>
+<div style="text-align:center; margin-top:30px; padding-top:20px; border-top:1px solid #e2e8f0; color:#6b7280; font-size:14px;">
+  Developed by MartoDosko © Copyright 2026
+</div>
 
 </body>
 </html>
