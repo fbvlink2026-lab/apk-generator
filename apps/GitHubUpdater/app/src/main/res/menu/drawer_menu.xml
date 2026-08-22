@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item android:title="🔍 Suriin ang Update"/>
+        <item android:title="⬇️ I-download at I-install"/>
+        <item android:title="📋 Kasaysayan ng Update"/>
+        <item android:title="⚙️ Mga Setting"/>
+        <item android:title="ℹ️ Tungkol sa MartoPush"/>
+    </group>
+</menu>
