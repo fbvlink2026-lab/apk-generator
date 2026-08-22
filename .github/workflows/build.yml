@@ -117,15 +117,22 @@ jobs:
           } > errors.md
           cat errors.md
 
-      - name: 📤 I-UPLOAD ANG APK — SIGURADONG MAHANAP!
+      # ✅ IDINADAGDAG — HUTIN ANG APK SA UGAT — WALANG SUBFOLDER!
+      - name: 📂 HUTIN SA UGAT — APK LANG LANG!
+        if: always()
+        run: |
+          mkdir -p /tmp/APK_ROOT
+          find . -name "*.apk" -path "*/debug/*" -exec cp {} /tmp/APK_ROOT/ \;
+          echo "✅ APK NASA UGAT NA — WALANG FOLDER:"
+          ls -lh /tmp/APK_ROOT/
+
+      # ✅ PALITAN ANG UPLOAD — MULA SA MALINIS NA LUGAR!
+      - name: 📤 I-UPLOAD — APK LANG, WALANG SUBFOLDER!
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: APKs-${{ github.event.inputs.build_target }}
-          # ✅ HANAPIN SA LAHAT NG LUGAR — WALANG MAKAKALIGTA!
-          path: |
-            **/build/outputs/apk/debug/*.apk
-            !**/build/**/res/**
+          path: /tmp/APK_ROOT/
           retention-days: 30
 
       - name: ✅ I-commit
@@ -135,5 +142,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add errors.md
-          git commit -m "📝 Update build log" || true
+          git commit -m "📝 Update build log + APK sa ugat — walang subfolder" || true
           git push || true
