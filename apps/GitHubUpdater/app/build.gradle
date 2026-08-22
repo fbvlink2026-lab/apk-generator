@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace 'com.martodosko.github.updater'
+    namespace "com.martodosko.github.updater"
     compileSdk 34
 
     defaultConfig {
@@ -12,7 +12,7 @@ android {
         minSdk 24
         targetSdk 34
         versionCode 1
-        versionName "1.0.0"
+        versionName "1.0"
     }
 
     buildTypes {
@@ -20,15 +20,26 @@ android {
             minifyEnabled false
         }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
     kotlinOptions {
         jvmTarget = '1.8'
     }
-}
 
+    // ==============================================
+    // ✅ DAGDAG: TAMANG PANGALAN NG APK — HINDI NA app-debug.apk!
+    // ==============================================
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            output.outputFileName = "GitHubUpdater-${variant.name}.apk"
+        }
+    }
+}
+    // ✅ Iwan ang iyong kasalukuyang dependencies dito
 dependencies {
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
