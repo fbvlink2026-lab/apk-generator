@@ -55,7 +55,15 @@ jobs:
 
             echo "--- BUILD: $NAME ---"
             cd "$DIR"
-            [ ! -f gradlew ] && gradle wrapper && chmod +x gradlew
+
+            # ✅ AYUSIN MUNA ANG GRADLE WRAPPER — KUNG KULANG ANG .jar
+            if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ $(wc -c < gradle/wrapper/gradle-wrapper.jar 2>/dev/null || echo 0) -lt 10000 ]; then
+              echo "⚠️ Kulang/mali ang gradle-wrapper.jar — GINAGAWA NG TUNAY..."
+              rm -f gradle/wrapper/gradle-wrapper.jar 2>/dev/null
+              gradle wrapper --gradle-version 8.2
+              chmod +x gradlew
+              echo "✅ TUNAY na Gradle wrapper nalikha!"
+            fi
             chmod +x gradlew
 
             ./gradlew assembleDebug > "$LOG" 2>&1 || true
@@ -108,12 +116,14 @@ jobs:
           path: apps/*/build/outputs/apk/debug/*.apk
           retention-days: 30
 
-      - name: ✅ I-commit ang errors.md
+      - name: ✅ I-commit ang errors.md + naayos na Gradle wrapper
         if: always()
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add errors.md
-          git commit -m "📝 Update build log" || true
+          git add apps/*/gradle/wrapper/ 2>/dev/null || true
+          git add apps/*/gradlew 2>/dev/null || true
+          git commit -m "📝 Update build log + Ayos: Gradle Wrapper" || true
           git push || true
