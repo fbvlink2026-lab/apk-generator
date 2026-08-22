@@ -168,7 +168,3 @@ jobs:
           git add errors.md
           git commit -m "📝 Update build log" || true
           git push || true
-ENDOFFILE
-
-echo "✅ build.yml — NA-UPDATE!"
-echo "   🛡️ Awtomatikong lilikhain ang tamang gradle-wrapper.jar kung kulang!"
