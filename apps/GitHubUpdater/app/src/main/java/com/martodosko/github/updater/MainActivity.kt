@@ -1,7 +1,6 @@
 package com.martodosko.github.updater
 
 import android.app.DownloadManager
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -175,6 +174,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openGitHubPage() {
-        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/$REPO_OWNER/$REPO_NAME"))))
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/$REPO_OWNER/$REPO_NAME")))
     }
 }
