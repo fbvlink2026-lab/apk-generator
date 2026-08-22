@@ -1,0 +1,138 @@
+name: Build APK
+
+on:
+  push:
+    paths:
+      - '**'
+  workflow_dispatch:
+    inputs:
+      build_target:
+        description: '📌 Alin ang gusto mong buuin?'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - 'all'
+          - 'GitHubUpdater'
+          - 'guitarfx'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions: write-all
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: 📋 LISTAHAN NG FOLDER
+        run: |
+          echo "=== MGA FOLDER ==="
+          find . -maxdepth 5 -type d | grep -v '.git' | sort
+
+      - name: 🔨 BUILD APK
+        id: do_build
+        run: |
+          mkdir -p /tmp
+          TARGET="${{ github.event.inputs.build_target }}"
+          > /tmp/errors-content.txt
+
+          FIND_APP() {
+            local NAME="$1"
+            if [ -d "apps/$NAME" ]; then echo "apps/$NAME"; return 0; fi
+            if [ -d "$NAME" ]; then echo "$NAME"; return 0; fi
+            return 1
+          }
+
+          declare -a APPS=()
+          if [ "$TARGET" = "all" ]; then
+            DIR=$(FIND_APP GitHubUpdater) && APPS+=("$DIR")
+            DIR=$(FIND_APP GuitarFX) && APPS+=("$DIR")
+          else
+            DIR=$(FIND_APP "$TARGET") && APPS+=("$DIR")
+          fi
+
+          echo "✅ IPAPROSESO: ${APPS[*]}"
+          [ ${#APPS[@]} -eq 0 ] && exit 0
+
+          for DIR in "${APPS[@]}"; do
+            NAME=$(basename "$DIR")
+            LOG="/tmp/$NAME-build.log"
+
+            echo ""
+            echo "--- BUILD: $NAME ---"
+            cd "$DIR" || continue
+
+            wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip -O /tmp/gradle.zip
+            unzip -q /tmp/gradle.zip -d /tmp
+            export PATH=/tmp/gradle-8.2/bin:$PATH
+            gradle wrapper --gradle-version 8.2
+            chmod +x gradlew
+
+            ./gradlew assembleDebug > "$LOG" 2>&1
+            EXIT=$?
+
+            APK=$(find . -name "*.apk" -path "*/debug/*" | head -1)
+
+            {
+              echo "===== $NAME ====="
+              if [ -n "$APK" ] && [ -f "$APK" ]; then
+                echo "✅ TAGUMPAY!"
+                echo "📂 Mula: $APK"
+                cp "$APK" "$GITHUB_WORKSPACE/$NAME-debug.apk"
+                echo "📂 NAKOPYA SA: $NAME-debug.apk"
+              else
+                echo "❌ NABIGO — Exit: $EXIT"
+              fi
+              echo "--- LOG ---"
+              cat "$LOG"
+              echo "=================="
+            } >> /tmp/errors-content.txt
+
+            cd "$GITHUB_WORKSPACE"
+          done
+
+      - name: 📂 ILIPAT SA docs/ — DIRETSONG SA WEBSITE!
+        if: always()
+        run: |
+          mkdir -p docs
+          mv -f *.apk docs/ 2>/dev/null || true
+          echo "✅ APK ILIPAT SA docs/ — LAMAN NG docs/:"
+          ls -la docs/*.apk 2>/dev/null || echo "⚠️ WALANG APK NA ILIPAT"
+
+      - name: 📝 Isulat sa errors.md
+        if: always()
+        run: |
+          DATE=$(date "+%Y-%m-%d %H:%M UTC")
+          {
+            echo "# Talaan ng mga Build"
+            echo ""
+            echo "> Created & Developed by MartoDosko © Copyright 2026"
+            echo ""
+            echo "📅 $DATE — 🎯 ${{ github.event.inputs.build_target }}"
+            echo "---"
+            echo ""
+            cat /tmp/errors-content.txt
+          } > errors.md
+          cat errors.md
+
+      - name: 📤 I-UPLOAD ARTIFACT (bilang backup)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: APKs-${{ github.event.inputs.build_target }}
+          path: docs/*.apk
+          retention-days: 30
+
+      - name: ✅ I-COMMIT — APK DIRETSONG SA REPOSITORY!
+        if: always()
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/*.apk errors.md 2>/dev/null || true
+          git commit -m "📦 APK: Diretsong sa docs/ + Log" || true
+          git push || true
