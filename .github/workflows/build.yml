@@ -32,6 +32,8 @@ jobs:
         run: |
           echo "=== MGA FOLDER SA apps/ ==="
           ls -la apps/
+          echo ""
+          echo "=== TUNAY NA LISTAHAN NG FOLDER ==="
           find apps -maxdepth 1 -mindepth 1 -type d
 
       - name: 🔨 Build at Kumuha ng Log
@@ -40,21 +42,31 @@ jobs:
           mkdir -p /tmp
           TARGET="${{ github.event.inputs.build_target }}"
 
+          # ✅ INAYOS — SIGURADONG MAHANAP ANG MGA FOLDER
           if [ "$TARGET" = "all" ]; then
-            APPS=$(find apps -maxdepth 1 -mindepth 1 -type d)
+            mapfile -t APPS < <(find apps -maxdepth 1 -mindepth 1 -type d | sort)
           else
-            APPS="apps/$TARGET"
+            APPS=("apps/$TARGET")
           fi
 
-          echo "APPS=$APPS" >> $GITHUB_OUTPUT
+          echo "✅ MGA APP NA IPAPROSESO: ${APPS[*]}"
           > /tmp/errors-content.txt
 
-          for DIR in $APPS; do
+          for DIR in "${APPS[@]}"; do
             NAME=$(basename "$DIR")
             LOG="/tmp/$NAME-build.log"
 
+            echo ""
             echo "--- BUILD: $NAME ---"
-            cd "$DIR"
+            echo "📂 Daan: $DIR"
+
+            if [ ! -d "$DIR" ]; then
+              echo "❌ HINDI MAHANAP ANG FOLDER — LILIPAT SA SUSUNOD"
+              echo "$NAME||$LOG|FOLDER_NOT_FOUND" >> /tmp/errors-content.txt
+              continue
+            fi
+
+            cd "$DIR" || continue
 
             # ✅ AYUSIN MUNA ANG GRADLE WRAPPER — KUNG KULANG ANG .jar
             if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ $(wc -c < gradle/wrapper/gradle-wrapper.jar 2>/dev/null || echo 0) -lt 10000 ]; then
@@ -72,9 +84,11 @@ jobs:
 
             {
               echo "===== $NAME ====="
-              if [ -n "$APK" ]; then
+              if [ -n "$APK" ] && [ -f "$APK" ]; then
                 echo "✅ TAGUMPAY"
                 echo "APK: $APK"
+              elif [ "$STATUS" = "FOLDER_NOT_FOUND" ]; then
+                echo "❌ HINDI MAHANAP ANG FOLDER: $DIR"
               else
                 echo "❌ NABIGO — Exit $EXIT"
               fi
@@ -83,7 +97,13 @@ jobs:
               echo "=================="
               echo ""
             } >> /tmp/errors-content.txt
+
+            cd "$GITHUB_WORKSPACE"
           done
+
+          echo ""
+          echo "=== BUOD NG NAIPROSESO ==="
+          cat /tmp/errors-content.txt
 
       - name: 📝 Isulat sa errors.md — SIGURADONG TATAKBO
         if: always()
@@ -101,7 +121,11 @@ jobs:
               cat /tmp/errors-content.txt
             else
               echo "⚠️ Walang naprosesang app."
-              echo "Tingnan ang hakbang 'Anong mga folder ang nakita?' sa itaas."
+              echo ""
+              echo "💡 Posibleng dahilan:"
+              echo "• Walang folder sa loob ng apps/"
+              echo "• Maling pangalan ng target — dapat: GitHubUpdater (hindi updater)"
+              echo "• Tingnan ang hakbang 'Anong mga folder ang nakita?' sa itaas — makikita mo kung ano talaga ang nakita"
             fi
           } > errors.md
 
