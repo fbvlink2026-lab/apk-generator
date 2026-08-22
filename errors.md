@@ -4,47 +4,6 @@
 
 ### 📋 BUONG LOG:
 ```
-Downloading https://services.gradle.org/distributions/gradle-8.2-bin.zip
-............10%............20%............30%.............40%............50%............60%............70%.............80%............90%............100%
-
-Welcome to Gradle 8.2!
-
-Here are the highlights of this release:
- - Kotlin DSL: new reference documentation, assignment syntax by default
- - Kotlin DSL is now the default with Gradle init
- - Improved suggestions to resolve errors in console output
-
-For more details see https://docs.gradle.org/8.2/release-notes.html
-
-Starting a Gradle Daemon (subsequent builds will be faster)
-
-FAILURE: Build failed with an exception.
-
-* Where:
-Settings file '/home/runner/work/apk-generator/apk-generator/apps/GuitarFX/settings.gradle' line: 1
-
-* What went wrong:
-Could not compile settings file '/home/runner/work/apk-generator/apk-generator/apps/GuitarFX/settings.gradle'.
-> startup failed:
-  settings file '/home/runner/work/apk-generator/apk-generator/apps/GuitarFX/settings.gradle': 1: Unexpected input: '{' @ line 1, column 18.
-     pluginManagement {
-                      ^
-  
-  1 error
-
-
-* Try:
-> Run with --stacktrace option to get the stack trace.
-> Run with --info or --debug option to get more log output.
-> Run with --scan to get full insights.
-> Get more help at https://help.gradle.org.
-
-BUILD FAILED in 7s
-```
-
----
-### 📋 BUONG LOG:
-```
 Error: Could not find or load main class "-Xmx64m"
 Caused by: java.lang.ClassNotFoundException: "-Xmx64m"
 ```
