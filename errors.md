@@ -2,18 +2,6 @@
 
 > Created & Developed by MartoDosko © Copyright 2026
 
-❌ **NABIGO** — GitHubUpdater — 2026-08-22 17:06 UTC
-> Exit Code: 127
-
-### 📋 BUONG LOG NG BUILD:
-```
-/home/runner/work/_temp/16ada0c9-135c-48e1-a4e4-44a3d7a34486.sh: line 5: ./gradlew: No such file or directory
-
-```
-
-> *(Kung sobrang haba — tignan ang buong log sa Workflow page)*
-
----
 ❌ ERROR — GuitarFX — 2026-08-17 10:59 UTC — Nabigo ang pagbuo
 ---
 ❌ ERROR — GuitarFX — 2026-08-17 10:56 UTC — Nabigo ang pagbuo
