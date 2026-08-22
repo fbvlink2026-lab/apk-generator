@@ -33,7 +33,7 @@ jobs:
           cache: gradle
 
       # ==============================================
-      # 📱 GITHUB UPDATER — BUUIN
+      # 📱 GITHUB UPDATER — BUUIN + I-SAVE ANG BUONG LOG
       # ==============================================
       - name: 🔨 Build GitHubUpdater
         id: build_updater
@@ -41,11 +41,16 @@ jobs:
         run: |
           cd apps/GitHubUpdater
           chmod +x gradlew 2>/dev/null || true
-          ./gradlew assembleDebug
-          EXIT_CODE=$?
+          
+          # 📋 BUONG LOG — ILILIGTAS SA FILE
+          ./gradlew assembleDebug 2>&1 | tee ../../updater-build-full.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          
           echo "EXIT_CODE=$EXIT_CODE" >> $GITHUB_OUTPUT
           APK_PATH=$(find . -name "*.apk" -path "*/build/outputs/*" | head -1)
           echo "APK_PATH=$APK_PATH" >> $GITHUB_OUTPUT
+          echo "LOG_FILE=updater-build-full.log" >> $GITHUB_OUTPUT
+          
           exit $EXIT_CODE
 
       - name: 📤 Upload Updater APK
@@ -57,7 +62,7 @@ jobs:
           retention-days: 14
 
       # ==============================================
-      # 🎸 GUITARFX — NAKAHANDA NA RIN!
+      # 🎸 GUITARFX — BUUIN + I-SAVE ANG BUONG LOG
       # ==============================================
       - name: 🔨 Build GuitarFX
         id: build_guitarfx
@@ -65,11 +70,16 @@ jobs:
         run: |
           cd apps/GuitarFX
           chmod +x gradlew 2>/dev/null || true
-          ./gradlew assembleDebug
-          EXIT_CODE=$?
+          
+          # 📋 BUONG LOG — ILILIGTAS SA FILE
+          ./gradlew assembleDebug 2>&1 | tee ../../guitarfx-build-full.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          
           echo "EXIT_CODE=$EXIT_CODE" >> $GITHUB_OUTPUT
           APK_PATH=$(find . -name "*.apk" -path "*/build/outputs/*" | head -1)
           echo "APK_PATH=$APK_PATH" >> $GITHUB_OUTPUT
+          echo "LOG_FILE=guitarfx-build-full.log" >> $GITHUB_OUTPUT
+          
           exit $EXIT_CODE
 
       - name: 📤 Upload GuitarFX APK
@@ -81,18 +91,21 @@ jobs:
           retention-days: 14
 
       # ==============================================
-      # 📝 UPDATE ERRORS.MD — KASAMA PA RIN!
+      # 📝 UPDATE ERRORS.MD — KASAMA NA ANG BUONG LOG!
       # ==============================================
-      - name: 📝 Update errors.md
+      - name: 📝 Update errors.md — KASAMA ANG BUONG LOG
         if: always()
         run: |
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
+          
           FINAL_CONTENT="# Talaan ng mga Build\n\n> Created & Developed by MartoDosko © Copyright 2026\n\n"
 
-          # --- GitHubUpdater ---
+          # --- GITHUB UPDATER ---
           if [[ "${{ github.event.inputs.build_target }}" == "updater" || "${{ github.event.inputs.build_target }}" == "all" ]]; then
             EXIT="${{ steps.build_updater.outputs.EXIT_CODE }}"
             APK="${{ steps.build_updater.outputs.APK_PATH }}"
+            LOG_FILE="${{ steps.build_updater.outputs.LOG_FILE }}"
+            
             if [ "$EXIT" == "0" ] && [ -n "$APK" ]; then
               SIZE=$(du -h "$APK" 2>/dev/null | cut -f1 || echo "---")
               FINAL_CONTENT+="✅ **TAGUMPAY** — GitHubUpdater — $DATE\n"
@@ -100,14 +113,25 @@ jobs:
             else
               FINAL_CONTENT+="❌ **NABIGO** — GitHubUpdater — $DATE\n"
               FINAL_CONTENT+="> Exit Code: $EXIT\n\n"
+              
+              # 📋 BUONG LOG NG PAGKABIGO — ILALAGAY SA ERRORS.MD!
+              if [ -f "$LOG_FILE" ]; then
+                FINAL_CONTENT+="### 📋 BUONG LOG NG BUILD:\n"
+                FINAL_CONTENT+="\`\`\`\n"
+                FINAL_CONTENT+="$(cat "$LOG_FILE" | sed 's/\\/\\\\/g' | head -200)\n"
+                FINAL_CONTENT+="\n\`\`\`\n\n"
+                FINAL_CONTENT+="> *(Kung sobrang haba — tignan ang buong log sa Workflow page)*\n\n"
+              fi
             fi
             FINAL_CONTENT+="---\n"
           fi
 
-          # --- GuitarFX ---
+          # --- GUITARFX ---
           if [[ "${{ github.event.inputs.build_target }}" == "guitarfx" || "${{ github.event.inputs.build_target }}" == "all" ]]; then
             EXIT="${{ steps.build_guitarfx.outputs.EXIT_CODE }}"
             APK="${{ steps.build_guitarfx.outputs.APK_PATH }}"
+            LOG_FILE="${{ steps.build_guitarfx.outputs.LOG_FILE }}"
+            
             if [ "$EXIT" == "0" ] && [ -n "$APK" ]; then
               SIZE=$(du -h "$APK" 2>/dev/null | cut -f1 || echo "---")
               FINAL_CONTENT+="✅ **TAGUMPAY** — GuitarFX — $DATE\n"
@@ -115,24 +139,47 @@ jobs:
             else
               FINAL_CONTENT+="❌ **NABIGO** — GuitarFX — $DATE\n"
               FINAL_CONTENT+="> Exit Code: $EXIT\n\n"
+              
+              # 📋 BUONG LOG NG PAGKABIGO — ILALAGAY SA ERRORS.MD!
+              if [ -f "$LOG_FILE" ]; then
+                FINAL_CONTENT+="### 📋 BUONG LOG NG BUILD:\n"
+                FINAL_CONTENT+="\`\`\`\n"
+                FINAL_CONTENT+="$(cat "$LOG_FILE" | sed 's/\\/\\\\/g' | head -200)\n"
+                FINAL_CONTENT+="\n\`\`\`\n\n"
+                FINAL_CONTENT+="> *(Kung sobrang haba — tignan ang buong log sa Workflow page)*\n\n"
+              fi
             fi
             FINAL_CONTENT+="---\n"
           fi
 
-          # Panatilihin ang lumang tala
+          # 📋 PANATILIHIN ANG LUMANG TALA
           if [ -f errors.md ]; then
             OLD_CONTENT=$(cat errors.md)
             OLD_CONTENT=$(echo "$OLD_CONTENT" | sed -n '/^---$/,$p' | sed '1d')
             FINAL_CONTENT="$FINAL_CONTENT$OLD_CONTENT"
           fi
 
+          # 💾 ISULAT LAHAT SA ERRORS.MD
           echo -e "$FINAL_CONTENT" > errors.md
+          echo "✅ Na-update ang errors.md — kasama na ang buong log ng pagkabigo!"
 
-      - name: ✅ I-commit at I-push ang errors.md
+      # 🧹 LINISIN ANG LOG FILES — HINDI NA KAILANGAN I-COMMIT
+      - name: 🧹 Linisin ang temporary log files
+        if: always()
+        run: |
+          rm -f updater-build-full.log guitarfx-build-full.log
+
+      # ✅ I-COMMIT ANG NA-UPDATE NA ERRORS.MD
+      - name: ✅ I-save at I-push ang errors.md
         if: always()
         continue-on-error: true
         run: |
           git config --global user.name "github-actions[bot]"
           git add errors.md
-          git commit -m "📝 Update build log" || true
+          git commit -m "📝 Update build log — kasama ang error details" || true
           git push || true
+ENDOFFILE
+
+echo "✅ build.yml — NA-UPDATE!"
+echo "   📋 Ngayon — kapag BUMAGSAK ang build — KOKOPYA ANG BUONG LOG sa errors.md!"
+echo "   📌 Hindi na lang Exit Code — makikita na mismo kung BAKIT pumula!"
