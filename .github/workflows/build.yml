@@ -28,27 +28,20 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: 📋 BUONG LISTAHAN NG LAHAT NG FOLDER — ALAMIN NATIN KUNG NASAN!
+      - name: 📋 BUONG LISTAHAN NG FOLDER — ALAMIN KUNG NASAAN
         run: |
           echo "=========================================="
-          echo "   📂 LAHAT NG FOLDER SA BUONG REPOSITORY"
+          echo "   📂 LAHAT NG FOLDER SA REPOSITORY"
           echo "=========================================="
           find . -maxdepth 3 -type d | grep -v '.git' | sort
           echo ""
-          echo "=========================================="
-          echo "   🔍 TIGNAN KUNG NASAAN ANG Updater:"
-          echo "=========================================="
           if [ -d "apps/GitHubUpdater" ]; then
-            echo "✅ NASA: apps/GitHubUpdater"
+            echo "✅ NAKITA: apps/GitHubUpdater"
+          elif [ -d "GitHubUpdater" ]; then
+            echo "✅ NAKITA: GitHubUpdater (sa ugat)"
+          else
+            echo "❌ HINDI MAHANAP: GitHubUpdater"
           fi
-          if [ -d "GitHubUpdater" ]; then
-            echo "✅ NASA: GitHubUpdater (diretso sa ugat!)"
-          fi
-          if [ -d "apps/GitHubUpdater/app" ]; then
-            echo "✅ May app/ sa loob: apps/GitHubUpdater/app"
-          fi
-          echo ""
-          ls -la
 
       - name: 🔨 Build at Kumuha ng Log
         id: do_build
@@ -57,7 +50,7 @@ jobs:
           TARGET="${{ github.event.inputs.build_target }}"
           > /tmp/errors-content.txt
 
-          # ✅ HANAPIN SA LAHAT NG POSIBLENG LUGAR
+          # ✅ HANAPIN ANG TAMAANG LUGAR NG APP
           FIND_APP() {
             local NAME="$1"
             if [ -d "apps/$NAME" ]; then echo "apps/$NAME"; return 0; fi
@@ -66,7 +59,6 @@ jobs:
           }
 
           declare -a APPS=()
-
           if [ "$TARGET" = "all" ]; then
             DIR=$(FIND_APP GitHubUpdater) && APPS+=("$DIR")
             DIR=$(FIND_APP GuitarFX) && APPS+=("$DIR")
@@ -74,10 +66,9 @@ jobs:
             DIR=$(FIND_APP "$TARGET") && APPS+=("$DIR")
           fi
 
-          echo "✅ MGA APP NA MAHANAP: ${APPS[*]}"
-
+          echo "✅ IPAPROSESO: ${APPS[*]}"
           if [ ${#APPS[@]} -eq 0 ]; then
-            echo "⚠️ WALANG MAHANAP NA APP — tignan ang listahan sa itaas!"
+            echo "⚠️ WALANG MAHANAP NA APP"
             exit 0
           fi
 
@@ -86,19 +77,23 @@ jobs:
             LOG="/tmp/$NAME-build.log"
 
             echo ""
-            echo "--- BUILD: $NAME — Daan: $DIR ---"
+            echo "--- BUILD: $NAME sa $DIR ---"
             cd "$DIR" || continue
 
-            # ✅ AYUSIN ANG GRADLE WRAPPER
-            if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ $(wc -c < gradle/wrapper/gradle-wrapper.jar 2>/dev/null || echo 0) -lt 10000 ]; then
-              echo "⚠️ Ayusin ang gradle-wrapper..."
-              rm -f gradle/wrapper/gradle-wrapper.jar 2>/dev/null
-              gradle wrapper --gradle-version 8.2
-              chmod +x gradlew
-            fi
+            # ==============================================
+            # ✅ ITO ANG TAMANG PARAAN — GAYA NG IPINAKITA MO!
+            # ==============================================
+            echo "🛠️ I-DOWNLOAD ANG SIGURADONG GRADLE 8.2..."
+            wget https://services.gradle.org/distributions/gradle-8.2-bin.zip -O /tmp/gradle.zip
+            unzip -q /tmp/gradle.zip -d /tmp
+            export PATH=/tmp/gradle-8.2/bin:$PATH
+
+            echo "🔨 GINAGAWA ANG GRADLE WRAPPER..."
+            gradle wrapper --gradle-version 8.2
             chmod +x gradlew
 
-            ./gradlew assembleDebug > "$LOG" 2>&1 || true
+            echo "✅ GRADLE WRAPPER TAPOS NA — BUBUUIN NA ANG APK..."
+            ./gradlew assembleDebug > "$LOG" 2>&1
             EXIT=$?
             APK=$(find . -name "*.apk" -path "*/build/outputs/apk/debug/*" | head -1)
 
@@ -107,8 +102,9 @@ jobs:
               if [ -n "$APK" ] && [ -f "$APK" ]; then
                 echo "✅ TAGUMPAY"
                 echo "APK: $APK"
+                echo "Laki: $(du -h "$APK" | cut -f1)"
               else
-                echo "❌ NABIGO — Exit $EXIT"
+                echo "❌ NABIGO — Exit Code: $EXIT"
               fi
               echo "--- BUONG LOG ---"
               cat "$LOG"
@@ -135,15 +131,13 @@ jobs:
               cat /tmp/errors-content.txt
             else
               echo "⚠️ Walang naprosesang app."
-              echo ""
-              echo "💡 TIGNAN ANG UNANG HAKBANG — doon mo makikita:"
-              echo "   • Kung saang folder nakalagay ang GitHubUpdater"
-              echo "   • Kung naipadala ba talaga sa GitHub"
+              echo "Tignan ang unang hakbang sa itaas — makikita mo kung anong folder ang nakita."
             fi
           } > errors.md
+          echo "✅ Naisulat na errors.md"
           cat errors.md
 
-      - name: 📤 Ipadala APK
+      - name: 📤 Ipadala APK Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -153,7 +147,7 @@ jobs:
             */app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
-      - name: ✅ I-commit
+      - name: ✅ I-commit errors.md
         if: always()
         continue-on-error: true
         run: |
