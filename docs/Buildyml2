@@ -1,0 +1,160 @@
+cat > .github/workflows/build.yml << 'ENDOFFILE'
+name: Build APK
+
+on:
+  push:
+    paths:
+      - '**'
+  workflow_dispatch:
+    inputs:
+      build_target:
+        description: '📌 Alin ang gusto mong buuin?'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - 'all'
+          - 'GitHubUpdater'
+          - 'guitarfx'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions: write-all
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: 📋 BUONG LISTAHAN NG FOLDER — ALAMIN KUNG NASAAN
+        run: |
+          echo "=========================================="
+          echo "   📂 LAHAT NG FOLDER SA REPOSITORY"
+          echo "=========================================="
+          find . -maxdepth 3 -type d | grep -v '.git' | sort
+          echo ""
+          if [ -d "apps/GitHubUpdater" ]; then
+            echo "✅ NAKITA: apps/GitHubUpdater"
+          elif [ -d "GitHubUpdater" ]; then
+            echo "✅ NAKITA: GitHubUpdater (sa ugat)"
+          else
+            echo "❌ HINDI MAHANAP: GitHubUpdater"
+          fi
+
+      - name: 🔨 Build at Kumuha ng Log
+        id: do_build
+        run: |
+          mkdir -p /tmp
+          TARGET="${{ github.event.inputs.build_target }}"
+          > /tmp/errors-content.txt
+
+          # ✅ HANAPIN ANG TAMAANG LUGAR NG APP
+          FIND_APP() {
+            local NAME="$1"
+            if [ -d "apps/$NAME" ]; then echo "apps/$NAME"; return 0; fi
+            if [ -d "$NAME" ]; then echo "$NAME"; return 0; fi
+            return 1
+          }
+
+          declare -a APPS=()
+          if [ "$TARGET" = "all" ]; then
+            DIR=$(FIND_APP GitHubUpdater) && APPS+=("$DIR")
+            DIR=$(FIND_APP GuitarFX) && APPS+=("$DIR")
+          else
+            DIR=$(FIND_APP "$TARGET") && APPS+=("$DIR")
+          fi
+
+          echo "✅ IPAPROSESO: ${APPS[*]}"
+          if [ ${#APPS[@]} -eq 0 ]; then
+            echo "⚠️ WALANG MAHANAP NA APP"
+            exit 0
+          fi
+
+          for DIR in "${APPS[@]}"; do
+            NAME=$(basename "$DIR")
+            LOG="/tmp/$NAME-build.log"
+
+            echo ""
+            echo "--- BUILD: $NAME sa $DIR ---"
+            cd "$DIR" || continue
+
+            # ==============================================
+            # ✅ ITO ANG TAMANG PARAAN — GAYA NG IPINAKITA MO!
+            # ==============================================
+            echo "🛠️ I-DOWNLOAD ANG SIGURADONG GRADLE 8.2..."
+            wget https://services.gradle.org/distributions/gradle-8.2-bin.zip -O /tmp/gradle.zip
+            unzip -q /tmp/gradle.zip -d /tmp
+            export PATH=/tmp/gradle-8.2/bin:$PATH
+
+            echo "🔨 GINAGAWA ANG GRADLE WRAPPER..."
+            gradle wrapper --gradle-version 8.2
+            chmod +x gradlew
+
+            echo "✅ GRADLE WRAPPER TAPOS NA — BUBUUIN NA ANG APK..."
+            ./gradlew assembleDebug > "$LOG" 2>&1
+            EXIT=$?
+            APK=$(find . -name "*.apk" -path "*/build/outputs/apk/debug/*" | head -1)
+
+            {
+              echo "===== $NAME ====="
+              if [ -n "$APK" ] && [ -f "$APK" ]; then
+                echo "✅ TAGUMPAY"
+                echo "APK: $APK"
+                echo "Laki: $(du -h "$APK" | cut -f1)"
+              else
+                echo "❌ NABIGO — Exit Code: $EXIT"
+              fi
+              echo "--- BUONG LOG ---"
+              cat "$LOG"
+              echo "=================="
+              echo ""
+            } >> /tmp/errors-content.txt
+
+            cd "$GITHUB_WORKSPACE"
+          done
+
+      - name: 📝 Isulat sa errors.md
+        if: always()
+        run: |
+          DATE=$(date "+%Y-%m-%d %H:%M UTC")
+          {
+            echo "# Talaan ng mga Build"
+            echo ""
+            echo "> Created & Developed by MartoDosko © Copyright 2026"
+            echo ""
+            echo "📅 $DATE — 🎯 ${{ github.event.inputs.build_target }}"
+            echo "---"
+            echo ""
+            if [ -f /tmp/errors-content.txt ] && [ -s /tmp/errors-content.txt ]; then
+              cat /tmp/errors-content.txt
+            else
+              echo "⚠️ Walang naprosesang app."
+              echo "Tignan ang unang hakbang sa itaas — makikita mo kung anong folder ang nakita."
+            fi
+          } > errors.md
+          echo "✅ Naisulat na errors.md"
+          cat errors.md
+
+      - name: 📤 Ipadala APK Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: APKs-${{ github.event.inputs.build_target }}
+          path: |
+            */build/outputs/apk/debug/*.apk
+            */app/build/outputs/apk/debug/*.apk
+          retention-days: 30
+
+      - name: ✅ I-commit errors.md
+        if: always()
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add errors.md
+          git commit -m "📝 Update build log" || true
+          git push || true
+ENDOFFILE
