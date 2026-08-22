@@ -9,13 +9,6 @@ Caused by: java.lang.ClassNotFoundException: "-Xmx64m"
 ```
 
 ---
-### 📋 BUONG LOG:
-```
-Error: Could not find or load main class "-Xmx64m"
-Caused by: java.lang.ClassNotFoundException: "-Xmx64m"
-```
-
----
 ❌ ERROR — GuitarFX — 2026-08-17 11:25 UTC — Nabigo ang pagbuo
 ---
 ❌ ERROR — GuitarFX — 2026-08-17 11:11 UTC — Nabigo ang pagbuo
