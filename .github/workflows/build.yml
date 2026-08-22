@@ -25,14 +25,15 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: ☕ Set up JDK 17 + Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - name: ☕ Set up JDK 17
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: gradle
 
       # ==============================================
-      # 📱 GITHUB UPDATER — BUUIN + SIGURADUHING NAKUHA ANG BUONG LOG
+      # 📱 GITHUB UPDATER — BUUIN + KUNIN ANG BUONG LOG
       # ==============================================
       - name: 🔨 Build GitHubUpdater
         id: build_updater
@@ -40,21 +41,20 @@ jobs:
         run: |
           cd apps/GitHubUpdater
           
-          # Ayusin ang wrapper kung kulang
+          # Ayusin wrapper kung kulang
           if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ $(wc -c < gradle/wrapper/gradle-wrapper.jar 2>/dev/null || echo 0) -lt 100 ]; then
               gradle wrapper --gradle-version 8.2
               chmod +x gradlew
           fi
           chmod +x ./gradlew
           
-          # ✅ DIRETSONG KUKUHA ANG LAHAT — WALANG LILIPAS
-          ./gradlew assembleDebug > ../../updater-FULL-LOG.txt 2>&1
+          # ✅ KUNIN ANG LAHAT — OUTPUT + ERROR — ISAIP SA FILE
+          ./gradlew assembleDebug 2>&1 > ../../build-output.log
           EXIT_CODE=$?
           
           echo "EXIT_CODE=$EXIT_CODE" >> $GITHUB_OUTPUT
           APK_PATH=$(find . -name "*.apk" -path "*/build/outputs/*" | head -1)
           echo "APK_PATH=$APK_PATH" >> $GITHUB_OUTPUT
-          echo "LOG_FILE=updater-FULL-LOG.txt" >> $GITHUB_OUTPUT
           exit $EXIT_CODE
 
       - name: 📤 Upload Updater APK
@@ -66,88 +66,63 @@ jobs:
           retention-days: 14
 
       # ==============================================
-      # 📝 UPDATE ERRORS.MD — KUKUHA NG DIRETSO SA LOG FILE
+      # 📝 ISULAT SA ERRORS.MD — KASAMA ANG BUONG LOG
       # ==============================================
-      - name: 📝 Isulat sa errors.md — BUONG LOG KASAMA
+      - name: 📝 Update errors.md
         if: always()
         run: |
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
-          
           FINAL_CONTENT="# Talaan ng mga Build\n\n> Created & Developed by MartoDosko © Copyright 2026\n\n"
 
-          # ========== GITHUB UPDATER ==========
-          if [[ "${{ github.event.inputs.build_target }}" == "updater" || "${{ github.event.inputs.build_target }}" == "all" ]]; then
-            EXIT="${{ steps.build_updater.outputs.EXIT_CODE }}"
-            APK="${{ steps.build_updater.outputs.APK_PATH }}"
-            LOG_FILE="${{ steps.build_updater.outputs.LOG_FILE }}"
+          EXIT="${{ steps.build_updater.outputs.EXIT_CODE }}"
+          APK="${{ steps.build_updater.outputs.APK_PATH }}"
 
-            if [ "$EXIT" == "0" ] && [ -n "$APK" ]; then
+          if [ "$EXIT" == "0" ] && [ -n "$APK" ]; then
               SIZE=$(du -h "$APK" 2>/dev/null | cut -f1 || echo "---")
               FINAL_CONTENT+="✅ **TAGUMPAY** — GitHubUpdater — $DATE\n"
               FINAL_CONTENT+="> Bersyon: 1.0.0 | Laki: $SIZE\n\n"
-            else
+          else
               FINAL_CONTENT+="❌ **NABIGO** — GitHubUpdater — $DATE\n"
               FINAL_CONTENT+="> Exit Code: $EXIT\n\n"
-
-              # ✅ DIRETSONG BABASAHIN ANG BUONG LOG — WALANG LILIPAT
-              if [ -f "$LOG_FILE" ]; then
-                FINAL_CONTENT+="### 📋 BUONG LOG NG GRADLE:\n"
-                FINAL_CONTENT+="\`\`\`\n"
-                FINAL_CONTENT+="$(cat "$LOG_FILE")\n"
-                FINAL_CONTENT+="\`\`\`\n\n"
+              
+              # ✅ BASAHIN ANG BUONG LOG — WALANG PINUTOL
+              if [ -f build-output.log ]; then
+                  FINAL_CONTENT+="### 📋 BUONG LOG NG BUILD:\n"
+                  FINAL_CONTENT+="\`\`\`\n"
+                  FINAL_CONTENT+="$(cat build-output.log)\n"
+                  FINAL_CONTENT+="\`\`\`\n\n"
               else
-                FINAL_CONTENT+="⚠️ LOG FILE HINDI NAKUHA: $LOG_FILE\n\n"
+                  FINAL_CONTENT+="⚠️ Walang nakuhang log file.\n\n"
               fi
-            fi
-            FINAL_CONTENT+="---\n"
           fi
-
-          # ========== GUITARFX ==========
-          if [[ "${{ github.event.inputs.build_target }}" == "guitarfx" || "${{ github.event.inputs.build_target }}" == "all" ]]; then
-            EXIT="${{ steps.build_guitarfx.outputs.EXIT_CODE }}"
-            APK="${{ steps.build_guitarfx.outputs.APK_PATH }}"
-            LOG_FILE="${{ steps.build_guitarfx.outputs.LOG_FILE }}"
-
-            if [ "$EXIT" == "0" ] && [ -n "$APK" ]; then
-              SIZE=$(du -h "$APK" 2>/dev/null | cut -f1 || echo "---")
-              FINAL_CONTENT+="✅ **TAGUMPAY** — GuitarFX — $DATE\n"
-              FINAL_CONTENT+="> Bersyon: 1.0.0 | Laki: $SIZE\n\n"
-            else
-              FINAL_CONTENT+="❌ **NABIGO** — GuitarFX — $DATE\n"
-              FINAL_CONTENT+="> Exit Code: $EXIT\n\n"
-
-              if [ -f "$LOG_FILE" ]; then
-                FINAL_CONTENT+="### 📋 BUONG LOG NG GRADLE:\n"
-                FINAL_CONTENT+="\`\`\`\n"
-                FINAL_CONTENT+="$(cat "$LOG_FILE")\n"
-                FINAL_CONTENT+="\`\`\`\n\n"
-              fi
-            fi
-            FINAL_CONTENT+="---\n"
-          fi
+          FINAL_CONTENT+="---\n"
 
           # Panatilihin ang lumang tala
           if [ -f errors.md ]; then
-            OLD_CONTENT=$(cat errors.md)
-            OLD_CONTENT=$(echo "$OLD_CONTENT" | sed -n '/^---$/,$p' | sed '1d')
-            FINAL_CONTENT="$FINAL_CONTENT$OLD_CONTENT"
+              OLD_CONTENT=$(cat errors.md)
+              OLD_CONTENT=$(echo "$OLD_CONTENT" | sed -n '/^---$/,$p' | sed '1d')
+              FINAL_CONTENT="$FINAL_CONTENT$OLD_CONTENT"
           fi
 
           echo -e "$FINAL_CONTENT" > errors.md
-          echo "✅ Na-update — BUONG LOG NA ISINULAT SA ERRORS.MD!"
 
-      # Linisin
       - name: 🧹 Linisin
         if: always()
-        run: |
-          rm -f updater-FULL-LOG.txt guitarfx-FULL-LOG.txt
+        run: rm -f build-output.log
 
-      # I-save pabalik
-      - name: ✅ I-commit errors.md
+      - name: ✅ I-save errors.md
         if: always()
         continue-on-error: true
         run: |
           git config --global user.name "github-actions[bot]"
           git add errors.md
-          git commit -m "📝 Build log — kasama ang buong detalye" || true
+          git commit -m "📝 Update build log" || true
           git push || true
+<<<<<<< Updated upstream
+=======
+ENDOFFILE
+
+echo "✅ build.yml — INAYOS!"
+echo "   📋 Ngayon — KUNG MAY ERROR — BUONG LOG NG GRADLE MAKIKITA SA ERRORS.MD"
+echo "   📌 Walang ibang binago — logging lang ang itinama"
+>>>>>>> Stashed changes
