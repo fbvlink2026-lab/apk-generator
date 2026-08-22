@@ -2,10 +2,11 @@
 
 > Created & Developed by MartoDosko © Copyright 2026
 
-📅 2026-08-22 19:17 UTC — 🎯 GitHubUpdater
+📅 2026-08-22 19:20 UTC — 🎯 
 ---
 
 ⚠️ Walang naprosesang app.
 
-💡 TIGNAN ANG HAKBANG SA ITAAS — 'ANO ANG NASA apps/?'
-Makikita mo doon kung anong mga folder talaga ang umiiral.
+💡 TIGNAN ANG UNANG HAKBANG — doon mo makikita:
+   • Kung saang folder nakalagay ang GitHubUpdater
+   • Kung naipadala ba talaga sa GitHub
