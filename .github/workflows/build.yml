@@ -178,3 +178,24 @@ jobs:
           git add errors.md
           git commit -m "📝 Update build log — kasama ang error details" || true
           git push || true
+<<<<<<< Updated upstream
+=======
+ENDOFFILE
+
+echo "✅ build.yml — NA-UPDATE!"
+echo "   📋 Ngayon — kapag BUMAGSAK ang build — KOKOPYA ANG BUONG LOG sa errors.md!"
+echo "   📌 Hindi na lang Exit Code — makikita na mismo kung BAKIT pumula!"
+#!/bin/bash
+# ==========================================
+# 🔧 AYUSIN: KULANG ANG GRADLE WRAPPER
+# ==========================================
+
+cd "$HOME/apk-generator" || exit 1
+cd apps/GitHubUpdater || exit 1
+
+echo "=========================================="
+echo "   🔧 LIKHAIN ANG GRADLE WRAPPER"
+echo "=========================================="
+
+# —— 1. gradlew — Script para sa Linux/Mac ———
+>>>>>>> Stashed changes
