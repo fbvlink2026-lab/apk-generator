@@ -191,11 +191,3 @@ jobs:
           git add errors.md
           git commit -m "📝 Update build log — kasama ang detalye ng pagkabigo" || true
           git push || true
-<<<<<<< Updated upstream
-=======
-ENDOFFILE
-
-echo "✅ build.yml — NA-UPDATE!"
-echo "   📝 errors.md — BUONG LOG KASAMA — WALANG BINAWAS!"
-echo "   🛡️ Kahit pumula — makikita mo agad kung BAKIT sa errors.md!"
->>>>>>> Stashed changes
