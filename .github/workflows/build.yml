@@ -178,8 +178,3 @@ jobs:
           git add errors.md
           git commit -m "📝 Update build log — kasama ang error details" || true
           git push || true
-ENDOFFILE
-
-echo "✅ build.yml — NA-UPDATE!"
-echo "   📋 Ngayon — kapag BUMAGSAK ang build — KOKOPYA ANG BUONG LOG sa errors.md!"
-echo "   📌 Hindi na lang Exit Code — makikita na mismo kung BAKIT pumula!"
