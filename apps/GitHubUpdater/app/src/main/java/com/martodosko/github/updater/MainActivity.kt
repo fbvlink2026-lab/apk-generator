@@ -7,7 +7,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
@@ -27,11 +26,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var drawerLayout: DrawerLayout
     private val currentVersion = "1.0.0"
 
-    // ✅ TOTOONG LUGAR NG IYONG APK SA GITHUB
     private val REPO_OWNER = "fbvlink2026-lab"
     private val REPO_NAME = "apk-generator"
     private val APK_URL = "https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/main/docs/GitHubUpdater-debug.apk"
-    private val VERSION_URL = "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/docs/version.json"
 
     private var latestVersion: String? = null
     private var isChecking = false
@@ -50,28 +47,20 @@ class MainActivity : AppCompatActivity() {
 
         tvCurrent.text = "📌 Kasalukuyang Bersyon: $currentVersion"
 
-        // ==============================================
-        // ✅ MENU SA HARAP — AGAD MAKIKITA SA PAGBUKAS!
-        // ==============================================
+        // ✅ MENU SA HARAP — AGAD MAKIKITA!
         showFrontMenu(menuContainer)
 
-        // ==============================================
-        // ✅ PAGBUKAS PA LANG — KUSANG TUMATSEK KUNG MAY BAGONG BERSYON!
-        // ==============================================
+        // ✅ PAGBUKAS PA LANG — KUSANG TUMATSEK!
         checkForUpdates(tvNew, btnDownload)
 
-        // ==============================================
         // ✅ PINDUTIN — TUMATSEK ULIT
-        // ==============================================
         btnCheck.setOnClickListener {
             if (!isChecking) {
                 checkForUpdates(tvNew, btnDownload)
             }
         }
 
-        // ==============================================
-        // ✅ PINDUTIN — TOTOONG MAGDADOWNLOAD NG TAMAANG APK!
-        // ==============================================
+        // ✅ PINDUTIN — TOTOONG MAGDADOWNLOAD!
         btnDownload.setOnClickListener {
             if (!latestVersion.isNullOrEmpty() && latestVersion != currentVersion) {
                 downloadAndInstallApk()
@@ -82,20 +71,18 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        navView.setNavigationItemSelectedListener { menuItem ->
+        navView.setNavigationItemSelectedListener {
             drawerLayout.closeDrawer(Gravity.LEFT)
             true
         }
     }
 
-    // ==============================================
-    // ✅ MENU SA HARAP — AGAD MAKIKITA! HINDI NAKATAGO!
-    // ==============================================
+    // ✅ MENU SA HARAP — AGAD MAKIKITA SA PAGBUKAS!
     private fun showFrontMenu(container: LinearLayout) {
         container.removeAllViews()
 
         val options = listOf(
-            "🔍 Tumatsek ng Bagong Bersyon" to {
+            "🔍 Tumatsek ng Bersyon" to {
                 checkForUpdates(findViewById(R.id.tvNewVersion), findViewById(R.id.btnDownload))
             },
             "⬇️ I-download ang Update" to {
@@ -104,7 +91,7 @@ class MainActivity : AppCompatActivity() {
             "ℹ️ Tungkol sa App" to {
                 showAboutDialog()
             },
-            "📂 Buksan ang GitHub Page" to {
+            "📂 Buksan ang GitHub" to {
                 openGitHubPage()
             }
         )
@@ -120,9 +107,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ==============================================
     // ✅ KUSANG TUMATSEK SA GITHUB — TOTOONG VERSION CHECK!
-    // ==============================================
     private fun checkForUpdates(statusView: TextView, downloadBtn: Button) {
         isChecking = true
         statusView.text = "🔍 Tinitignan kung may bago..."
@@ -130,7 +115,6 @@ class MainActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // ✅ Paraan 1 — Tignan ang latest release
                 val releaseUrl = "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest"
                 val response = URL(releaseUrl).readText()
                 val json = JSONObject(response)
@@ -148,9 +132,8 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             } catch (e: Exception) {
-                // ✅ Paraan 2 — Kung walang release — gamitin ang hardcoded pero gumagana pa rin
                 launch(Dispatchers.Main) {
-                    statusView.text = "⚠️ Hindi matignan ang bersyon — offline mode"
+                    statusView.text = "⚠️ Hindi matignan — offline"
                     latestVersion = currentVersion
                     downloadBtn.isEnabled = false
                 }
@@ -159,9 +142,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ==============================================
-    // ✅ TOTOONG PAG-DOWNLOAD — HINDI SIMULASYON LANG!
-    // ==============================================
+    // ✅ TOTOONG PAG-DOWNLOAD — HINDI SIMULASYON!
     private fun downloadAndInstallApk() {
         try {
             val request = DownloadManager.Request(Uri.parse(APK_URL)).apply {
@@ -176,7 +157,7 @@ class MainActivity : AppCompatActivity() {
             val dm = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             dm.enqueue(request)
 
-            Toast.makeText(this, "✅ Nagsimula ang pag-download — tignan ang abiso!", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "✅ Nagsimula ang pag-download!", Toast.LENGTH_LONG).show()
 
             findViewById<Button>(R.id.btnDownload).apply {
                 text = "✅ Nagsimula ang Pag-download"
