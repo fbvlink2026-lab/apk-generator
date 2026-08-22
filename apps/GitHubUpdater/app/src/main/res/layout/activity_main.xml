@@ -5,65 +5,90 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <!-- ✅ PANGUNAHING LUGAR — MAY MENU SA TAAS AGAD! -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center"
         android:orientation="vertical"
-        android:padding="24dp"
         android:background="#F5F5F5">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="🔄 Mag-install ng Bagong Update"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:textColor="#2196F3"
-            android:layout_marginBottom="50dp"/>
-
-        <TextView
-            android:id="@+id/tvCurrentVersion"
+        <!-- ✅ MENU SA HARAP — AGAD MAKIKITA SA PAGBUKAS! -->
+        <LinearLayout
+            android:id="@+id/menu_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Kasalukuyang Bersyon: —"
-            android:textSize="18sp"
-            android:textColor="#555555"
+            android:orientation="vertical"
             android:padding="16dp"
-            android:background="#E3F2FD"
-            android:layout_marginBottom="12dp"/>
+            android:layout_marginTop="8dp"/>
 
-        <TextView
-            android:id="@+id/tvNewVersion"
+        <!-- ✅ HATI — PAGHIHIWALAY NG MENU AT IMPORMASYON -->
+        <View
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Bagong Bersyon: —"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textColor="#4CAF50"
-            android:padding="16dp"
-            android:background="#E8F5E9"
-            android:layout_marginBottom="30dp"/>
+            android:layout_height="1dp"
+            android:background="#E0E0E0"
+            android:layout_marginHorizontal="24dp"/>
 
-        <Button
-            android:id="@+id/btnDownload"
+        <!-- ✅ ORIHINAL NA LAMAN — NANANATILI SA IBABA! -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="65dp"
-            android:text="⬇️ I-download ang Update"
-            android:textSize="18sp"
-            android:backgroundTint="#4CAF50"
-            android:textColor="#FFFFFF"
-            android:layout_marginBottom="20dp"/>
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="← Hilahin PAKALIWA para sa Menu"
-            android:textSize="14sp"
-            android:textColor="#888888"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔄 Mag-install ng Bagong Update"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#2196F3"
+                android:layout_marginBottom="30dp"/>
 
+            <TextView
+                android:id="@+id/tvCurrentVersion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Kasalukuyang Bersyon: —"
+                android:textSize="18sp"
+                android:textColor="#555555"
+                android:padding="16dp"
+                android:background="#E3F2FD"
+                android:layout_marginBottom="12dp"/>
+
+            <TextView
+                android:id="@+id/tvNewVersion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Bagong Bersyon: —"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="#4CAF50"
+                android:padding="16dp"
+                android:background="#E8F5E9"
+                android:layout_marginBottom="30dp"/>
+
+            <Button
+                android:id="@+id/btnDownload"
+                android:layout_width="match_parent"
+                android:layout_height="65dp"
+                android:text="⬇️ I-download ang Update"
+                android:textSize="18sp"
+                android:backgroundTint="#4CAF50"
+                android:textColor="#FFFFFF"
+                android:layout_marginBottom="20dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="← Hilahin pakaliwa para sa karagdagang menu"
+                android:textSize="14sp"
+                android:textColor="#888888"/>
+        </LinearLayout>
     </LinearLayout>
 
+    <!-- ✅ DRAWER MENU — NANANATILI SA GILID -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/nav_view"
         android:layout_width="280dp"
