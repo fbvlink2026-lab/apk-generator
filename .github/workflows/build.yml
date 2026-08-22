@@ -2,127 +2,126 @@ name: Build APK
 
 on:
   push:
-    branches: [ main ]
+    paths:
+      - 'apps/**'
   workflow_dispatch:
     inputs:
       build_target:
-        description: '📌 Alin ang bubuuin?'
+        description: '📌 Alin ang gusto mong buuin?'
         required: true
-        default: 'updater'
+        default: 'all'
         type: choice
         options:
-          - 'updater'
-          - 'guitarfx'
           - 'all'
+          - 'GitHubUpdater'
+          - 'guitarfx'
 
 jobs:
   build:
-    name: Build APK
     runs-on: ubuntu-latest
     permissions: write-all
 
     steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: ☕ Set up JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
-      # ==============================================
-      # 📱 GITHUB UPDATER — BUUIN + KUNIN ANG BUONG LOG
-      # ==============================================
-      - name: 🔨 Build GitHubUpdater
-        id: build_updater
-        if: github.event.inputs.build_target == 'updater' || github.event.inputs.build_target == 'all'
+      - name: 📋 Listahan ng folder
         run: |
-          cd apps/GitHubUpdater
-          
-          # Ayusin wrapper kung kulang
-          if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ $(wc -c < gradle/wrapper/gradle-wrapper.jar 2>/dev/null || echo 0) -lt 100 ]; then
+          echo "=== MGA FOLDER SA apps/ ==="
+          find apps -maxdepth 1 -mindepth 1 -type d
+
+      - name: 🔨 Build — AWTOMATIKONG AYUSIN ANG GRADLE WRAPPER
+        id: do_build
+        run: |
+          mkdir -p /tmp
+          TARGET="${{ github.event.inputs.build_target }}"
+
+          if [ "$TARGET" = "all" ]; then
+            APPS=$(find apps -maxdepth 1 -mindepth 1 -type d)
+          else
+            APPS="apps/$TARGET"
+          fi
+
+          > /tmp/errors-content.txt
+
+          for DIR in $APPS; do
+            NAME=$(basename "$DIR")
+            LOG="/tmp/$NAME-build.log"
+
+            echo "--- BUILD: $NAME ---"
+            cd "$DIR"
+
+            if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ $(wc -c < gradle/wrapper/gradle-wrapper.jar 2>/dev/null || echo 0) -lt 10000 ]; then
+              echo "⚠️ Kulang/mali ang gradle-wrapper.jar — GINAGAWA NG TUNAY..."
+              rm -f gradle/wrapper/gradle-wrapper.jar 2>/dev/null
               gradle wrapper --gradle-version 8.2
               chmod +x gradlew
-          fi
-          chmod +x ./gradlew
-          
-          # ✅ KUNIN ANG LAHAT — OUTPUT + ERROR — ISAIP SA FILE
-          ./gradlew assembleDebug 2>&1 > ../../build-output.log
-          EXIT_CODE=$?
-          
-          echo "EXIT_CODE=$EXIT_CODE" >> $GITHUB_OUTPUT
-          APK_PATH=$(find . -name "*.apk" -path "*/build/outputs/*" | head -1)
-          echo "APK_PATH=$APK_PATH" >> $GITHUB_OUTPUT
-          exit $EXIT_CODE
+              echo "✅ TUNAY na Gradle wrapper nalikha!"
+            fi
+            chmod +x gradlew
 
-      - name: 📤 Upload Updater APK
-        if: always() && steps.build_updater.outputs.APK_PATH
-        uses: actions/upload-artifact@v4
-        with:
-          name: GitHubUpdater-APK
-          path: ${{ steps.build_updater.outputs.APK_PATH }}
-          retention-days: 14
+            ./gradlew assembleDebug > "$LOG" 2>&1
+            EXIT=$?
+            APK=$(find . -name "*.apk" -path "*/build/outputs/apk/debug/*" | head -1)
 
-      # ==============================================
-      # 📝 ISULAT SA ERRORS.MD — KASAMA ANG BUONG LOG
-      # ==============================================
-      - name: 📝 Update errors.md
+            {
+              echo "===== $NAME ====="
+              if [ -n "$APK" ] && [ -f "$APK" ]; then
+                echo "✅ TAGUMPAY"
+                echo "APK: $APK"
+                echo "Laki: $(du -h "$APK" | cut -f1)"
+              else
+                echo "❌ NABIGO — Exit Code: $EXIT"
+              fi
+              echo "--- BUONG LOG ---"
+              cat "$LOG"
+              echo "=================="
+              echo ""
+            } >> /tmp/errors-content.txt
+
+            cd "$GITHUB_WORKSPACE"
+          done
+
+      - name: 📝 Isulat sa errors.md — SIGURADONG TATAKBO
         if: always()
         run: |
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
-          FINAL_CONTENT="# Talaan ng mga Build\n\n> Created & Developed by MartoDosko © Copyright 2026\n\n"
+          {
+            echo "# Talaan ng mga Build"
+            echo ""
+            echo "> Created & Developed by MartoDosko © Copyright 2026"
+            echo ""
+            echo "📅 $DATE — 🎯 ${{ github.event.inputs.build_target }}"
+            echo "---"
+            echo ""
+            if [ -f /tmp/errors-content.txt ] && [ -s /tmp/errors-content.txt ]; then
+              cat /tmp/errors-content.txt
+            else
+              echo "⚠️ Walang naprosesang app."
+              echo "Tingnan ang hakbang na 'Listahan ng folder' sa itaas."
+            fi
+          } > errors.md
 
-          EXIT="${{ steps.build_updater.outputs.EXIT_CODE }}"
-          APK="${{ steps.build_updater.outputs.APK_PATH }}"
+          echo "✅ Naisulat na errors.md"
+          cat errors.md
 
-          if [ "$EXIT" == "0" ] && [ -n "$APK" ]; then
-              SIZE=$(du -h "$APK" 2>/dev/null | cut -f1 || echo "---")
-              FINAL_CONTENT+="✅ **TAGUMPAY** — GitHubUpdater — $DATE\n"
-              FINAL_CONTENT+="> Bersyon: 1.0.0 | Laki: $SIZE\n\n"
-          else
-              FINAL_CONTENT+="❌ **NABIGO** — GitHubUpdater — $DATE\n"
-              FINAL_CONTENT+="> Exit Code: $EXIT\n\n"
-              
-              # ✅ BASAHIN ANG BUONG LOG — WALANG PINUTOL
-              if [ -f build-output.log ]; then
-                  FINAL_CONTENT+="### 📋 BUONG LOG NG BUILD:\n"
-                  FINAL_CONTENT+="\`\`\`\n"
-                  FINAL_CONTENT+="$(cat build-output.log)\n"
-                  FINAL_CONTENT+="\`\`\`\n\n"
-              else
-                  FINAL_CONTENT+="⚠️ Walang nakuhang log file.\n\n"
-              fi
-          fi
-          FINAL_CONTENT+="---\n"
-
-          # Panatilihin ang lumang tala
-          if [ -f errors.md ]; then
-              OLD_CONTENT=$(cat errors.md)
-              OLD_CONTENT=$(echo "$OLD_CONTENT" | sed -n '/^---$/,$p' | sed '1d')
-              FINAL_CONTENT="$FINAL_CONTENT$OLD_CONTENT"
-          fi
-
-          echo -e "$FINAL_CONTENT" > errors.md
-
-      - name: 🧹 Linisin
+      - name: 📤 Ipadala APK Artifacts
         if: always()
-        run: rm -f build-output.log
+        uses: actions/upload-artifact@v4
+        with:
+          name: APKs-${{ github.event.inputs.build_target }}
+          path: apps/*/build/outputs/apk/debug/*.apk
+          retention-days: 30
 
-      - name: ✅ I-save errors.md
+      - name: ✅ I-commit errors.md
         if: always()
         continue-on-error: true
         run: |
-          git config --global user.name "github-actions[bot]"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add errors.md
-          git commit -m "📝 Update build log" || true
-          git push || true
-<<<<<<< Updated upstream
-=======
-ENDOFFILE
-
-echo "✅ build.yml — INAYOS!"
-echo "   📋 Ngayon — KUNG MAY ERROR — BUONG LOG NG GRADLE MAKIKITA SA ERRORS.MD"
-echo "   📌 Walang ibang binago — logging lang ang itinama"
->>>>>>> Stashed changes
+          git commit -m "📝 Update build log" 2>/dev/null || true
+          git push 2>/dev/null || true
