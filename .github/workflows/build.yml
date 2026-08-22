@@ -32,27 +32,23 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: 📋 LISTAHAN NG MGA FOLDER SA apps/
-        id: list_folders
+      - name: 📋 IPAKITA ANG LAHAT NG FOLDER SA apps/
         run: |
           echo "=========================================="
           echo "   📂 LAHAT NG FOLDER SA apps/"
           echo "=========================================="
-          ls -la apps/
-          echo ""
           find apps -maxdepth 1 -mindepth 1 -type d
           echo ""
-          echo "✅ KUNG WALANG LUMABAS — WALANG FOLDER SA apps/"
+          echo "✅ KUNG WALANG LUMABAS SA TAAS — WALANG FOLDER SA apps/"
+          echo "✅ DAPAT MAKITA: apps/GitHubUpdater  at  apps/GuitarFX"
 
       - name: 🔨 BUILD APK
-        id: build_step
-        continue-on-error: true   # ✅ HINDI HIHINTO KAHIT PUMULA
         run: |
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
           mkdir -p /tmp/build_logs
           rm -f /tmp/apk_list.txt
-          touch /tmp/apk_list.txt   # ✅ SIGURADONG MAY FILE
 
+          # ✅ ITAMA ANG PAGPILI — KUNG ANO ANG NAKATALAGANG PANGALAN
           TARGET="${{ github.event.inputs.build_target }}"
           
           if [ "$TARGET" = "all" ]; then
@@ -61,6 +57,7 @@ jobs:
             APPS=("apps/$TARGET")
           fi
 
+          echo ""
           echo "=========================================="
           echo "   🎯 TARGET: $TARGET"
           echo "   📂 IPAPROSESO: ${APPS[*]}"
@@ -104,17 +101,16 @@ jobs:
           done
 
           echo ""
-          echo "📋 BUOD NG NAIPROSESO:"
-          cat /tmp/apk_list.txt
+          echo "📋 BUOD:"
+          if [ -f /tmp/apk_list.txt ]; then
+            cat /tmp/apk_list.txt
+          else
+            echo "❌ WALANG NAIPROSESO"
+          fi
 
-      # ==============================================
-      # 📝 SIGURADONG TATAKBO — KAHIT ANONG MANGYARI
-      # ==============================================
       - name: 📝 Update errors.md
-        id: write_errors
-        if: always()   # ✅ TATAKBO KAHIT PUMULA O MATAGAL
+        if: always()
         run: |
-          echo "✅ NAGSUSULAT SA ERRORS.MD..."
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
           CONTENT="# Talaan ng mga Build\n\n> Created & Developed by MartoDosko © Copyright 2026\n\n"
           CONTENT+="📅 Build: **$DATE**\n🎯 Target: **${{ github.event.inputs.build_target }}**\n---\n\n"
@@ -124,19 +120,16 @@ jobs:
               if [ -n "$APP" ]; then
                 CONTENT+="### 📦 $APP\n"
                 if [[ "$STATUS" == SUCCESS ]]; then
-                  SIZE=$(du -h "$APK" 2>/dev/null | cut -f1 || echo "---")
+                  SIZE=$(du -h "$APK" 2>/dev/null | cut -f1)
                   CONTENT+="✅ **TAGUMPAY** — Laki: $SIZE\n\n"
                 elif [[ "$STATUS" == FOLDER_NOT_FOUND ]]; then
                   CONTENT+="❌ **HINDI MAHANAP ANG FOLDER** — apps/$APP\n"
-                  CONTENT+="> 💡 Suriin: tama ba ang pangalan?\n\n"
+                  CONTENT+="> 💡 Suriin: tama ba ang pangalan? Dapat eksakto!\n\n"
                 else
-                  CONTENT+="❌ **NABIGO ANG BUILD** — $STATUS\n\n"
+                  CONTENT+="❌ **NABIGO** — $STATUS\n\n"
                 fi
-
                 if [ -f "$LOG" ]; then
-                  CONTENT+="#### 📋 Buong Log:\n\`\`\`\n"
-                  CONTENT+="$(cat "$LOG")"
-                  CONTENT+="\n\`\`\`\n\n"
+                  CONTENT+="#### 📋 Log:\n\`\`\`\n$(cat "$LOG")\n\`\`\`\n\n"
                 fi
                 CONTENT+="---\n\n"
               fi
@@ -145,38 +138,31 @@ jobs:
             CONTENT+="⚠️ **Walang naitalang app.**\n\n"
             CONTENT+="> 💡 Posibleng dahilan:\n"
             CONTENT+="> • Walang folder sa loob ng `apps/`\n"
-            CONTENT+="> • Maling pangalan ng target\n"
-            CONTENT+="> • Tingnan ang hakbang na 'LISTAHAN NG MGA FOLDER' sa itaas — makikita mo kung ano ang nakita\n\n"
+            CONTENT+="> • Maling pangalan — dapat eksakto: `GitHubUpdater` HINDI `updater`\n\n"
           fi
 
-          # ✅ Panatilihin ang lumang tala
           if [ -f errors.md ]; then
             OLD=$(cat errors.md)
             OLD_TAIL=$(echo "$OLD" | sed -n '/^---$/,$p' | sed '1d')
-            if [ -n "$OLD_TAIL" ]; then
-              CONTENT="$CONTENT\n$OLD_TAIL"
-            fi
+            [ -n "$OLD_TAIL" ] && CONTENT="$CONTENT\n$OLD_TAIL"
           fi
 
           echo -e "$CONTENT" > errors.md
-          echo "✅ TAPOS NA — NAISULAT SA ERRORS.MD!"
-          cat errors.md   # ✅ Ipakita sa Actions — para makita mo agad
 
       - name: 📤 Upload APK Artifacts
-        if: always()
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: APKs-${{ github.event.inputs.build_target }}
           path: apps/*/build/outputs/apk/debug/*.apk
           retention-days: 30
 
-      - name: ✅ I-commit at i-push ang errors.md
+      - name: ✅ Commit errors.md
         if: always()
         continue-on-error: true
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add errors.md
-          git commit -m "📝 Update build log — ${{ github.event.inputs.build_target }}" || true
+          git commit -m "📝 Build log — ${{ github.event.inputs.build_target }}" || true
           git push || true
-          echo "✅ Naipadala na ang errors.md sa GitHub"
