@@ -40,16 +40,17 @@ jobs:
         run: |
           cd apps/GitHubUpdater
           
-          # ✅ SIGURADUHING TAMA ANG GRADLE WRAPPER — KUNG WALANG .jar, GUMAMIT NG SYSTEM GRADLE
-          if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ $(wc -c < gradle/wrapper/gradle-wrapper.jar) -lt 100 ]; then
-              echo "⚠️ Wala o mali ang gradle-wrapper.jar — AWTOMATIKONG LILIKHA..."
+          # 🛡️ Ayusin ang Gradle Wrapper kung kulang ang .jar
+          if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ $(wc -c < gradle/wrapper/gradle-wrapper.jar 2>/dev/null || echo 0) -lt 100 ]; then
+              echo "⚠️ Gradle wrapper kulang o mali — AWTOMATIKONG LILIKHA..."
               gradle wrapper --gradle-version 8.2
               chmod +x gradlew
-              echo "✅ Nalikha na ang tamang Gradle wrapper!"
+              echo "✅ Tamang Gradle wrapper nalikha!"
           fi
           
           chmod +x ./gradlew
           
+          # 📋 BUONG LOG — I-SAVE SA FILE
           ./gradlew assembleDebug 2>&1 | tee ../../updater-build-full.log
           EXIT_CODE=${PIPESTATUS[0]}
           
@@ -75,8 +76,8 @@ jobs:
         run: |
           cd apps/GuitarFX
           
-          if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ $(wc -c < gradle/wrapper/gradle-wrapper.jar) -lt 100 ]; then
-              echo "⚠️ Wala o mali ang gradle-wrapper.jar — AWTOMATIKONG LILIKHA..."
+          if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ $(wc -c < gradle/wrapper/gradle-wrapper.jar 2>/dev/null || echo 0) -lt 100 ]; then
+              echo "⚠️ Gradle wrapper kulang o mali — AWTOMATIKONG LILIKHA..."
               gradle wrapper --gradle-version 8.2
               chmod +x gradlew
           fi
@@ -100,16 +101,19 @@ jobs:
           retention-days: 14
 
       # ==============================================
-      # 📝 UPDATE ERRORS.MD — KASAMA ANG BUONG LOG
+      # 📝 BUONG SISTEMA NG ERRORS.MD — WALANG BINAWAS!
       # ==============================================
-      - name: 📝 Update errors.md
-        if: always()
+      - name: 📝 Update errors.md — BUONG LOG KASAMA
+        if: always()   # ← MAHALAGA: TATAKBO KAHIT ANONG MANGYARI
         run: |
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
           
+          # 📌 ULO NG TALA — HINDI BINABAGO
           FINAL_CONTENT="# Talaan ng mga Build\n\n> Created & Developed by MartoDosko © Copyright 2026\n\n"
 
-          # --- GITHUB UPDATER ---
+          # ======================================
+          # GITHUB UPDATER — BUONG DETALYE
+          # ======================================
           if [[ "${{ github.event.inputs.build_target }}" == "updater" || "${{ github.event.inputs.build_target }}" == "all" ]]; then
             EXIT="${{ steps.build_updater.outputs.EXIT_CODE }}"
             APK="${{ steps.build_updater.outputs.APK_PATH }}"
@@ -122,15 +126,21 @@ jobs:
               FINAL_CONTENT+="❌ **NABIGO** — GitHubUpdater — $DATE\n"
               FINAL_CONTENT+="> Exit Code: $EXIT\n\n"
               
+              # 📋 BUONG LOG NG PAGKABIGO — HINDI BINAWAS!
               if [ -f "updater-build-full.log" ]; then
-                FINAL_CONTENT+="### 📋 BUONG LOG:\n\`\`\`\n"
-                FINAL_CONTENT+="$(cat updater-build-full.log | head -300)\n\`\`\`\n\n"
+                FINAL_CONTENT+="### 📋 BUONG LOG NG BUILD:\n"
+                FINAL_CONTENT+="\`\`\`\n"
+                FINAL_CONTENT+="$(cat updater-build-full.log | head -300)\n"
+                FINAL_CONTENT+="\n\`\`\`\n\n"
+                FINAL_CONTENT+="> *(Kung sobrang haba — buksan ang Workflow Actions page para sa buong log)*\n\n"
               fi
             fi
             FINAL_CONTENT+="---\n"
           fi
 
-          # --- GUITARFX ---
+          # ======================================
+          # GUITARFX — BUONG DETALYE
+          # ======================================
           if [[ "${{ github.event.inputs.build_target }}" == "guitarfx" || "${{ github.event.inputs.build_target }}" == "all" ]]; then
             EXIT="${{ steps.build_guitarfx.outputs.EXIT_CODE }}"
             APK="${{ steps.build_guitarfx.outputs.APK_PATH }}"
@@ -143,28 +153,49 @@ jobs:
               FINAL_CONTENT+="❌ **NABIGO** — GuitarFX — $DATE\n"
               FINAL_CONTENT+="> Exit Code: $EXIT\n\n"
               
+              # 📋 BUONG LOG NG PAGKABIGO — HINDI BINAWAS!
               if [ -f "guitarfx-build-full.log" ]; then
-                FINAL_CONTENT+="### 📋 BUONG LOG:\n\`\`\`\n"
-                FINAL_CONTENT+="$(cat guitarfx-build-full.log | head -300)\n\`\`\`\n\n"
+                FINAL_CONTENT+="### 📋 BUONG LOG NG BUILD:\n"
+                FINAL_CONTENT+="\`\`\`\n"
+                FINAL_CONTENT+="$(cat guitarfx-build-full.log | head -300)\n"
+                FINAL_CONTENT+="\n\`\`\`\n\n"
+                FINAL_CONTENT+="> *(Kung sobrang haba — buksan ang Workflow Actions page para sa buong log)*\n\n"
               fi
             fi
             FINAL_CONTENT+="---\n"
           fi
 
-          # Panatilihin ang lumang tala
+          # 📋 PANATILIHIN ANG LAHAT NG LUMANG TALA — HINDI BUBURAHIN!
           if [ -f errors.md ]; then
             OLD_CONTENT=$(cat errors.md)
             OLD_CONTENT=$(echo "$OLD_CONTENT" | sed -n '/^---$/,$p' | sed '1d')
             FINAL_CONTENT="$FINAL_CONTENT$OLD_CONTENT"
           fi
 
+          # 💾 ISULAT LAHAT SA ERRORS.MD
           echo -e "$FINAL_CONTENT" > errors.md
+          echo "✅ Na-update ang errors.md — kasama ang buong log!"
 
-      - name: ✅ I-save ang errors.md
+      # 🧹 LINISIN ANG LOG FILES
+      - name: 🧹 Linisin ang log files
+        if: always()
+        run: |
+          rm -f updater-build-full.log guitarfx-build-full.log
+
+      # ✅ I-COMMIT ANG ERRORS.MD PABALIK SA GITHUB
+      - name: ✅ I-save at I-push ang errors.md
         if: always()
         continue-on-error: true
         run: |
           git config --global user.name "github-actions[bot]"
           git add errors.md
-          git commit -m "📝 Update build log" || true
+          git commit -m "📝 Update build log — kasama ang detalye ng pagkabigo" || true
           git push || true
+<<<<<<< Updated upstream
+=======
+ENDOFFILE
+
+echo "✅ build.yml — NA-UPDATE!"
+echo "   📝 errors.md — BUONG LOG KASAMA — WALANG BINAWAS!"
+echo "   🛡️ Kahit pumula — makikita mo agad kung BAKIT sa errors.md!"
+>>>>>>> Stashed changes
