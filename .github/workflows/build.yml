@@ -28,29 +28,60 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: 📋 Anong mga folder ang nakita?
+      - name: 📋 ANO ANG NASA apps/? — TIGNAN NG MABUTI
         run: |
-          echo "=== MGA FOLDER SA apps/ ==="
+          echo "=========================================="
+          echo "   📂 BUONG LAMAN NG apps/"
+          echo "=========================================="
           ls -la apps/
           echo ""
-          echo "=== TUNAY NA LISTAHAN NG FOLDER ==="
-          find apps -maxdepth 1 -mindepth 1 -type d
+          echo "=========================================="
+          echo "   📂 MGA SUB-FOLDER:"
+          echo "=========================================="
+          for d in apps/*/; do
+            echo "→ $d"
+          done
+          echo ""
+          if [ -d "apps/GitHubUpdater" ]; then
+            echo "✅ NAKITA: apps/GitHubUpdater — UMIIRAL!"
+          else
+            echo "❌ HINDI MAHANAP: apps/GitHubUpdater — WALA DITO!"
+          fi
+          echo ""
+          if [ -d "apps/guitarfx" ]; then
+            echo "✅ NAKITA: apps/guitarfx — UMIIRAL!"
+          else
+            echo "❌ HINDI MAHANAP: apps/guitarfx — WALA DITO!"
+          fi
 
       - name: 🔨 Build at Kumuha ng Log
         id: do_build
         run: |
           mkdir -p /tmp
           TARGET="${{ github.event.inputs.build_target }}"
+          > /tmp/errors-content.txt
 
-          # ✅ INAYOS — SIGURADONG MAHANAP ANG MGA FOLDER
+          echo "🎯 PINILI: $TARGET"
+
+          # ✅ DIRETSONG TIGNAN — WALANG KUMplikADONG FIND
           if [ "$TARGET" = "all" ]; then
-            mapfile -t APPS < <(find apps -maxdepth 1 -mindepth 1 -type d | sort)
+            APPS=()
+            [ -d "apps/GitHubUpdater" ] && APPS+=("apps/GitHubUpdater")
+            [ -d "apps/guitarfx" ] && APPS+=("apps/guitarfx")
+            echo "✅ LAHAT NG APP: ${APPS[*]}"
+          elif [ "$TARGET" = "GitHubUpdater" ] && [ -d "apps/GitHubUpdater" ]; then
+            APPS=("apps/GitHubUpdater")
+          elif [ "$TARGET" = "guitarfx" ] && [ -d "apps/guitarfx" ]; then
+            APPS=("apps/guitarfx")
           else
-            APPS=("apps/$TARGET")
+            echo "❌ WALANG TUGMANG FOLDER SA: $TARGET"
+            APPS=()
           fi
 
-          echo "✅ MGA APP NA IPAPROSESO: ${APPS[*]}"
-          > /tmp/errors-content.txt
+          if [ ${#APPS[@]} -eq 0 ]; then
+            echo "⚠️ WALANG APP NA IPAPROSESO"
+            exit 0
+          fi
 
           for DIR in "${APPS[@]}"; do
             NAME=$(basename "$DIR")
@@ -58,23 +89,14 @@ jobs:
 
             echo ""
             echo "--- BUILD: $NAME ---"
-            echo "📂 Daan: $DIR"
+            cd "$DIR"
 
-            if [ ! -d "$DIR" ]; then
-              echo "❌ HINDI MAHANAP ANG FOLDER — LILIPAT SA SUSUNOD"
-              echo "$NAME||$LOG|FOLDER_NOT_FOUND" >> /tmp/errors-content.txt
-              continue
-            fi
-
-            cd "$DIR" || continue
-
-            # ✅ AYUSIN MUNA ANG GRADLE WRAPPER — KUNG KULANG ANG .jar
+            # ✅ AYUSIN ANG GRADLE WRAPPER
             if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ $(wc -c < gradle/wrapper/gradle-wrapper.jar 2>/dev/null || echo 0) -lt 10000 ]; then
-              echo "⚠️ Kulang/mali ang gradle-wrapper.jar — GINAGAWA NG TUNAY..."
+              echo "⚠️ Ayusin ang gradle-wrapper..."
               rm -f gradle/wrapper/gradle-wrapper.jar 2>/dev/null
               gradle wrapper --gradle-version 8.2
               chmod +x gradlew
-              echo "✅ TUNAY na Gradle wrapper nalikha!"
             fi
             chmod +x gradlew
 
@@ -87,8 +109,6 @@ jobs:
               if [ -n "$APK" ] && [ -f "$APK" ]; then
                 echo "✅ TAGUMPAY"
                 echo "APK: $APK"
-              elif [ "$STATUS" = "FOLDER_NOT_FOUND" ]; then
-                echo "❌ HINDI MAHANAP ANG FOLDER: $DIR"
               else
                 echo "❌ NABIGO — Exit $EXIT"
               fi
@@ -101,11 +121,7 @@ jobs:
             cd "$GITHUB_WORKSPACE"
           done
 
-          echo ""
-          echo "=== BUOD NG NAIPROSESO ==="
-          cat /tmp/errors-content.txt
-
-      - name: 📝 Isulat sa errors.md — SIGURADONG TATAKBO
+      - name: 📝 Isulat sa errors.md
         if: always()
         run: |
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
@@ -122,14 +138,10 @@ jobs:
             else
               echo "⚠️ Walang naprosesang app."
               echo ""
-              echo "💡 Posibleng dahilan:"
-              echo "• Walang folder sa loob ng apps/"
-              echo "• Maling pangalan ng target — dapat: GitHubUpdater (hindi updater)"
-              echo "• Tingnan ang hakbang 'Anong mga folder ang nakita?' sa itaas — makikita mo kung ano talaga ang nakita"
+              echo "💡 TIGNAN ANG HAKBANG SA ITAAS — 'ANO ANG NASA apps/?'"
+              echo "Makikita mo doon kung anong mga folder talaga ang umiiral."
             fi
           } > errors.md
-
-          echo "✅ Naisulat na ang errors.md — laman:"
           cat errors.md
 
       - name: 📤 Ipadala APK
@@ -140,14 +152,12 @@ jobs:
           path: apps/*/build/outputs/apk/debug/*.apk
           retention-days: 30
 
-      - name: ✅ I-commit ang errors.md + naayos na Gradle wrapper
+      - name: ✅ I-commit
         if: always()
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add errors.md
-          git add apps/*/gradle/wrapper/ 2>/dev/null || true
-          git add apps/*/gradlew 2>/dev/null || true
-          git commit -m "📝 Update build log + Ayos: Gradle Wrapper" || true
+          git commit -m "📝 Update build log" || true
           git push || true
