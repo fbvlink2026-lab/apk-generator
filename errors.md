@@ -2,19 +2,6 @@
 
 > Created & Developed by MartoDosko © Copyright 2026
 
-❌ **NABIGO** — GitHubUpdater — 2026-08-22 17:08 UTC
-> Exit Code: 1
-
-### 📋 BUONG LOG NG BUILD:
-```
-Error: Could not find or load main class org.gradle.wrapper.GradleWrapperMain
-Caused by: java.lang.ClassNotFoundException: org.gradle.wrapper.GradleWrapperMain
-
-```
-
-> *(Kung sobrang haba — tignan ang buong log sa Workflow page)*
-
----
 ❌ ERROR — GuitarFX — 2026-08-17 10:56 UTC — Nabigo ang pagbuo
 ---
 ❌ ERROR — GuitarFX — 2026-08-17 10:52 UTC — Nabigo ang pagbuo
