@@ -7,14 +7,12 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.view.Gravity
-import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.drawerlayout.widget.DrawerLayout
-import com.google.android.material.navigation.NavigationView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,132 +36,130 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         drawerLayout = findViewById(R.id.drawer_layout)
-        val navView: NavigationView = findViewById(R.id.nav_view)
+
+        // ✅ IMPORMASYON SA GILID — HINDI NA SA GITNA!
         val tvCurrent = findViewById<TextView>(R.id.tvCurrentVersion)
         val tvNew = findViewById<TextView>(R.id.tvNewVersion)
-        val btnDownload = findViewById<Button>(R.id.btnDownload)
         val btnCheck = findViewById<Button>(R.id.btnCheck)
-        val menuContainer = findViewById<LinearLayout>(R.id.menu_container)
+        val btnDownload = findViewById<Button>(R.id.btnDownload)
+        val btnAbout = findViewById<Button>(R.id.btnAbout)
+        val btnGitHub = findViewById<Button>(R.id.btnGitHub)
 
-        tvCurrent.text = "📌 Kasalukuyang Bersyon: $currentVersion"
+        tvCurrent.text = "📌 Kasalukuyan: v$currentVersion"
 
-        // ✅ MENU SA HARAP — AGAD MAKIKITA!
-        showFrontMenu(menuContainer)
+        // ✅ MENU SA GITNA — ANG PANGUNAHING LAMAN!
+        val mainMenu = findViewById<LinearLayout>(R.id.main_menu_container)
+        buildMainMenu(mainMenu)
 
-        // ✅ PAGBUKAS PA LANG — KUSANG TUMATSEK!
-        checkForUpdates(tvNew, btnDownload)
+        // ✅ KUSANG TUMATSEK SA PAGBUKAS — LUMALABAS SA GILID
+        checkForUpdates(tvCurrent, tvNew, btnDownload)
 
-        // ✅ PINDUTIN — TUMATSEK ULIT
-        btnCheck.setOnClickListener {
-            if (!isChecking) {
-                checkForUpdates(tvNew, btnDownload)
-            }
-        }
-
-        // ✅ PINDUTIN — TOTOONG MAGDADOWNLOAD!
-        btnDownload.setOnClickListener {
-            if (!latestVersion.isNullOrEmpty() && latestVersion != currentVersion) {
-                downloadAndInstallApk()
-                btnDownload.text = "⬇️ Dinadownload..."
-                btnDownload.isEnabled = false
-            } else {
-                Toast.makeText(this, "✅ Wala pang bagong bersyon!", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        navView.setNavigationItemSelectedListener {
-            drawerLayout.closeDrawer(Gravity.LEFT)
-            true
-        }
+        // ✅ MGA PINDUTAN SA GILID
+        btnCheck.setOnClickListener { checkForUpdates(tvCurrent, tvNew, btnDownload) }
+        btnDownload.setOnClickListener { downloadApk() }
+        btnAbout.setOnClickListener { showAboutDialog() }
+        btnGitHub.setOnClickListener { openGitHubPage() }
     }
 
-    // ✅ MENU SA HARAP — AGAD MAKIKITA SA PAGBUKAS!
-    private fun showFrontMenu(container: LinearLayout) {
+    // ✅ MENU SA GITNA — KOPYA MULA SA TERMUX MENU!
+    private fun buildMainMenu(container: LinearLayout) {
         container.removeAllViews()
 
-        val options = listOf(
-            "🔍 Tumatsek ng Bersyon" to {
-                checkForUpdates(findViewById(R.id.tvNewVersion), findViewById(R.id.btnDownload))
+        val menuItems = listOf(
+            "🔄 Tumatsek ng Bagong Bersyon" to {
+                checkForUpdates(
+                    findViewById(R.id.tvCurrentVersion),
+                    findViewById(R.id.tvNewVersion),
+                    findViewById(R.id.btnDownload)
+                )
+                Toast.makeText(this, "🔍 Tinitignan...", Toast.LENGTH_SHORT).show()
             },
-            "⬇️ I-download ang Update" to {
-                downloadAndInstallApk()
+            "⬇️ I-download ang Pinakabago" to {
+                downloadApk()
             },
-            "ℹ️ Tungkol sa App" to {
-                showAboutDialog()
-            },
-            "📂 Buksan ang GitHub" to {
+            "📂 Buksan ang Pahina sa GitHub" to {
                 openGitHubPage()
+            },
+            "ℹ️ Tungkol sa Programang Ito" to {
+                showAboutDialog()
             }
         )
 
-        for ((label, action) in options) {
+        for ((label, action) in menuItems) {
             val btn = Button(this).apply {
                 text = label
-                setPadding(48, 32, 48, 32)
-                textSize = 15f
+                textSize = 17f
+                setPadding(32, 24, 32, 24)
+                setBackgroundResource(android.R.drawable.btn_default)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 0, 0, 16) }
                 setOnClickListener { action() }
             }
             container.addView(btn)
         }
     }
 
-    // ✅ KUSANG TUMATSEK SA GITHUB — TOTOONG VERSION CHECK!
-    private fun checkForUpdates(statusView: TextView, downloadBtn: Button) {
+    // ✅ TUMATSEK — LUMALABAS SA GILID
+    private fun checkForUpdates(
+        tvCurrent: TextView,
+        tvNew: TextView,
+        btnDownload: Button
+    ) {
         isChecking = true
-        statusView.text = "🔍 Tinitignan kung may bago..."
-        downloadBtn.isEnabled = false
+        tvNew.text = "🔍 Tinitignan..."
+        btnDownload.isEnabled = false
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val releaseUrl = "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest"
-                val response = URL(releaseUrl).readText()
-                val json = JSONObject(response)
+                val url = "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest"
+                val json = JSONObject(URL(url).readText())
                 latestVersion = json.optString("tag_name", "v$currentVersion").removePrefix("v")
 
                 launch(Dispatchers.Main) {
                     if (latestVersion != currentVersion) {
-                        statusView.text = "✅ MAY BAGONG BERSYON: $latestVersion"
-                        downloadBtn.text = "⬇️ I-update ngayon"
-                        downloadBtn.isEnabled = true
+                        tvNew.text = "✅ May Bago: v$latestVersion"
+                        tvNew.setTextColor(0xFF4CAF50.toInt())
+                        btnDownload.isEnabled = true
+                        btnDownload.text = "⬇️ I-update Ngayon"
                     } else {
-                        statusView.text = "✅ Nasa Pinakabagong Bersyon: $currentVersion"
-                        downloadBtn.text = "✅ Napa-update na"
-                        downloadBtn.isEnabled = false
+                        tvNew.text = "✅ Nasa Pinakabago"
+                        tvNew.setTextColor(0xFF2196F3.toInt())
+                        btnDownload.isEnabled = false
+                        btnDownload.text = "✅ Napa-update Na"
                     }
                 }
             } catch (e: Exception) {
                 launch(Dispatchers.Main) {
-                    statusView.text = "⚠️ Hindi matignan — offline"
+                    tvNew.text = "⚠️ Hindi Matignan"
+                    tvNew.setTextColor(0xFFFF9800.toInt())
                     latestVersion = currentVersion
-                    downloadBtn.isEnabled = false
                 }
             }
             isChecking = false
         }
     }
 
-    // ✅ TOTOONG PAG-DOWNLOAD — HINDI SIMULASYON!
-    private fun downloadAndInstallApk() {
+    // ✅ PAG-DOWNLOAD
+    private fun downloadApk() {
+        if (latestVersion == currentVersion || latestVersion == null) {
+            Toast.makeText(this, "✅ Wala pang bagong bersyon!", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         try {
-            val request = DownloadManager.Request(Uri.parse(APK_URL)).apply {
-                setTitle("GitHubUpdater Update")
-                setDescription("Dinadownload ang bersyon $latestVersion...")
+            val req = DownloadManager.Request(Uri.parse(APK_URL)).apply {
+                setTitle("Updater — v$latestVersion")
+                setDescription "Dinadownload ang bagong bersyon..."
                 setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE)
                 setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "GitHubUpdater-update.apk")
                 setMimeType("application/vnd.android.package-archive")
             }
-
-            val dm = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-            dm.enqueue(request)
-
-            Toast.makeText(this, "✅ Nagsimula ang pag-download!", Toast.LENGTH_LONG).show()
-
-            findViewById<Button>(R.id.btnDownload).apply {
-                text = "✅ Nagsimula ang Pag-download"
-                isEnabled = false
-            }
-
+            getSystemService(DownloadManager::class.java).enqueue(req)
+            Toast.makeText(this, "✅ Nagsimula ang Pag-download!", Toast.LENGTH_LONG).show()
+            drawerLayout.closeDrawer(Gravity.START)
         } catch (e: Exception) {
             Toast.makeText(this, "❌ Nabigo: ${e.message}", Toast.LENGTH_LONG).show()
         }
@@ -173,10 +169,12 @@ class MainActivity : AppCompatActivity() {
         android.app.AlertDialog.Builder(this)
             .setTitle("ℹ️ Tungkol sa GitHubUpdater")
             .setMessage("""
-                Bersyon: $currentVersion
+                Bersyon: v$currentVersion
                 
-                Awtomatikong tumatsek at nagda-download 
+                Awtomatikong tumatsek at nagda-download
                 ng mga bagong bersyon mula sa GitHub.
+                
+                — Galing sa Termux, Ngayon ay APK na —
                 
                 Developed by MartoDosko © 2026
             """.trimIndent())
@@ -185,7 +183,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openGitHubPage() {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/$REPO_OWNER/$REPO_NAME"))
-        startActivity(intent)
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/$REPO_OWNER/$REPO_NAME")))
     }
 }
