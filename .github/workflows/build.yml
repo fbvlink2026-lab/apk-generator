@@ -32,7 +32,7 @@ jobs:
           distribution: 'temurin'
 
       # ==============================================
-      # 📱 GITHUB UPDATER — BUUIN
+      # 📱 GITHUB UPDATER — BUUIN + SIGURADUHING NAKUHA ANG BUONG LOG
       # ==============================================
       - name: 🔨 Build GitHubUpdater
         id: build_updater
@@ -40,23 +40,21 @@ jobs:
         run: |
           cd apps/GitHubUpdater
           
-          # 🛡️ Ayusin ang Gradle Wrapper kung kulang ang .jar
+          # Ayusin ang wrapper kung kulang
           if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ $(wc -c < gradle/wrapper/gradle-wrapper.jar 2>/dev/null || echo 0) -lt 100 ]; then
-              echo "⚠️ Gradle wrapper kulang o mali — AWTOMATIKONG LILIKHA..."
               gradle wrapper --gradle-version 8.2
               chmod +x gradlew
-              echo "✅ Tamang Gradle wrapper nalikha!"
           fi
-          
           chmod +x ./gradlew
           
-          # 📋 BUONG LOG — I-SAVE SA FILE
-          ./gradlew assembleDebug 2>&1 | tee ../../updater-build-full.log
-          EXIT_CODE=${PIPESTATUS[0]}
+          # ✅ DIRETSONG KUKUHA ANG LAHAT — WALANG LILIPAS
+          ./gradlew assembleDebug > ../../updater-FULL-LOG.txt 2>&1
+          EXIT_CODE=$?
           
           echo "EXIT_CODE=$EXIT_CODE" >> $GITHUB_OUTPUT
           APK_PATH=$(find . -name "*.apk" -path "*/build/outputs/*" | head -1)
           echo "APK_PATH=$APK_PATH" >> $GITHUB_OUTPUT
+          echo "LOG_FILE=updater-FULL-LOG.txt" >> $GITHUB_OUTPUT
           exit $EXIT_CODE
 
       - name: 📤 Upload Updater APK
@@ -68,126 +66,95 @@ jobs:
           retention-days: 14
 
       # ==============================================
-      # 🎸 GUITARFX — BUUIN
+      # 📝 UPDATE ERRORS.MD — KUKUHA NG DIRETSO SA LOG FILE
       # ==============================================
-      - name: 🔨 Build GuitarFX
-        id: build_guitarfx
-        if: github.event.inputs.build_target == 'guitarfx' || github.event.inputs.build_target == 'all'
-        run: |
-          cd apps/GuitarFX
-          
-          if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ $(wc -c < gradle/wrapper/gradle-wrapper.jar 2>/dev/null || echo 0) -lt 100 ]; then
-              echo "⚠️ Gradle wrapper kulang o mali — AWTOMATIKONG LILIKHA..."
-              gradle wrapper --gradle-version 8.2
-              chmod +x gradlew
-          fi
-          
-          chmod +x ./gradlew
-          
-          ./gradlew assembleDebug 2>&1 | tee ../../guitarfx-build-full.log
-          EXIT_CODE=${PIPESTATUS[0]}
-          
-          echo "EXIT_CODE=$EXIT_CODE" >> $GITHUB_OUTPUT
-          APK_PATH=$(find . -name "*.apk" -path "*/build/outputs/*" | head -1)
-          echo "APK_PATH=$APK_PATH" >> $GITHUB_OUTPUT
-          exit $EXIT_CODE
-
-      - name: 📤 Upload GuitarFX APK
-        if: always() && steps.build_guitarfx.outputs.APK_PATH
-        uses: actions/upload-artifact@v4
-        with:
-          name: GuitarFX-APK
-          path: ${{ steps.build_guitarfx.outputs.APK_PATH }}
-          retention-days: 14
-
-      # ==============================================
-      # 📝 BUONG SISTEMA NG ERRORS.MD — WALANG BINAWAS!
-      # ==============================================
-      - name: 📝 Update errors.md — BUONG LOG KASAMA
-        if: always()   # ← MAHALAGA: TATAKBO KAHIT ANONG MANGYARI
+      - name: 📝 Isulat sa errors.md — BUONG LOG KASAMA
+        if: always()
         run: |
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
           
-          # 📌 ULO NG TALA — HINDI BINABAGO
           FINAL_CONTENT="# Talaan ng mga Build\n\n> Created & Developed by MartoDosko © Copyright 2026\n\n"
 
-          # ======================================
-          # GITHUB UPDATER — BUONG DETALYE
-          # ======================================
+          # ========== GITHUB UPDATER ==========
           if [[ "${{ github.event.inputs.build_target }}" == "updater" || "${{ github.event.inputs.build_target }}" == "all" ]]; then
             EXIT="${{ steps.build_updater.outputs.EXIT_CODE }}"
             APK="${{ steps.build_updater.outputs.APK_PATH }}"
-            
+            LOG_FILE="${{ steps.build_updater.outputs.LOG_FILE }}"
+
             if [ "$EXIT" == "0" ] && [ -n "$APK" ]; then
               SIZE=$(du -h "$APK" 2>/dev/null | cut -f1 || echo "---")
               FINAL_CONTENT+="✅ **TAGUMPAY** — GitHubUpdater — $DATE\n"
-              FINAL_CONTENT+="> Bersyon: 1.0.0 | Laki: $SIZE | APK ✅\n\n"
+              FINAL_CONTENT+="> Bersyon: 1.0.0 | Laki: $SIZE\n\n"
             else
               FINAL_CONTENT+="❌ **NABIGO** — GitHubUpdater — $DATE\n"
               FINAL_CONTENT+="> Exit Code: $EXIT\n\n"
-              
-              # 📋 BUONG LOG NG PAGKABIGO — HINDI BINAWAS!
-              if [ -f "updater-build-full.log" ]; then
-                FINAL_CONTENT+="### 📋 BUONG LOG NG BUILD:\n"
+
+              # ✅ DIRETSONG BABASAHIN ANG BUONG LOG — WALANG LILIPAT
+              if [ -f "$LOG_FILE" ]; then
+                FINAL_CONTENT+="### 📋 BUONG LOG NG GRADLE:\n"
                 FINAL_CONTENT+="\`\`\`\n"
-                FINAL_CONTENT+="$(cat updater-build-full.log | head -300)\n"
-                FINAL_CONTENT+="\n\`\`\`\n\n"
-                FINAL_CONTENT+="> *(Kung sobrang haba — buksan ang Workflow Actions page para sa buong log)*\n\n"
+                FINAL_CONTENT+="$(cat "$LOG_FILE")\n"
+                FINAL_CONTENT+="\`\`\`\n\n"
+              else
+                FINAL_CONTENT+="⚠️ LOG FILE HINDI NAKUHA: $LOG_FILE\n\n"
               fi
             fi
             FINAL_CONTENT+="---\n"
           fi
 
-          # ======================================
-          # GUITARFX — BUONG DETALYE
-          # ======================================
+          # ========== GUITARFX ==========
           if [[ "${{ github.event.inputs.build_target }}" == "guitarfx" || "${{ github.event.inputs.build_target }}" == "all" ]]; then
             EXIT="${{ steps.build_guitarfx.outputs.EXIT_CODE }}"
             APK="${{ steps.build_guitarfx.outputs.APK_PATH }}"
-            
+            LOG_FILE="${{ steps.build_guitarfx.outputs.LOG_FILE }}"
+
             if [ "$EXIT" == "0" ] && [ -n "$APK" ]; then
               SIZE=$(du -h "$APK" 2>/dev/null | cut -f1 || echo "---")
               FINAL_CONTENT+="✅ **TAGUMPAY** — GuitarFX — $DATE\n"
-              FINAL_CONTENT+="> Bersyon: 1.0.0 | Laki: $SIZE | APK ✅\n\n"
+              FINAL_CONTENT+="> Bersyon: 1.0.0 | Laki: $SIZE\n\n"
             else
               FINAL_CONTENT+="❌ **NABIGO** — GuitarFX — $DATE\n"
               FINAL_CONTENT+="> Exit Code: $EXIT\n\n"
-              
-              # 📋 BUONG LOG NG PAGKABIGO — HINDI BINAWAS!
-              if [ -f "guitarfx-build-full.log" ]; then
-                FINAL_CONTENT+="### 📋 BUONG LOG NG BUILD:\n"
+
+              if [ -f "$LOG_FILE" ]; then
+                FINAL_CONTENT+="### 📋 BUONG LOG NG GRADLE:\n"
                 FINAL_CONTENT+="\`\`\`\n"
-                FINAL_CONTENT+="$(cat guitarfx-build-full.log | head -300)\n"
-                FINAL_CONTENT+="\n\`\`\`\n\n"
-                FINAL_CONTENT+="> *(Kung sobrang haba — buksan ang Workflow Actions page para sa buong log)*\n\n"
+                FINAL_CONTENT+="$(cat "$LOG_FILE")\n"
+                FINAL_CONTENT+="\`\`\`\n\n"
               fi
             fi
             FINAL_CONTENT+="---\n"
           fi
 
-          # 📋 PANATILIHIN ANG LAHAT NG LUMANG TALA — HINDI BUBURAHIN!
+          # Panatilihin ang lumang tala
           if [ -f errors.md ]; then
             OLD_CONTENT=$(cat errors.md)
             OLD_CONTENT=$(echo "$OLD_CONTENT" | sed -n '/^---$/,$p' | sed '1d')
             FINAL_CONTENT="$FINAL_CONTENT$OLD_CONTENT"
           fi
 
-          # 💾 ISULAT LAHAT SA ERRORS.MD
           echo -e "$FINAL_CONTENT" > errors.md
-          echo "✅ Na-update ang errors.md — kasama ang buong log!"
+          echo "✅ Na-update — BUONG LOG NA ISINULAT SA ERRORS.MD!"
 
-      # 🧹 LINISIN ANG LOG FILES
-      - name: 🧹 Linisin ang log files
+      # Linisin
+      - name: 🧹 Linisin
         if: always()
         run: |
-          rm -f updater-build-full.log guitarfx-build-full.log
+          rm -f updater-FULL-LOG.txt guitarfx-FULL-LOG.txt
 
-      # ✅ I-COMMIT ANG ERRORS.MD PABALIK SA GITHUB
-      - name: ✅ I-save at I-push ang errors.md
+      # I-save pabalik
+      - name: ✅ I-commit errors.md
         if: always()
         continue-on-error: true
         run: |
           git config --global user.name "github-actions[bot]"
           git add errors.md
-          git commit -m "📝 Update build log — kasama ang detalye ng pagkabigo" || true
+          git commit -m "📝 Build log — kasama ang buong detalye" || true
           git push || true
+<<<<<<< Updated upstream
+=======
+ENDOFFILE
+
+echo "✅ build.yml — TAMA NA!"
+echo "   📋 NGAYON — DIRETSONG BABASAHIN ANG BUONG LOG NG GRADLE — HINDI LANG EXIT CODE!"
+>>>>>>> Stashed changes
