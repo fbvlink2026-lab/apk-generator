@@ -3,7 +3,7 @@ name: Build APK
 on:
   push:
     paths:
-      - 'apps/**'
+      - '**'
   workflow_dispatch:
     inputs:
       build_target:
@@ -28,31 +28,27 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: 📋 ANO ANG NASA apps/? — TIGNAN NG MABUTI
+      - name: 📋 BUONG LISTAHAN NG LAHAT NG FOLDER — ALAMIN NATIN KUNG NASAN!
         run: |
           echo "=========================================="
-          echo "   📂 BUONG LAMAN NG apps/"
+          echo "   📂 LAHAT NG FOLDER SA BUONG REPOSITORY"
           echo "=========================================="
-          ls -la apps/
+          find . -maxdepth 3 -type d | grep -v '.git' | sort
           echo ""
           echo "=========================================="
-          echo "   📂 MGA SUB-FOLDER:"
+          echo "   🔍 TIGNAN KUNG NASAAN ANG Updater:"
           echo "=========================================="
-          for d in apps/*/; do
-            echo "→ $d"
-          done
-          echo ""
           if [ -d "apps/GitHubUpdater" ]; then
-            echo "✅ NAKITA: apps/GitHubUpdater — UMIIRAL!"
-          else
-            echo "❌ HINDI MAHANAP: apps/GitHubUpdater — WALA DITO!"
+            echo "✅ NASA: apps/GitHubUpdater"
+          fi
+          if [ -d "GitHubUpdater" ]; then
+            echo "✅ NASA: GitHubUpdater (diretso sa ugat!)"
+          fi
+          if [ -d "apps/GitHubUpdater/app" ]; then
+            echo "✅ May app/ sa loob: apps/GitHubUpdater/app"
           fi
           echo ""
-          if [ -d "apps/guitarfx" ]; then
-            echo "✅ NAKITA: apps/guitarfx — UMIIRAL!"
-          else
-            echo "❌ HINDI MAHANAP: apps/guitarfx — WALA DITO!"
-          fi
+          ls -la
 
       - name: 🔨 Build at Kumuha ng Log
         id: do_build
@@ -61,25 +57,27 @@ jobs:
           TARGET="${{ github.event.inputs.build_target }}"
           > /tmp/errors-content.txt
 
-          echo "🎯 PINILI: $TARGET"
+          # ✅ HANAPIN SA LAHAT NG POSIBLENG LUGAR
+          FIND_APP() {
+            local NAME="$1"
+            if [ -d "apps/$NAME" ]; then echo "apps/$NAME"; return 0; fi
+            if [ -d "$NAME" ]; then echo "$NAME"; return 0; fi
+            return 1
+          }
 
-          # ✅ DIRETSONG TIGNAN — WALANG KUMplikADONG FIND
+          declare -a APPS=()
+
           if [ "$TARGET" = "all" ]; then
-            APPS=()
-            [ -d "apps/GitHubUpdater" ] && APPS+=("apps/GitHubUpdater")
-            [ -d "apps/guitarfx" ] && APPS+=("apps/guitarfx")
-            echo "✅ LAHAT NG APP: ${APPS[*]}"
-          elif [ "$TARGET" = "GitHubUpdater" ] && [ -d "apps/GitHubUpdater" ]; then
-            APPS=("apps/GitHubUpdater")
-          elif [ "$TARGET" = "guitarfx" ] && [ -d "apps/guitarfx" ]; then
-            APPS=("apps/guitarfx")
+            DIR=$(FIND_APP GitHubUpdater) && APPS+=("$DIR")
+            DIR=$(FIND_APP GuitarFX) && APPS+=("$DIR")
           else
-            echo "❌ WALANG TUGMANG FOLDER SA: $TARGET"
-            APPS=()
+            DIR=$(FIND_APP "$TARGET") && APPS+=("$DIR")
           fi
 
+          echo "✅ MGA APP NA MAHANAP: ${APPS[*]}"
+
           if [ ${#APPS[@]} -eq 0 ]; then
-            echo "⚠️ WALANG APP NA IPAPROSESO"
+            echo "⚠️ WALANG MAHANAP NA APP — tignan ang listahan sa itaas!"
             exit 0
           fi
 
@@ -88,8 +86,8 @@ jobs:
             LOG="/tmp/$NAME-build.log"
 
             echo ""
-            echo "--- BUILD: $NAME ---"
-            cd "$DIR"
+            echo "--- BUILD: $NAME — Daan: $DIR ---"
+            cd "$DIR" || continue
 
             # ✅ AYUSIN ANG GRADLE WRAPPER
             if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ $(wc -c < gradle/wrapper/gradle-wrapper.jar 2>/dev/null || echo 0) -lt 10000 ]; then
@@ -138,8 +136,9 @@ jobs:
             else
               echo "⚠️ Walang naprosesang app."
               echo ""
-              echo "💡 TIGNAN ANG HAKBANG SA ITAAS — 'ANO ANG NASA apps/?'"
-              echo "Makikita mo doon kung anong mga folder talaga ang umiiral."
+              echo "💡 TIGNAN ANG UNANG HAKBANG — doon mo makikita:"
+              echo "   • Kung saang folder nakalagay ang GitHubUpdater"
+              echo "   • Kung naipadala ba talaga sa GitHub"
             fi
           } > errors.md
           cat errors.md
@@ -149,7 +148,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: APKs-${{ github.event.inputs.build_target }}
-          path: apps/*/build/outputs/apk/debug/*.apk
+          path: |
+            */build/outputs/apk/debug/*.apk
+            */app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
       - name: ✅ I-commit
