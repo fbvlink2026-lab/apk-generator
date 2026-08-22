@@ -198,3 +198,90 @@ jobs:
           git commit -m "📝 Update build log" 2>/dev/null || true
           git push 2>/dev/null || true
         shell: bash
+<<<<<<< Updated upstream
+=======
+ENDOFFILE
+#!/bin/bash
+# ==========================================
+# 🔄 FRESH START — BURAHIN ANG DAPAT BURAHIN
+# ✅ PANANATILIHIN: docs/, README.md, errors.md, .github/workflows/build.yml
+# ❌ BUBURAHIN: apps/, BASAHIN.html, FILE-MANAGER.html, MARTODOSCO-UPDATE.md
+# ==========================================
+set -e
+
+REPO_DIR="$HOME/apk-generator"
+cd "$REPO_DIR" || { echo "❌ HINDI MAHANAP ANG REPOSITORY SA: $REPO_DIR"; exit 1; }
+
+echo "=========================================="
+echo "   🔄 FRESH START — APK-GENERATOR"
+echo "=========================================="
+echo ""
+echo "📍 Nasa: $(pwd)"
+echo ""
+echo "✅ PANANATILIHIN — HINDI BUBURAHIN:"
+echo "   📁 docs/"
+echo "   📄 README.md"
+echo "   📄 errors.md"
+echo "   📁 .github/workflows/build.yml"
+echo ""
+echo "❌ BUBURAHIN:"
+echo "   📁 apps/                  — lahat ng laman"
+echo "   📄 BASAHIN.html"
+echo "   📄 FILE-MANAGER.html"
+echo "   📄 MARTODOSCO-UPDATE.md"
+echo ""
+read -p "👉 SIGURADO KA BA? I-TYPE: BURAHIN — PARA MAGPATULOY: " KUMPIRMA
+if [ "$KUMPIRMA" != "BURAHIN" ]; then
+    echo ""
+    echo "✅ KINANSELA — WALANG BINURA."
+    exit 0
+fi
+
+echo ""
+echo "🗑️  NAGSISIMULA NA ANG PAGBUBURA..."
+echo "──────────────────────────────────────────"
+
+# —— BURAHIN ANG apps/ ——
+if [ -d "apps" ]; then
+    rm -rf apps
+    echo "✅ BINURA: 📁 apps/"
+fi
+
+# —— BURAHIN ANG MGA HTML AT MD FILES SA UGAT ——
+for FILE in BASAHIN.html FILE-MANAGER.html MARTODOSCO-UPDATE.md; do
+    if [ -f "$FILE" ]; then
+        rm -f "$FILE"
+        echo "✅ BINURA: 📄 $FILE"
+    fi
+done
+
+# —— SIGURADUHING MANANATILI ANG .github/workflows/build.yml ——
+# BURAHIN ANG LAHAT SA .github/workflows/ MALIBAN SA build.yml
+if [ -d ".github/workflows" ]; then
+    cd .github/workflows || exit 1
+    for f in *; do
+        [ "$f" = "build.yml" ] && continue
+        rm -f "$f"
+        echo "✅ BINURA: 📄 .github/workflows/$f"
+    done
+    cd ../..
+fi
+
+echo "──────────────────────────────────────────"
+echo ""
+echo "✅ TAPOS NA ANG PAGBUBURA!"
+echo ""
+echo "📂 KASALUKUYANG LAMAN NG REPOSITORY:"
+ls -la --group-directories-first
+echo ""
+echo "=========================================="
+echo "   ✅ MANANATILI PA RIN:"
+echo "   📁 docs/"
+echo "   📄 README.md"
+echo "   📄 errors.md"
+echo "   📁 .github/workflows/build.yml"
+echo ""
+echo "👉 I-type: martopush — para ipadala sa GitHub"
+echo "=========================================="
+
+>>>>>>> Stashed changes
