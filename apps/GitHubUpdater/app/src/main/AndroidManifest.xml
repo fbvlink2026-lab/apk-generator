@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- ✅ NANDIYAN NA — PANATILIHIN -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!-- ✅ IDINAGDAG — KAILANGAN SA PAG-DOWNLOAD -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />
 
     <application
         android:allowBackup="true"
@@ -10,7 +19,8 @@
         android:label="MartoPush Updater"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        
+
+        <!-- ✅ SPLASH — PANATILIHIN KUNG GUSTO MO — DAPAT AYUSIN ANG DALOY -->
         <activity
             android:name=".SplashActivity"
             android:exported="true"
@@ -20,9 +30,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        
+
+        <!-- ✅ MAIN ACTIVITY — GAWING EXPORTED KUNG KAILANGAN -->
         <activity
             android:name=".MainActivity"
             android:exported="false" />
+
+        <!-- ✅ KAILANGAN PARA MA-INSTALL ANG APK MULA SA LOOB NG APP -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
     </application>
 </manifest>
