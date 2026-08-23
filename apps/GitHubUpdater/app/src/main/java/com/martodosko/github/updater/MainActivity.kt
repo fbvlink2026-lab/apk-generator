@@ -1,5 +1,3 @@
-cat
-
 package com.martodosko.github.updater
 
 import android.content.Context
@@ -571,4 +569,3 @@ class MainActivity : AppCompatActivity() {
     }
     override fun onBackPressed(){if(currentScreen!="MAIN")buildMainMenu()else super.onBackPressed()}
 }
-eof
