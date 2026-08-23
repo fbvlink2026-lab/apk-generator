@@ -31,15 +31,13 @@ import java.io.FileOutputStream
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
-import java.nio.charset.StandardCharsets
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var prefs: SharedPreferences
-    private val VERSION = "v5.83 — DYNAMIC PATHS"
+    private val VERSION = "v5.84 — BUONG DAAN SA SCAN"
 
-    // ✅ KAYA NANG BAGUHIN — HINDI NA HARD-CODED!
     private var repoOwner = ""
     private var repoName = ""
 
@@ -48,19 +46,17 @@ class MainActivity : AppCompatActivity() {
     private var savedDefaultPath = ""
     private val processedIcons = mutableListOf<String>()
 
-    // ✅ ICON SIZES — PAREHO SA LAHAT NG ANDROID APP
     private val iconSizes = listOf(
         "mdpi" to 48, "hdpi" to 72, "xhdpi" to 96, "xxhdpi" to 144, "xxxhdpi" to 192
     )
 
-    // ✅ DYNAMIC — KUKUHA MULA SA SCAN HINDI NAKA-LISTA!
-    private val scannedFolders = mutableListOf<GitHubFolder>()
-
     data class GitHubFolder(
         val path: String,
-        val type: String, // "icon" o "code" o "root"
+        val type: String,
         val name: String
     )
+
+    private val scannedFolders = mutableListOf<GitHubFolder>()
 
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -76,13 +72,12 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         prefs = getSharedPreferences("MartoPushPrefs", Context.MODE_PRIVATE)
-        loadRepoSettings() // ✅ I-LOAD ANG USER + REPO
+        loadRepoSettings()
 
         drawerLayout = findViewById(R.id.drawer_layout)
         findViewById<TextView>(R.id.tvCurrentVersion)?.text = "📌 Bersyon: $VERSION"
         updateStatusDisplay()
 
-        // ✅ WALANG CREDENTIALS → MAGTANONG
         if (!hasGitHubCredentials()) {
             showGitHubSetupDialog()
         }
@@ -94,7 +89,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 🔑 GITHUB + REPO SETTINGS — PWEDENG PALITAN! ✅
+    // 🔑 GITHUB SETTINGS
     // ==========================================
     private fun loadRepoSettings() {
         repoOwner = prefs.getString("github_username", "") ?: ""
@@ -139,7 +134,7 @@ class MainActivity : AppCompatActivity() {
 
         android.app.AlertDialog.Builder(this)
             .setTitle("🔑 I-SET ANG GITHUB KONEKSYON")
-            .setMessage("Pwede mong baguhin anumang oras.\nIba pang user? Iba pang app? Palitan lang dito!")
+            .setMessage("Ilagay ang iyong GitHub detalye.\nPalitan anumang oras sa Menu → Option 4.")
             .setView(container)
             .setPositiveButton("✅ I-SAVE AT SCAN") { dialog, _ ->
                 repoOwner = usernameInput.text.toString().trim()
@@ -155,11 +150,9 @@ class MainActivity : AppCompatActivity() {
 
                     updateStatusDisplay()
                     Toast.makeText(this, "✅ NA-SAVE! SCANNING REPOSITORY...", Toast.LENGTH_LONG).show()
-
-                    // ✅ AGAD NA SCAN ANG REPO — KUNG ANO ANG NASA LOOB!
                     scanRepositoryFolders()
                 } else {
-                    Toast.makeText(this, "❌ Punan ang lahat!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "❌ Punan ang lahat ng patlang!", Toast.LENGTH_LONG).show()
                 }
                 dialog.dismiss()
             }
@@ -169,8 +162,31 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 📡 DYNAMIC SCAN — KUKUHA MULA SA GITHUB ANG TUNAY NA FOLDER! ✅
+    // 📡 SCAN — LUMALIM HANGGANG MAKITA ANG BUONG DAAN ✅
     // ==========================================
+    private suspend fun scanDirectory(path: String = "", depth: Int = 0, maxDepth: Int = 5) {
+        if (depth > maxDepth) return
+
+        try {
+            val apiPath = if (path.isEmpty()) "" else "/$path"
+            val apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/contents$apiPath"
+            val response = URL(apiUrl).readText()
+            val jsonArray = JSONArray(response)
+
+            for (i in 0 until jsonArray.length()) {
+                val item = jsonArray.getJSONObject(i)
+                val name = item.getString("name")
+                val type = item.getString("type")
+                val fullPath = item.getString("path")
+
+                if (type == "dir") {
+                    classifyAndAddFolder(name, "$fullPath/")
+                    scanDirectory(fullPath, depth + 1, maxDepth)
+                }
+            }
+        } catch (_: Exception) { }
+    }
+
     private fun scanRepositoryFolders() {
         if (!hasGitHubCredentials()) return
 
@@ -178,168 +194,150 @@ class MainActivity : AppCompatActivity() {
             try {
                 scannedFolders.clear()
 
-                // ✅ SCAN ANG ROOT NG REPOSITORY
-                val rootUrl = "https://api.github.com/repos/$repoOwner/$repoName/contents/"
-                val rootJson = JSONArray(URL(rootUrl).readText())
+                scanDirectory("", 0, 5)
 
-                // ✅ I-PROSESO ANG MGA NATAGPUANG FOLDER
-                for (i in 0 until rootJson.length()) {
-                    val item = rootJson.getJSONObject(i)
-                    val name = item.getString("name")
-                    val type = item.getString("type")
-
-                    if (type == "dir") {
-                        classifyAndAddFolder(name, item.getString("path"))
-                    }
-                }
-
-                // ✅ LAGYAN NG DAGDAG NA KARANIWANG LUGAR
-                scannedFolders.add(GitHubFolder(".", "root", "🏠 ROOT — Ugat ng Repository"))
+                scannedFolders.add(0, GitHubFolder(".", "root", "🏠 ROOT — Ugat ng Repository"))
                 scannedFolders.add(GitHubFolder("docs/", "docs", "📄 docs/ — Dokumentasyon"))
 
-                // ✅ I-SAVE ANG PAG-SCAN
+                val seen = mutableSetOf<String>()
+                val uniqueList = scannedFolders.filter { seen.add(it.path) }
+                scannedFolders.clear()
+                scannedFolders.addAll(uniqueList)
+
                 launch(Dispatchers.Main) {
                     Toast.makeText(this@MainActivity,
                         "✅ NATAGPUAN: ${scannedFolders.size} na lokasyon!",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
-
             } catch (e: Exception) {
                 launch(Dispatchers.Main) {
                     Toast.makeText(this@MainActivity,
-                        "⚠️ HINDI MA-SCAN: ${e.message}\nGagamitin ang pangkalahatang listahan",
+                        "⚠️ HINDI MA-SCAN: ${e.message}\nGumagamit ng halimbawang listahan.",
                         Toast.LENGTH_LONG
                     ).show()
-                    loadDefaultFolders() // ✅ FALLBACK KUNG WALANG KONEKSYON
+                    loadDefaultFolders()
                 }
             }
         }
     }
 
-    // ✅ URI NG FOLDER — KUNG ICON BA O CODE
-    private fun classifyAndAddFolder(name: String, path: String) {
+    private fun classifyAndAddFolder(name: String, fullPath: String) {
+        val displayName: String
+        val folderType: String
+
         when {
-            // 🖼️ MGA ICON FOLDER — KUNG NASA RES/
-            path.contains("mipmap") || path.contains("drawable") -> {
-                scannedFolders.add(GitHubFolder(
-                    "$path/",
-                    "icon",
-                    "🖼️ $name/"
-                ))
+            fullPath.contains("mipmap-mdpi/") -> {
+                displayName = "🖼️ mdpi    → $fullPath"
+                folderType = "icon"
             }
-
-            // 💻 MGA CODE FOLDER
-            path.contains("java/") || path.contains("kotlin/") -> {
-                scannedFolders.add(GitHubFolder(
-                    "$path/",
-                    "code",
-                    "📄 $name/"
-                ))
+            fullPath.contains("mipmap-hdpi/") -> {
+                displayName = "🖼️ hdpi    → $fullPath"
+                folderType = "icon"
             }
-            path.contains("layout/") || path.contains("res/") -> {
-                scannedFolders.add(GitHubFolder(
-                    "$path/",
-                    "resource",
-                    "🎨 $name/"
-                ))
+            fullPath.contains("mipmap-xhdpi/") -> {
+                displayName = "🖼️ xhdpi   → $fullPath"
+                folderType = "icon"
             }
-            path.contains(".github/workflows") -> {
-                scannedFolders.add(GitHubFolder(
-                    "$path/",
-                    "workflow",
-                    "⚙️ Workflows"
-                ))
+            fullPath.contains("mipmap-xxhdpi/") -> {
+                displayName = "🖼️ xxhdpi  → $fullPath"
+                folderType = "icon"
             }
-
-            // 📂 IBANG FOLDER — IBANG APP
-            path.startsWith("apps/") && !path.contains("/") -> {
-                scannedFolders.add(GitHubFolder(
-                    "$path/",
-                    "app",
-                    "📂 $name/"
-                ))
+            fullPath.contains("mipmap-xxxhdpi/") -> {
+                displayName = "🖼️ xxxhdpi → $fullPath"
+                folderType = "icon"
             }
-
-            // IBA PANG FOLDER
+            fullPath.contains("java/") -> {
+                displayName = "📄 Java → $fullPath"
+                folderType = "code"
+            }
+            fullPath.contains("kotlin/") -> {
+                displayName = "📄 Kotlin → $fullPath"
+                folderType = "code"
+            }
+            fullPath.contains("layout/") -> {
+                displayName = "🎨 Layout → $fullPath"
+                folderType = "code"
+            }
+            fullPath.contains(".github/workflows/") -> {
+                displayName = "⚙️ Workflows → $fullPath"
+                folderType = "workflow"
+            }
             else -> {
-                scannedFolders.add(GitHubFolder(
-                    "$path/",
-                    "other",
-                    "📁 $name/"
-                ))
+                displayName = "📁 $fullPath"
+                folderType = "other"
             }
         }
+
+        scannedFolders.add(GitHubFolder(fullPath, folderType, displayName))
     }
 
-    // ✅ KUNG WALANG MA-SCAN — DEFAULT NA LANG
     private fun loadDefaultFolders() {
         scannedFolders.clear()
         scannedFolders.addAll(listOf(
-            GitHubFolder("apps/YourApp/app/src/main/res/mipmap-mdpi/", "icon", "🖼️ mdpi"),
-            GitHubFolder("apps/YourApp/app/src/main/res/mipmap-hdpi/", "icon", "🖼️ hdpi"),
-            GitHubFolder("apps/YourApp/app/src/main/res/mipmap-xhdpi/", "icon", "🖼️ xhdpi"),
-            GitHubFolder("apps/YourApp/app/src/main/res/mipmap-xxhdpi/", "icon", "🖼️ xxhdpi"),
-            GitHubFolder("apps/YourApp/app/src/main/res/mipmap-xxxhdpi/", "icon", "🖼️ xxxhdpi"),
-            GitHubFolder("apps/YourApp/app/src/main/java/", "code", "📄 Kotlin/Java Code"),
-            GitHubFolder("apps/YourApp/app/src/main/res/layout/", "resource", "🎨 Layout XML"),
-            GitHubFolder(".github/workflows/", "workflow", "⚙️ Workflows"),
-            GitHubFolder("docs/", "docs", "📄 Dokumentasyon"),
-            GitHubFolder(".", "root", "🏠 ROOT")
+            GitHubFolder(".", "root", "🏠 ROOT — Ugat ng Repository"),
+            GitHubFolder("apps/GitHubUpdater/app/src/main/res/mipmap-mdpi/", "icon", "🖼️ mdpi    → apps/GitHubUpdater/app/src/main/res/mipmap-mdpi/"),
+            GitHubFolder("apps/GitHubUpdater/app/src/main/res/mipmap-hdpi/", "icon", "🖼️ hdpi    → apps/GitHubUpdater/app/src/main/res/mipmap-hdpi/"),
+            GitHubFolder("apps/GitHubUpdater/app/src/main/res/mipmap-xhdpi/", "icon", "🖼️ xhdpi   → apps/GitHubUpdater/app/src/main/res/mipmap-xhdpi/"),
+            GitHubFolder("apps/GitHubUpdater/app/src/main/res/mipmap-xxhdpi/", "icon", "🖼️ xxhdpi  → apps/GitHubUpdater/app/src/main/res/mipmap-xxhdpi/"),
+            GitHubFolder("apps/GitHubUpdater/app/src/main/res/mipmap-xxxhdpi/", "icon", "🖼️ xxxhdpi → apps/GitHubUpdater/app/src/main/res/mipmap-xxxhdpi/"),
+            GitHubFolder("apps/GitHubUpdater/app/src/main/java/com/martodosko/github/updater/", "code", "📄 Kotlin → apps/GitHubUpdater/app/src/main/java/com/martodosko/github/updater/"),
+            GitHubFolder("apps/GitHubUpdater/app/src/main/res/layout/", "code", "🎨 Layout → apps/GitHubUpdater/app/src/main/res/layout/"),
+            GitHubFolder(".github/workflows/", "workflow", "⚙️ Workflows → .github/workflows/"),
+            GitHubFolder("docs/", "docs", "📄 docs/ — Dokumentasyon")
         ))
     }
 
     // ==========================================
-    // 📂 PATH MENU — DYNAMIC NA! ✅
+    // 📂 PATH MENU
     // ==========================================
     private fun buildPathCategoryMenu() {
         currentScreen = "PATH_CATEGORY"
         val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
         container.removeAllViews()
 
-        addMenuHeader(container, "📂 DESTINASYON — NAKUHA MULA SA: $repoOwner/$repoName")
+        addMenuHeader(container, "📂 DESTINASYON — $repoOwner/$repoName")
         addSpace(container, 8)
 
-        // ✅ WALANG NA-SCAN? I-SCAN MUNA!
         if (scannedFolders.isEmpty()) {
             addMenuHeader(container, "🔍 SCANNING NG MGA FOLDER...")
             CoroutineScope(Dispatchers.Main).launch {
                 scanRepositoryFolders()
-                delay(800)
-                buildPathCategoryMenu() // I-refresh pagkatapos ma-scan
+                delay(1200)
+                buildPathCategoryMenu()
             }
             return
         }
 
-        addMenuItem(container, "1", "🖼️  ICON / LARAWAN — Mga mipmap folder") {
-            showDynamicPaths("icon")
+        addMenuItem(container, "1", "🖼️  ICON FOLDER — mipmap-mdpi/hdpi/xhdpi/...") {
+            showFilteredPaths("icon")
         }
-        addMenuItem(container, "2", "💻 CODE / SCRIPT / FILE — Source at iba pa") {
-            showDynamicPaths("code")
+        addMenuItem(container, "2", "💻 CODE FOLDER — java/kotlin/layout/...") {
+            showFilteredPaths("code")
         }
         addMenuItem(container, "3", "📂 LAHAT NG FOLDER — Buong Listahan") {
-            showAllDynamicPaths()
+            showAllPaths()
         }
 
         addMenuDivider(container)
-        addMenuItem(container, "s", "🔧 PALITAN ANG REPOSITORY / USERNAME") {
-            showGitHubSetupDialog() // ✅ IBANG USER? IBANG APP? PALITAN DITO!
+        addMenuItem(container, "s", "🔧 PALITAN ANG REPOSITORY / USER") {
+            showGitHubSetupDialog()
         }
         addMenuItem(container, "b", "⬅️ Bumalik", { buildMainMenu() })
     }
 
-    // ✅ IPAPAKITA ANG NAKUHA MULA SA SCAN — ICON LANG
-    private fun showDynamicPaths(filterType: String) {
+    private fun showFilteredPaths(filterType: String) {
         currentScreen = "PATH_LIST"
         val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
         container.removeAllViews()
 
-        addMenuHeader(container, if (filterType == "icon") "🖼️ MGA ICON FOLDER" else "💻 MGA CODE FOLDER")
+        addMenuHeader(container, if (filterType == "icon") "🖼️ MGA ICON FOLDER — BUONG DAAN:" else "💻 MGA CODE FOLDER — BUONG DAAN:")
         addSpace(container, 8)
 
         val filtered = scannedFolders.filter { it.type == filterType || it.type == "root" || it.type == "docs" }
+
         if (filtered.isEmpty()) {
-            addMenuHeader(container, "⚠️ WALANG NATAGPUANG FOLDER — I-type ang sariling daan")
+            addMenuHeader(container, "⚠️ WALANG NATAGPUANG FOLDER SA KATEGORYANG ITO")
         } else {
             filtered.forEachIndexed { i, folder ->
                 addMenuItem(container, "${i+1}", folder.name) {
@@ -354,12 +352,12 @@ class MainActivity : AppCompatActivity() {
         addMenuItem(container, "b", "⬅️ Bumalik", { buildPathCategoryMenu() })
     }
 
-    private fun showAllDynamicPaths() {
+    private fun showAllPaths() {
         currentScreen = "PATH_ALL"
         val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
         container.removeAllViews()
 
-        addMenuHeader(container, "📂 LAHAT NG NATAGPUANG FOLDER SA REPOSITORY")
+        addMenuHeader(container, "📂 LAHAT NG FOLDER — BUONG DAAN:")
         addSpace(container, 8)
 
         scannedFolders.forEachIndexed { i, folder ->
@@ -376,11 +374,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun showCustomPathInput() {
         val input = EditText(this).apply {
-            hint = "hal: apps/AkingApp/app/src/main/res/"
+            hint = "hal: apps/AkingApp/app/src/main/res/mipmap-mdpi/"
             setText(savedDefaultPath)
         }
         android.app.AlertDialog.Builder(this)
-            .setTitle("✏️ ILAGAY ANG DESTINASYON")
+            .setTitle("✏️ ILAGAY ANG BUONG DAAN")
             .setView(input)
             .setPositiveButton("I-SAVE") { d, _ ->
                 val path = input.text.toString().trim()
@@ -395,7 +393,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 🖼️ ICON MENU — PAREHO
+    // 🖼️ ICON MENU
     // ==========================================
     private fun buildIconMenu() {
         currentScreen = "ICON"
@@ -410,7 +408,9 @@ class MainActivity : AppCompatActivity() {
         addMenuItem(container, "b", "⬅️ Bumalik", { buildMainMenu() })
     }
 
-    private fun pickImage() { pickImageLauncher.launch("image/*") }
+    private fun pickImage() {
+        pickImageLauncher.launch("image/*")
+    }
 
     private fun resizeSelectedIconWithProcess() {
         if (selectedImageUri == null) {
@@ -474,7 +474,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 📤 TOTOONG PAGPADALA — GAMIT ANG TAMAANG REPO ✅
+    // 📤 TOTOONG PAGPADALA SA GITHUB
     // ==========================================
     private fun pushIconToGitHub() {
         if (!hasGitHubCredentials()) {
@@ -487,26 +487,25 @@ class MainActivity : AppCompatActivity() {
             return
         }
         if (savedDefaultPath.isEmpty()) {
-            Toast.makeText(this, "⚠️ Pumili muna ng destinasyon!", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "⚠️ Pumili muna ng destinasyon sa Option 4!", Toast.LENGTH_LONG).show()
             buildPathCategoryMenu()
             return
         }
 
         android.app.AlertDialog.Builder(this)
             .setTitle("📤 KUMPIRMA ANG PAGPADALA")
-            .setMessage("📂 DESTINASYON: $savedDefaultPath\n📄 FILES: ${processedIcons.size}\n📤 REPO: $repoOwner/$repoName")
+            .setMessage("📂 DESTINASYON:\n$savedDefaultPath\n\n📄 FILES: ${processedIcons.size}\n📤 REPO: $repoOwner/$repoName")
             .setPositiveButton("✅ IPADALA NA") { _, _ -> actuallyPushAllIcons() }
             .setNegativeButton("❌ HINDI MUNA", null)
             .show()
     }
 
     private fun actuallyPushAllIcons() {
-        Toast.makeText(this, "📤 NAGSISIMULA ANG PAGPADALA SA $repoOwner/$repoName...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "📤 NAGSISIMULA ANG PAGPADALA...", Toast.LENGTH_SHORT).show()
+        val token = getGitHubToken()
 
         CoroutineScope(Dispatchers.IO).launch {
             var successCount = 0
-            val token = getGitHubToken()
-
             processedIcons.forEachIndexed { idx, filePath ->
                 val fileName = File(filePath).name
                 val githubPath = "$savedDefaultPath$fileName"
@@ -516,8 +515,8 @@ class MainActivity : AppCompatActivity() {
                     val encoded = Base64.encodeToString(bytes, Base64.NO_WRAP)
 
                     val apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/contents/$githubPath"
-                    val connection = URL(apiUrl).openConnection() as HttpURLConnection
-                    connection.apply {
+                    val conn = URL(apiUrl).openConnection() as HttpURLConnection
+                    conn.apply {
                         requestMethod = "PUT"
                         setRequestProperty("Authorization", "token $token")
                         setRequestProperty("Content-Type", "application/json")
@@ -530,31 +529,30 @@ class MainActivity : AppCompatActivity() {
                         put("content", encoded)
                     }
 
-                    OutputStreamWriter(connection.outputStream).use { it.write(json.toString()) }
-                    val responseCode = connection.responseCode
+                    OutputStreamWriter(conn.outputStream).use { it.write(json.toString()) }
+                    val code = conn.responseCode
 
-                    if (responseCode == 200 || responseCode == 201) {
+                    if (code == 200 || code == 201) {
                         successCount++
                         launch(Dispatchers.Main) {
-                            Toast.makeText(this@MainActivity, "✅ [$((idx+1))/${processedIcons.size}] $fileName — NAIPADALA!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@MainActivity, "✅ [${idx+1}/${processedIcons.size}] $fileName — NAIPADALA!", Toast.LENGTH_SHORT).show()
                         }
                     } else {
                         launch(Dispatchers.Main) {
-                            Toast.makeText(this@MainActivity, "⚠️ $fileName — Code: $responseCode", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@MainActivity, "⚠️ $fileName — Code $code", Toast.LENGTH_SHORT).show()
                         }
                     }
-                    connection.disconnect()
-
+                    conn.disconnect()
                 } catch (e: Exception) {
                     launch(Dispatchers.Main) {
-                        Toast.makeText(this@MainActivity, "❌ ERROR: ${e.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@MainActivity, "❌ $fileName: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
 
             launch(Dispatchers.Main) {
                 Toast.makeText(this@MainActivity,
-                    "✅ TAPOS NA!\n$successCount / ${processedIcons.size} na file → $repoOwner/$repoName",
+                    "✅ TAPOS NA!\n$successCount / ${processedIcons.size} na file naipadala!",
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -603,7 +601,10 @@ class MainActivity : AppCompatActivity() {
                 val json = JSONObject(URL(url).readText())
                 val latest = json.optString("tag_name", VERSION).removePrefix("v")
                 launch(Dispatchers.Main) {
-                    tvStatus.text = if (latest == VERSION.removePrefix("v")) "✅ Nasa Pinakabago: v$latest" else "⚠️ May Bago: v$latest"
+                    tvStatus.text = if (latest == VERSION.removePrefix("v"))
+                        "✅ Nasa Pinakabago: v$latest"
+                    else
+                        "⚠️ May Bago: v$latest"
                 }
             } catch (e: Exception) {
                 launch(Dispatchers.Main) { tvStatus.text = "⚠️ Hindi matignan" }
