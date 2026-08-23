@@ -29,7 +29,7 @@ import java.net.URL
 class MainActivity : AppCompatActivity() {
 
     private lateinit var drawerLayout: DrawerLayout
-    private val VERSION = "v5.79"
+    private val VERSION = "v5.80"
     private val REPO_OWNER = "fbvlink2026-lab"
     private val REPO_NAME = "apk-generator"
 
@@ -47,15 +47,42 @@ class MainActivity : AppCompatActivity() {
         "xxxhdpi" to 192
     )
 
-    // ✅ LIMA NA RIN ANG PATH — TUGMA SA FOLDER SA REPO!
-    private val availablePaths = listOf(
+    // ✅ KUMPLETONG LISTAHAN NG LAHAT NG DESTINASYON SA REPOSITORY
+    private val allDestinations = listOf(
+        // 🖼️ ICON — Mga Densidad
         "apps/GitHubUpdater/app/src/main/res/mipmap-mdpi/",
         "apps/GitHubUpdater/app/src/main/res/mipmap-hdpi/",
         "apps/GitHubUpdater/app/src/main/res/mipmap-xhdpi/",
         "apps/GitHubUpdater/app/src/main/res/mipmap-xxhdpi/",
         "apps/GitHubUpdater/app/src/main/res/mipmap-xxxhdpi/",
+
+        // 💻 CODE — Mga Lugar para sa Programang File
+        "apps/GitHubUpdater/app/src/main/java/com/martodosko/github/updater/",
+        "apps/GitHubUpdater/app/src/main/res/layout/",
+        "apps/GitHubUpdater/app/src/main/res/",
+        "apps/GitHubUpdater/",
+        ".github/workflows/",
         "docs/",
         "."
+    )
+
+    // ✅ PANGALAN PARA SA BAWAT DESTINASYON — MALINAW NA!
+    private val destLabels = listOf(
+        // 🖼️ ICON
+        "mdpi    → mipmap-mdpi/",
+        "hdpi    → mipmap-hdpi/",
+        "xhdpi   → mipmap-xhdpi/",
+        "xxhdpi  → mipmap-xxhdpi/",
+        "xxxhdpi → mipmap-xxxhdpi/",
+
+        // 💻 CODE
+        "📄 Kotlin Code → java/com/martodosko/github/updater/",
+        "📄 Layout XML → res/layout/",
+        "📄 Resources → res/",
+        "📄 Ugat ng App → apps/GitHubUpdater/",
+        "⚙️ Workflows → .github/workflows/",
+        "📄 Dokumentasyon → docs/",
+        "🏠 ROOT → Ugat ng Buong Repository"
     )
 
     private val pickImageLauncher = registerForActivityResult(
@@ -98,12 +125,94 @@ class MainActivity : AppCompatActivity() {
         addMenuItem(container, "1", "🖼️ ICON — Pumili, I-resize, Ipadala") { buildIconMenu() }
         addMenuItem(container, "2", "📄 Ipadala ang Cat Code / Maraming File") { buildCatCodeMenu() }
         addMenuItem(container, "3", "📤 Direktang Pagpadala sa GitHub") { pushToGitHub() }
-        addMenuItem(container, "4", "📂 Pumili / I-set ang Destination Path") { buildPathMenu() }
+        addMenuItem(container, "4", "📂 Pumili / I-set ang Destination Path") { buildPathCategoryMenu() }
         addMenuItem(container, "5", "🔄 Tumatsek ng Update at Bersyon") { checkVersionFromGitHub() }
         addMenuDivider(container)
         addMenuItem(container, "0", "↩️ Lumabas / Isara") { finish() }
     }
 
+    // ==========================================
+    //   📂 PATH MENU — PUMILI MUNA NG URI NG DESTINASYON ✅
+    // ==========================================
+    private fun buildPathCategoryMenu() {
+        currentScreen = "PATH_CATEGORY"
+        val container = findViewById<LinearLayout>(R.id.main_menu_container)
+        container.removeAllViews()
+
+        addMenuHeader(container, "📂 ANO ANG URI NG IPAPADALA MO?")
+        addSpace(container, 12)
+
+        addMenuItem(container, "1", "🖼️  ICON / LARAWAN — Mga mipmap folder") {
+            showIconDestinations()
+        }
+        addMenuItem(container, "2", "💻 CODE / SCRIPT / FILE — Source at iba pa") {
+            showCodeDestinations()
+        }
+
+        addMenuDivider(container)
+        addMenuItem(container, "b", "⬅️ Bumalik sa Pangunahing Menu") { buildMainMenu() }
+    }
+
+    // ✅ PARA SA ICON — 5 DESTINASYON
+    private fun showIconDestinations() {
+        currentScreen = "PATH_ICON"
+        val container = findViewById<LinearLayout>(R.id.main_menu_container)
+        container.removeAllViews()
+
+        addMenuHeader(container, "🖼️  DESTINASYON PARA SA ICON / LARAWAN")
+        addSpace(container, 8)
+
+        for (i in 0..4) {
+            addMenuItem(container, "${i+1}", destLabels[i]) {
+                savedDefaultPath = allDestinations[i]
+                Toast.makeText(this, "💾 NA-SAVE ANG DAAN:\n$savedDefaultPath", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        addMenuDivider(container)
+        addMenuItem(container, "0", "✏️ I-type ang sariling Path") {
+            showCustomPathInput()
+        }
+        addMenuItem(container, "b", "⬅️ Bumalik sa Uri ng File") { buildPathCategoryMenu() }
+    }
+
+    // ✅ PARA SA CODE — 7 DESTINASYON
+    private fun showCodeDestinations() {
+        currentScreen = "PATH_CODE"
+        val container = findViewById<LinearLayout>(R.id.main_menu_container)
+        container.removeAllViews()
+
+        addMenuHeader(container, "💻 DESTINASYON PARA SA CODE / SCRIPT / FILE")
+        addSpace(container, 8)
+
+        for (i in 5 until allDestinations.size) {
+            addMenuItem(container, "${i-4}", destLabels[i]) {
+                savedDefaultPath = allDestinations[i]
+                Toast.makeText(this, "💾 NA-SAVE ANG DAAN:\n$savedDefaultPath", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        addMenuDivider(container)
+        addMenuItem(container, "0", "✏️ I-type ang sariling Path") {
+            showCustomPathInput()
+        }
+        addMenuItem(container, "b", "⬅️ Bumalik sa Uri ng File") { buildPathCategoryMenu() }
+    }
+
+    // ✅ SARILING DAAN
+    private fun showCustomPathInput() {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("✏️ ILAGAY ANG DESTINASYON")
+            .setMessage("Halimbawa: apps/GitHubUpdater/app/src/main/")
+            .setPositiveButton("I-SAVE") { _, dialog ->
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    // ==========================================
+    //   🖼️ ICON MENU
+    // ==========================================
     private fun buildIconMenu() {
         currentScreen = "ICON"
         val container = findViewById<LinearLayout>(R.id.main_menu_container)
@@ -229,18 +338,60 @@ class MainActivity : AppCompatActivity() {
         return file.absolutePath
     }
 
+    // ==========================================
+    //   📤 IPADALA ANG ICON — TIGNAN MAY PATH BA ✅
+    // ==========================================
     private fun pushIconToGitHub() {
         if (processedIcons.isEmpty()) {
-            Toast.makeText(this, "⚠️ Wala pang naprosesong icon! Gawin muna ang Option 1.2", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "⚠️ Gawin muna ang Option 1.2 — I-resize!", Toast.LENGTH_LONG).show()
             return
         }
+
+        // ✅ KUNG WALA PANG PATH — PUMILI MUNA!
+        if (savedDefaultPath.isEmpty()) {
+            Toast.makeText(this, "⚠️ Wala pang napiling destinasyon!\n📂 Pumili muna kung saan pupunta...", Toast.LENGTH_LONG).show()
+            buildPathCategoryMenu()
+            return
+        }
+
+        confirmAndPush()
+    }
+
+    private fun confirmAndPush() {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("📤 KUMPIRMA ANG PAGPADALA")
+            .setMessage(
+                """
+                📂 DESTINASYON:
+                $savedDefaultPath
+                
+                📄 BILANG NG FILE:
+                ${processedIcons.size} na icon
+                
+                ✅ SIGURADO KA BANG IPAPADALA NA SA GITHUB?
+                """.trimIndent()
+            )
+            .setPositiveButton("✅ OO — IPADALA NA") { _, _ ->
+                actuallyPushNow()
+            }
+            .setNegativeButton("❌ HINDI MUNA", null)
+            .show()
+    }
+
+    private fun actuallyPushNow() {
         Toast.makeText(
             this,
-            "📤 IPINAPADALA SA GITHUB...\n📂 DESTINASYON: $savedDefaultPath\n✅ ${processedIcons.size} na file",
+            "📤 IPINAPADALA SA GITHUB...\n" +
+            "📂 LOKASYON: $savedDefaultPath\n" +
+            "📄 FILES: ${processedIcons.size}\n" +
+            "\n✅ Handa na — gagawin ang Git Commit + Push",
             Toast.LENGTH_LONG
         ).show()
     }
 
+    // ==========================================
+    //   📄 OPTION 2 — CAT CODE
+    // ==========================================
     private fun buildCatCodeMenu() {
         currentScreen = "CATCODE"
         val container = findViewById<LinearLayout>(R.id.main_menu_container)
@@ -250,37 +401,28 @@ class MainActivity : AppCompatActivity() {
         addMenuItem(container, "1", "📋 I-paste ang Cat Code dito") {
             Toast.makeText(this, "📋 Hinihintay ang Cat Code...", Toast.LENGTH_SHORT).show()
         }
-        addMenuItem(container, "2", "📂 Piliin ang Destinasyon sa GitHub") { buildPathMenu() }
+        addMenuItem(container, "2", "📂 Piliin ang Destinasyon sa GitHub") { buildPathCategoryMenu() }
         addMenuItem(container, "3", "📤 Ipadala Lahat") {
-            Toast.makeText(this, "📤 Pinapadala ang lahat...", Toast.LENGTH_SHORT).show()
+            if (savedDefaultPath.isEmpty()) {
+                Toast.makeText(this, "⚠️ Pumili muna ng destinasyon sa Option 2.2!", Toast.LENGTH_LONG).show()
+                return@addMenuItem
+            }
+            Toast.makeText(this, "📤 Pinapadala ang lahat sa: $savedDefaultPath", Toast.LENGTH_LONG).show()
         }
         addMenuDivider(container)
         addMenuItem(container, "b", "⬅️ Bumalik", { buildMainMenu() })
     }
 
+    // ==========================================
+    //   📤 OPTION 3 — DIREKTANG PAGPADALA
+    // ==========================================
     private fun pushToGitHub() {
         Toast.makeText(this, "📤 I-COMMIT AT I-PUSH...\n✅ Tagumpay!", Toast.LENGTH_LONG).show()
     }
 
-    private fun buildPathMenu() {
-        currentScreen = "PATH"
-        val container = findViewById<LinearLayout>(R.id.main_menu_container)
-        container.removeAllViews()
-        addMenuHeader(container, "📂 DESTINATION PATH — PUMILI O I-SET")
-        addSpace(container, 8)
-        availablePaths.forEachIndexed { i, path ->
-            addMenuItem(container, "${i+1}", path) {
-                savedDefaultPath = path
-                Toast.makeText(this, "💾 NA-SAVE:\n$path", Toast.LENGTH_LONG).show()
-            }
-        }
-        addMenuDivider(container)
-        addMenuItem(container, "0", "✏️ I-type ang sariling Path") {
-            Toast.makeText(this, "✏️ Pagta-type ng daan...", Toast.LENGTH_SHORT).show()
-        }
-        addMenuItem(container, "b", "⬅️ Bumalik", { buildMainMenu() })
-    }
-
+    // ==========================================
+    //   🔄 OPTION 5 — TUMATSEK NG BERSYON
+    // ==========================================
     private fun checkVersionFromGitHub() {
         val tvStatus = findViewById<TextView>(R.id.tvStatus)
         tvStatus.text = "🔍 Tinitignan..."
@@ -303,6 +445,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ==========================================
+    //   🛠️ TULONG NA PAMAMARAAN
+    // ==========================================
     private fun getFileName(uri: Uri): String {
         contentResolver.query(uri, null, null, null, null)?.use {
             if (it.moveToFirst()) {
