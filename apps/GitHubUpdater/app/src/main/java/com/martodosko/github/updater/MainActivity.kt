@@ -1,7 +1,5 @@
 package com.martodosko.github.updater
 
-import android.app.DownloadManager
-import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -31,7 +29,7 @@ import java.net.URL
 class MainActivity : AppCompatActivity() {
 
     private lateinit var drawerLayout: DrawerLayout
-    private val VERSION = "v5.78"
+    private val VERSION = "v5.79"
     private val REPO_OWNER = "fbvlink2026-lab"
     private val REPO_NAME = "apk-generator"
 
@@ -40,20 +38,24 @@ class MainActivity : AppCompatActivity() {
     private var savedDefaultPath = ""
     private val processedIcons = mutableListOf<String>()
 
+    // ✅ LIMA NA — KASAMA NA ANG xxxhdpi!
+    private val iconSizes = listOf(
+        "mdpi" to 48,
+        "hdpi" to 72,
+        "xhdpi" to 96,
+        "xxhdpi" to 144,
+        "xxxhdpi" to 192
+    )
+
+    // ✅ LIMA NA RIN ANG PATH — TUGMA SA FOLDER SA REPO!
     private val availablePaths = listOf(
         "apps/GitHubUpdater/app/src/main/res/mipmap-mdpi/",
         "apps/GitHubUpdater/app/src/main/res/mipmap-hdpi/",
         "apps/GitHubUpdater/app/src/main/res/mipmap-xhdpi/",
         "apps/GitHubUpdater/app/src/main/res/mipmap-xxhdpi/",
+        "apps/GitHubUpdater/app/src/main/res/mipmap-xxxhdpi/",
         "docs/",
         "."
-    )
-
-    private val iconSizes = listOf(
-        "mdpi" to 48,
-        "hdpi" to 72,
-        "xhdpi" to 96,
-        "xxhdpi" to 144
     )
 
     private val pickImageLauncher = registerForActivityResult(
@@ -111,7 +113,7 @@ class MainActivity : AppCompatActivity() {
         addSpace(container, 12)
 
         addMenuItem(container, "1", "📂 Pumili ng Larawan mula sa Folder") { pickImage() }
-        addMenuItem(container, "2", "📏 I-resize sa tamang sukat") { resizeSelectedIconWithProcess() }
+        addMenuItem(container, "2", "📏 I-resize sa 5 tamang sukat") { resizeSelectedIconWithProcess() }
         addMenuItem(container, "3", "📤 Ipadala sa tamang GitHub folder") { pushIconToGitHub() }
         addMenuDivider(container)
         addMenuItem(container, "b", "⬅️ Bumalik sa Pangunahing Menu") { buildMainMenu() }
@@ -174,11 +176,13 @@ class MainActivity : AppCompatActivity() {
                 return@launch
             }
 
-            progressBar.progress = 15
+            progressBar.progress = 10
             progressText.text = "✅ NABASA — ${originalBitmap.width}×${originalBitmap.height}"
             delay(300)
 
-            var done = 15
+            var done = 10
+            val step = 90 / iconSizes.size
+
             iconSizes.forEach { (density, size) ->
 
                 progressText.text = "📏 INA-AYOS ANG $density — $size×$size..."
@@ -196,7 +200,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 resultArea.addView(resultLine)
 
-                done += 21
+                done += step
                 progressBar.progress = done
                 delay(350)
             }
