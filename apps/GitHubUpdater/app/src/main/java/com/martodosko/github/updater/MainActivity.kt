@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.OpenableColumns
 import android.util.Base64
+import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -35,7 +36,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var prefs: SharedPreferences
     private lateinit var mainScrollView: ScrollView
-    private val VERSION = "v5.86 — WALANG ERROR SA COMPILE"
+    private val VERSION = "v5.87 — BAWAT ICON MAY SARILING FOLDER"
 
     private var repoOwner = ""
     private var repoName = ""
@@ -43,10 +44,14 @@ class MainActivity : AppCompatActivity() {
     private var currentScreen = "MAIN"
     private var selectedImageUri: Uri? = null
     private var savedDefaultPath = ""
-    private val processedIcons = mutableListOf<String>()
 
+    // ✅ BAWAT SUKAT — TAMA ANG PANGALAN NG FOLDER!
     private val iconSizes = listOf(
-        "mdpi" to 48, "hdpi" to 72, "xhdpi" to 96, "xxhdpi" to 144, "xxxhdpi" to 192
+        "mipmap-mdpi" to 48,
+        "mipmap-hdpi" to 72,
+        "mipmap-xhdpi" to 96,
+        "mipmap-xxhdpi" to 144,
+        "mipmap-xxxhdpi" to 192
     )
 
     data class GitHubFolder(
@@ -381,16 +386,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun showCustomPathInput() {
         val input = EditText(this).apply {
-            hint = "hal: apps/AkingApp/app/src/main/res/mipmap-mdpi/"
+            hint = "hal: apps/AkingApp/app/src/main/res/"
             setText(savedDefaultPath)
         }
         android.app.AlertDialog.Builder(this)
             .setTitle("✏️ ILAGAY ANG BUONG DAAN")
+            .setMessage("💡 Ilagay ang folder na naglalaman ng mipmap-*/\nHalimbawa: apps/GitHubUpdater/app/src/main/res/")
             .setView(input)
             .setPositiveButton("I-SAVE") { d, _ ->
-                val path = input.text.toString().trim()
+                var path = input.text.toString().trim()
                 if (path.isNotEmpty()) {
-                    savedDefaultPath = if (path.endsWith("/")) path else "$path/"
+                    if (!path.endsWith("/")) path = "$path/"
+                    savedDefaultPath = path
                     Toast.makeText(this, "💾 NA-SAVE:\n$savedDefaultPath", Toast.LENGTH_LONG).show()
                 }
                 d.dismiss()
@@ -400,7 +407,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 🖼️ ICON MENU
+    // 🖼️ ICON MENU — I-RESIZE SA LAHAT NG 5 SUKAT
     // ==========================================
     private fun buildIconMenu() {
         currentScreen = "ICON"
@@ -410,8 +417,12 @@ class MainActivity : AppCompatActivity() {
         addMenuHeader(container, "🖼️ ICON — PUMILI → I-RESIZE → IPADALA")
         addSpace(container, 12)
         addMenuItem(container, "1", "📂 Pumili ng Larawan") { pickImage() }
-        addMenuItem(container, "2", "📏 I-resize sa 5 sukat") { resizeSelectedIconWithProcess() }
-        addMenuItem(container, "3", "📤 Ipadala sa GitHub") { pushIconToGitHub() }
+        addMenuItem(container, "2", "📏 I-resize sa 5 sukat (mdpi/hdpi/xhdpi/xxhdpi/xxxhdpi)") {
+            resizeSelectedIconWithProcess()
+        }
+        addMenuItem(container, "3", "📤 Ipadala sa GitHub — bawat isa sa sariling folder") {
+            pushIconToGitHub()
+        }
         addMenuDivider(container)
         addMenuItem(container, "b", "⬅️ Bumalik", { buildMainMenu() })
     }
@@ -428,7 +439,6 @@ class MainActivity : AppCompatActivity() {
         scrollToTop()
         val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
         container.removeAllViews()
-        processedIcons.clear()
 
         addMenuHeader(container, "📏 NAGSISIMULA ANG PAGBABAGO NG SUKAT...")
         addSpace(container, 8)
@@ -440,7 +450,7 @@ class MainActivity : AppCompatActivity() {
         }
         container.addView(progressBar)
         val progressText = TextView(this).apply {
-            text = "0%"; textSize = 14f; gravity = android.view.Gravity.CENTER
+            text = "0%"; textSize = 14f; gravity = Gravity.CENTER
         }
         container.addView(progressText)
         addSpace(container, 12)
@@ -461,14 +471,13 @@ class MainActivity : AppCompatActivity() {
             progressBar.progress = 10; progressText.text = "✅ NABASA — ${original.width}×${original.height}"; delay(300)
 
             var done = 10; val step = 90 / iconSizes.size
-            iconSizes.forEach { (density, size) ->
-                progressText.text = "📏 INA-AYOS ANG $density — $size×$size..."
+            iconSizes.forEach { (folderName, size) ->
+                progressText.text = "📏 INA-AYOS ANG $folderName — $size×$size..."
                 progressBar.progress = done
                 val resized = Bitmap.createScaledBitmap(original, size, size, true)
-                val file = saveResizedBitmap(resized, density)
-                processedIcons.add(file)
+                saveResizedBitmap(resized, folderName)
                 resultArea.addView(TextView(this@MainActivity).apply {
-                    text = " ✅ $density → $size×$size ✅ NA-SAVE"
+                    text = " ✅ $folderName → $size×$size ✅ NA-SAVE"
                     setPadding(8,6,8,6)
                     setTextColor(0xFF2E7D32.toInt())
                 })
@@ -478,20 +487,22 @@ class MainActivity : AppCompatActivity() {
             addSpace(container, 12)
             addMenuHeader(container, "✅ LAHAT NG SUKAT — TAPOS NA! (${iconSizes.size} na larawan)")
             addSpace(container, 16)
-            addMenuItem(container, "3", "📤 Ipadala Lahat sa GitHub", { pushIconToGitHub() })
+            addMenuItem(container, "3", "📤 Ipadala Lahat sa GitHub — bawat isa sa sariling folder", {
+                pushIconToGitHub()
+            })
             addMenuItem(container, "b", "⬅️ Bumalik", { buildIconMenu() })
         }
     }
 
-    private fun saveResizedBitmap(bitmap: Bitmap, density: String): String {
+    private fun saveResizedBitmap(bitmap: Bitmap, folderName: String) {
         val dir = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "processed-icons").apply { mkdirs() }
-        val file = File(dir, "ic_launcher_$density.png")
+        // ✅ LAGING IC_LAUNCHER.PNG — TAMA ANG PANGALAN NG ICON SA ANDROID
+        val file = File(dir, "${folderName}_ic_launcher.png")
         FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-        return file.absolutePath
     }
 
     // ==========================================
-    // 📤 PAGPADALA SA GITHUB
+    // 📤 PAGPADALA — BAWAT SUKAT → SARILING FOLDER!
     // ==========================================
     private fun pushIconToGitHub() {
         if (!hasGitHubCredentials()) {
@@ -499,20 +510,21 @@ class MainActivity : AppCompatActivity() {
             showGitHubSetupDialog()
             return
         }
-        if (processedIcons.isEmpty()) {
-            Toast.makeText(this, "⚠️ I-resize muna ang larawan!", Toast.LENGTH_LONG).show()
-            return
-        }
         if (savedDefaultPath.isEmpty()) {
-            Toast.makeText(this, "⚠️ Pumili muna ng destinasyon sa Option 4!", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "⚠️ Pumili muna ng destinasyon sa Option 4!\nHalimbawa: .../res/", Toast.LENGTH_LONG).show()
             buildPathCategoryMenu()
             return
         }
 
         android.app.AlertDialog.Builder(this)
             .setTitle("📤 KUMPIRMA ANG PAGPADALA")
-            .setMessage("📂 DESTINASYON:\n$savedDefaultPath\n\n📄 FILES: ${processedIcons.size}\n📤 REPO: $repoOwner/$repoName")
-            .setPositiveButton("✅ IPADALA NA") { _, _ -> actuallyPushAllIcons() }
+            .setMessage("📂 DEDIKASYON NG BAWAT ICON:\n" +
+                    "${savedDefaultPath}mipmap-*/ic_launcher.png\n\n" +
+                    "📄 KABUUANG FILES: ${iconSizes.size}\n" +
+                    "📤 REPO: $repoOwner/$repoName")
+            .setPositiveButton("✅ IPADALA NA — BAWAT MAY SARILING FOLDER") { _, _ ->
+                actuallyPushAllIcons()
+            }
             .setNegativeButton("❌ HINDI MUNA", null)
             .show()
     }
@@ -523,12 +535,27 @@ class MainActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             var successCount = 0
-            processedIcons.forEachIndexed { idx, filePath ->
-                val fileName = File(filePath).name
-                val githubPath = "$savedDefaultPath$fileName"
+            val localDir = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "processed-icons")
+
+            // ✅ BAWAT ICON → SARILING FOLDER SA GITHUB!
+            iconSizes.forEachIndexed { idx, (densityFolder, size) ->
+                val localFile = File(localDir, "${densityFolder}_ic_launcher.png")
+
+                if (!localFile.exists()) {
+                    launch(Dispatchers.Main) {
+                        Toast.makeText(this@MainActivity,
+                            "⚠️ HINDI MAHANAP: $densityFolder",
+                            Toast.LENGTH_SHORT).show()
+                    }
+                    return@forEachIndexed
+                }
+
+                // ✅ DITO ANG SUSI — BAWAT SUKAT MAY SARILING SUB-FOLDER!
+                val githubPath = "${savedDefaultPath}$densityFolder/ic_launcher.png"
+                val displayPath = "$densityFolder/ic_launcher.png"
 
                 try {
-                    val bytes = File(filePath).readBytes()
+                    val bytes = localFile.readBytes()
                     val encoded = Base64.encodeToString(bytes, Base64.NO_WRAP)
 
                     val apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/contents/$githubPath"
@@ -542,7 +569,7 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     val json = JSONObject().apply {
-                        put("message", "📤 Ipadala: $fileName — MartoPush")
+                        put("message", "📤 ICON: $densityFolder — MartoPush")
                         put("content", encoded)
                     }
 
@@ -553,26 +580,30 @@ class MainActivity : AppCompatActivity() {
                         successCount++
                         launch(Dispatchers.Main) {
                             Toast.makeText(this@MainActivity,
-                                "✅ [${idx+1}/${processedIcons.size}] $fileName — NAIPADALA!",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                                "✅ $displayPath — NAIPADALA!",
+                                Toast.LENGTH_SHORT).show()
                         }
                     } else {
                         launch(Dispatchers.Main) {
-                            Toast.makeText(this@MainActivity, "⚠️ $fileName — Code $code", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@MainActivity,
+                                "⚠️ $displayPath — Code $code",
+                                Toast.LENGTH_SHORT).show()
                         }
                     }
                     conn.disconnect()
                 } catch (e: Exception) {
                     launch(Dispatchers.Main) {
-                        Toast.makeText(this@MainActivity, "❌ $fileName: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity,
+                            "❌ $displayPath: ${e.message}",
+                            Toast.LENGTH_SHORT).show()
                     }
                 }
             }
 
             launch(Dispatchers.Main) {
                 Toast.makeText(this@MainActivity,
-                    "✅ TAPOS NA!\n$successCount / ${processedIcons.size} na file naipadala!",
+                    "✅ TAPOS NA!\n$successCount / ${iconSizes.size} na icon naipadala!\n" +
+                            "📂 Bawat isa ay nasa sariling mipmap-*/ folder!",
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -692,7 +723,7 @@ class MainActivity : AppCompatActivity() {
             this.text = text; textSize = 14f; setTextColor(0xFF1565C0.toInt())
             setPadding(0,6,0,6)
             setTypeface(typeface, android.graphics.Typeface.BOLD)
-            gravity = android.view.Gravity.CENTER
+            gravity = Gravity.CENTER
         })
     }
 
