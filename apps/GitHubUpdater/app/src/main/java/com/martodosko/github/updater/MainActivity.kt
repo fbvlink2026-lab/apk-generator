@@ -36,9 +36,11 @@ import java.net.URL
 
 class MainActivity : AppCompatActivity() {
 
+    // ✅ IDINAGDAG — MGA DECLARATION NG VIEW
     private lateinit var prefs: SharedPreferences
-    private lateinit var mainScrollView: ScrollView
-    private val VERSION = "v5.97 — Respects Path in Cat Code + Option4 Base"
+    private lateinit var mainScrollView: ScrollView          // ← AYOS NA
+    private lateinit var menuContainer: LinearLayout         // ← AYOS NA
+    private val VERSION = "v5.98 — Fixed View References"
 
     private var repoOwner = ""
     private var repoName = ""
@@ -61,13 +63,12 @@ class MainActivity : AppCompatActivity() {
 
     data class GitHubFolder(val path: String, val type: String, val name: String)
 
-    // ✅ BAGONG ISTRUKTURA — TANDAAN KUNG MAY SARILING DAAN ANG FILE
     data class CatFileEntry(
-        val originalPath: String,       // Buong laman pagkatapos ng "cat >"
-        val fileName: String,           // Pangalan lang (huling bahagi)
-        val content: String,            // Laman ng file
-        val hasExplicitPath: Boolean,   // ✅ May "/" ba = may sariling daan?
-        val explicitFullPath: String?   // Kung meron — buong daan na nakasulat
+        val originalPath: String,
+        val fileName: String,
+        val content: String,
+        val hasExplicitPath: Boolean,
+        val explicitFullPath: String?
     )
 
     private val scannedFolders = mutableListOf<GitHubFolder>()
@@ -85,9 +86,13 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // ✅ I-INITIALIZE ANG MGA VIEW
+        mainScrollView = findViewById(R.id.mainScrollView)
+        menuContainer = findViewById(R.id.menuContainer)
+
         prefs = getSharedPreferences("MartoPushPrefs", Context.MODE_PRIVATE)
         loadRepoSettings()
-        mainScrollView = findViewById(R.id.mainScrollView)
         findViewById<TextView>(R.id.tvCurrentVersion)?.text = "📌 Bersyon: $VERSION"
         findViewById<Button>(R.id.btnCheckVersion)?.setOnClickListener { checkVersionFromGitHub() }
         if (!hasGitHubCredentials()) showGitHubSetupDialog()
@@ -286,31 +291,30 @@ class MainActivity : AppCompatActivity() {
 
     private fun buildPathCategoryMenu() {
         currentScreen = "PATH_CATEGORY"; scrollToTop()
-        val container = findViewById<LinearLayout>(R.id.menuContainer)
-        container.removeAllViews()
+        menuContainer.removeAllViews()
 
-        addMenuHeader(container, "📂 DESTINASYON — $repoOwner/$repoName")
+        addMenuHeader(menuContainer, "📂 DESTINASYON — $repoOwner/$repoName")
 
         if (savedDefaultPath.isNotEmpty()) {
-            addMenuHeader(container, "💾 KASALUKUYANG DESTINASYON:")
-            addMenuHeader(container, "   $savedDefaultPath")
-            addMenuDivider(container)
+            addMenuHeader(menuContainer, "💾 KASALUKUYANG DESTINASYON:")
+            addMenuHeader(menuContainer, "   $savedDefaultPath")
+            addMenuDivider(menuContainer)
         }
 
         if (detectedPackagePath.isNotEmpty()) {
-            addMenuHeader(container, "📦 BUONG PACKAGE: $detectedPackagePath")
+            addMenuHeader(menuContainer, "📦 BUONG PACKAGE: $detectedPackagePath")
             val fullPath = if(detectedJavaRootPath.isNotEmpty()) detectedJavaRootPath + detectedPackagePath else detectedPackagePath
-            addMenuItem(container, "P", "📦 GAMITIN ANG PACKAGE → $fullPath") {
+            addMenuItem(menuContainer, "P", "📦 GAMITIN ANG PACKAGE → $fullPath") {
                 savedDefaultPath = fullPath
                 saveDefaultPath()
                 Toast.makeText(this, "💾 NA-SAVE: $savedDefaultPath", Toast.LENGTH_LONG).show()
                 buildPathCategoryMenu()
             }
-            addMenuDivider(container)
+            addMenuDivider(menuContainer)
         }
 
         if (scannedFolders.isEmpty()) {
-            addMenuHeader(container, "🔍 SCANNING...")
+            addMenuHeader(menuContainer, "🔍 SCANNING...")
             CoroutineScope(Dispatchers.Main).launch {
                 scanRepositoryFolders()
                 delay(1200)
@@ -318,50 +322,48 @@ class MainActivity : AppCompatActivity() {
             }
             return
         }
-        addMenuItem(container, "1", "🖼️ ICON FOLDER") { showFilteredPaths("icon") }
-        addMenuItem(container, "2", "💻 CODE FOLDER") { showFilteredPaths("code") }
-        addMenuItem(container, "3", "🎨 LAYOUT/RES FOLDER") { showFilteredPaths("layout") }
-        addMenuItem(container, "4", "📂 LAHAT NG FOLDER") { showAllPaths() }
-        addMenuDivider(container)
-        addMenuItem(container, "0", "✏️ I-type ang sariling Path") { showCustomPathInput() }
-        addMenuItem(container, "b", "⬅️ Bumalik") { buildMainMenu() }
+        addMenuItem(menuContainer, "1", "🖼️ ICON FOLDER") { showFilteredPaths("icon") }
+        addMenuItem(menuContainer, "2", "💻 CODE FOLDER") { showFilteredPaths("code") }
+        addMenuItem(menuContainer, "3", "🎨 LAYOUT/RES FOLDER") { showFilteredPaths("layout") }
+        addMenuItem(menuContainer, "4", "📂 LAHAT NG FOLDER") { showAllPaths() }
+        addMenuDivider(menuContainer)
+        addMenuItem(menuContainer, "0", "✏️ I-type ang sariling Path") { showCustomPathInput() }
+        addMenuItem(menuContainer, "b", "⬅️ Bumalik") { buildMainMenu() }
     }
 
     private fun showFilteredPaths(ft: String) {
         currentScreen = "PATH_LIST"; scrollToTop()
-        val container = findViewById<LinearLayout>(R.id.menuContainer)
-        container.removeAllViews()
-        addMenuHeader(container, "📂 $ft — BUONG DAAN")
+        menuContainer.removeAllViews()
+        addMenuHeader(menuContainer, "📂 $ft — BUONG DAAN")
         scannedFolders.filter { it.type=="icon"||it.type=="code"||it.type=="layout"||it.type=="package"||it.type=="root"||it.type=="docs" }
             .forEachIndexed { i, f ->
-                addMenuItem(container, "${i+1}", f.name) {
+                addMenuItem(menuContainer, "${i+1}", f.name) {
                     savedDefaultPath = f.path
                     saveDefaultPath()
                     Toast.makeText(this, "💾 NA-SAVE: $savedDefaultPath", Toast.LENGTH_LONG).show()
                     buildPathCategoryMenu()
                 }
             }
-        addMenuDivider(container)
-        addMenuItem(container, "0", "✏️ I-type ang sariling Path") { showCustomPathInput() }
-        addMenuItem(container, "b", "⬅️ Bumalik") { buildPathCategoryMenu() }
+        addMenuDivider(menuContainer)
+        addMenuItem(menuContainer, "0", "✏️ I-type ang sariling Path") { showCustomPathInput() }
+        addMenuItem(menuContainer, "b", "⬅️ Bumalik") { buildPathCategoryMenu() }
     }
 
     private fun showAllPaths() {
         currentScreen = "PATH_ALL"; scrollToTop()
-        val container = findViewById<LinearLayout>(R.id.menuContainer)
-        container.removeAllViews()
-        addMenuHeader(container, "📂 LAHAT NG FOLDER")
+        menuContainer.removeAllViews()
+        addMenuHeader(menuContainer, "📂 LAHAT NG FOLDER")
         scannedFolders.forEachIndexed { i, f ->
-            addMenuItem(container, "${i+1}", f.name) {
+            addMenuItem(menuContainer, "${i+1}", f.name) {
                 savedDefaultPath = f.path
                 saveDefaultPath()
                 Toast.makeText(this, "💾 NA-SAVE: $savedDefaultPath", Toast.LENGTH_LONG).show()
                 buildPathCategoryMenu()
             }
         }
-        addMenuDivider(container)
-        addMenuItem(container, "0", "✏️ I-type ang sariling Path") { showCustomPathInput() }
-        addMenuItem(container, "b", "⬅️ Bumalik") { buildPathCategoryMenu() }
+        addMenuDivider(menuContainer)
+        addMenuItem(menuContainer, "0", "✏️ I-type ang sariling Path") { showCustomPathInput() }
+        addMenuItem(menuContainer, "b", "⬅️ Bumalik") { buildPathCategoryMenu() }
     }
 
     private fun showCustomPathInput() {
@@ -393,14 +395,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun buildIconMenu() {
         currentScreen = "ICON"; scrollToTop()
-        val container = findViewById<LinearLayout>(R.id.menuContainer)
-        container.removeAllViews()
-        addMenuHeader(container, "🖼️ ICON → Pumili → Resize → Ipadala")
-        addMenuItem(container, "1", "📂 Pumili ng Larawan") { pickImage() }
-        addMenuItem(container, "2", "📏 I-resize sa 5 sukat") { resizeSelectedIconWithProcess() }
-        addMenuItem(container, "3", "📤 Ipadala sa GitHub") { pushIconToGitHub() }
-        addMenuDivider(container)
-        addMenuItem(container, "b", "⬅️ Bumalik") { buildMainMenu() }
+        menuContainer.removeAllViews()
+        addMenuHeader(menuContainer, "🖼️ ICON → Pumili → Resize → Ipadala")
+        addMenuItem(menuContainer, "1", "📂 Pumili ng Larawan") { pickImage() }
+        addMenuItem(menuContainer, "2", "📏 I-resize sa 5 sukat") { resizeSelectedIconWithProcess() }
+        addMenuItem(menuContainer, "3", "📤 Ipadala sa GitHub") { pushIconToGitHub() }
+        addMenuDivider(menuContainer)
+        addMenuItem(menuContainer, "b", "⬅️ Bumalik") { buildMainMenu() }
     }
 
     private fun pickImage() = pickImageLauncher.launch("image/*")
@@ -410,13 +411,12 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "⚠️ Pumili muna ng larawan!", Toast.LENGTH_LONG).show()
             return
         }
-        val container = findViewById<LinearLayout>(R.id.menuContainer)
-        container.removeAllViews()
-        addMenuHeader(container, "📏 NAGSISIMULA ANG RESIZE...")
+        menuContainer.removeAllViews()
+        addMenuHeader(menuContainer, "📏 NAGSISIMULA ANG RESIZE...")
         val pb = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { max=100; progress=0 }
-        container.addView(pb)
+        menuContainer.addView(pb)
         val pt = TextView(this).apply { text="0%"; gravity=Gravity.CENTER }
-        container.addView(pt)
+        menuContainer.addView(pt)
         CoroutineScope(Dispatchers.Main).launch {
             pt.text = "🔍 Binabasa..."
             delay(400)
@@ -434,8 +434,8 @@ class MainActivity : AppCompatActivity() {
                 delay(350)
             }
             pb.progress = 100; pt.text = "100% ✅ TAPOS NA LAHAT NG SUKAT!"
-            addMenuDivider(container)
-            addMenuItem(container, "3", "📤 Ipadala sa GitHub") { pushIconToGitHub() }
+            addMenuDivider(menuContainer)
+            addMenuItem(menuContainer, "3", "📤 Ipadala sa GitHub") { pushIconToGitHub() }
         }
     }
 
@@ -483,20 +483,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun buildCatCodeMenu() {
         currentScreen = "CATCODE"; scrollToTop()
-        val container = findViewById<LinearLayout>(R.id.menuContainer)
-        container.removeAllViews()
-        addMenuHeader(container, "📄 OPTION 2 — CAT CODE / FILE PAGPADALA")
+        menuContainer.removeAllViews()
+        addMenuHeader(menuContainer, "📄 OPTION 2 — CAT CODE / FILE PAGPADALA")
         if(savedDefaultPath.isNotEmpty()) {
-            addMenuHeader(container, "💾 BASE DESTINASYON: $savedDefaultPath")
+            addMenuHeader(menuContainer, "💾 BASE DESTINASYON: $savedDefaultPath")
         }
-        addMenuItem(container, "1", "📋 I-PASTE ANG LAMAN O CAT CODE") { showCatCodeInputDialog() }
-        addMenuItem(container, "2", "📂 Piliin ang Default Path") { buildPathCategoryMenu() }
-        addMenuItem(container, "3", "📤 I-PADALA LAHAT") {
+        addMenuItem(menuContainer, "1", "📋 I-PASTE ANG LAMAN O CAT CODE") { showCatCodeInputDialog() }
+        addMenuItem(menuContainer, "2", "📂 Piliin ang Default Path") { buildPathCategoryMenu() }
+        addMenuItem(menuContainer, "3", "📤 I-PADALA LAHAT") {
             if(parsedCatFiles.isEmpty()) Toast.makeText(this, "⚠️ Mag-paste muna ng code!", Toast.LENGTH_SHORT).show()
             else showDestinationChoiceAndSend()
         }
-        addMenuDivider(container)
-        addMenuItem(container, "b", "⬅️ Bumalik") { buildMainMenu() }
+        addMenuDivider(menuContainer)
+        addMenuItem(menuContainer, "b", "⬅️ Bumalik") { buildMainMenu() }
     }
 
     private fun showCatCodeInputDialog() {
@@ -521,9 +520,6 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    // ==========================================
-    // 📄 PARSE — MAY DAAN = SUNODIN, PANGALAN LANG = GAMITIN BASE PATH
-    // ==========================================
     private fun parseCatCode(code: String) {
         parsedCatFiles.clear()
         val lines = code.lines()
@@ -558,8 +554,6 @@ class MainActivity : AppCompatActivity() {
 
             if(!rawTarget.isNullOrBlank() && currentContent.isNotBlank()) {
                 val fileName = rawTarget.split("/").last()
-
-                // ✅ TANDAAN: May sariling daan ba o pangalan lang?
                 val hasFullPath = "/" in rawTarget
                 val fullPathIfExplicit = if(hasFullPath) rawTarget else null
 
@@ -578,9 +572,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun showCatCodePreview() {
         scrollToTop()
-        val container = findViewById<LinearLayout>(R.id.menuContainer)
-        container.removeAllViews()
-        addMenuHeader(container, "✅ NABASA — ${parsedCatFiles.size} na file")
+        menuContainer.removeAllViews()
+        addMenuHeader(menuContainer, "✅ NABASA — ${parsedCatFiles.size} na file")
 
         parsedCatFiles.forEachIndexed { i, e ->
             val pathDisplay = if(e.hasExplicitPath) {
@@ -588,22 +581,19 @@ class MainActivity : AppCompatActivity() {
             } else {
                 "📂 $savedDefaultPath${e.fileName}  ⏳(Pangalan lang + Base Path)"
             }
-            addMenuItem(container, "${i+1}", "📄 ${e.fileName}") {
+            addMenuItem(menuContainer, "${i+1}", "📄 ${e.fileName}") {
                 android.app.AlertDialog.Builder(this)
                     .setTitle(e.fileName)
                     .setMessage(pathDisplay + "\n\n" + e.content.take(600))
                     .setPositiveButton("OK", null).show()
             }
-            addMenuHeader(container, pathDisplay)
+            addMenuHeader(menuContainer, pathDisplay)
         }
-        addMenuDivider(container)
-        addMenuItem(container, "3", "📤 IPADALA — Pumili ng Destinasyon") { showDestinationChoiceAndSend() }
-        addMenuItem(container, "b", "⬅️ Bumalik") { buildCatCodeMenu() }
+        addMenuDivider(menuContainer)
+        addMenuItem(menuContainer, "3", "📤 IPADALA — Pumili ng Destinasyon") { showDestinationChoiceAndSend() }
+        addMenuItem(menuContainer, "b", "⬅️ Bumalik") { buildCatCodeMenu() }
     }
 
-    // ==========================================
-    // 🎯 PAGPIPILIAN NG DESTINASYON
-    // ==========================================
     private fun showDestinationChoiceAndSend() {
         if(parsedCatFiles.isEmpty()) {
             Toast.makeText(this, "⚠️ Wala pang file!", Toast.LENGTH_SHORT).show()
@@ -649,9 +639,6 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    // ==========================================
-    // ✅ TAMA: SUNODIN ANG DAAN KUNG MERON, KUNG WALA → OPTION 4
-    // ==========================================
     private fun sendFilesRespectingPaths() {
         val tok = getGitHubToken()
         val list = ArrayList(parsedCatFiles)
@@ -661,12 +648,9 @@ class MainActivity : AppCompatActivity() {
             var ok = 0
             list.forEachIndexed { i, e ->
                 try {
-                    // 🎯 ETO ANG TAMA:
                     val finalPath = if(e.hasExplicitPath) {
-                        // ✅ MAY SARILING DAAN SA CODE — DOON PUPUNTA
                         e.explicitFullPath!!
                     } else {
-                        // 📂 PANGALAN LANG — IDUDUGTONG SA OPTION 4
                         val base = if(savedDefaultPath.endsWith("/")) savedDefaultPath else "$savedDefaultPath/"
                         "$base${e.fileName}"
                     }
@@ -707,7 +691,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // 🧪 PARA SA TESTING — LAHAT PAPUNTA SA docs/testing/
     private fun sendFilesForceTo(prefix: String) {
         val tok = getGitHubToken()
         val list = ArrayList(parsedCatFiles)
@@ -763,26 +746,25 @@ class MainActivity : AppCompatActivity() {
 
     private fun buildMainMenu() {
         currentScreen = "MAIN"; scrollToTop()
-        val container = findViewById<LinearLayout>(R.id.menuContainer)
-        container.removeAllViews()
-        addMenuHeader(container, "========================================")
-        addMenuHeader(container, "       📤  M A R T O P U S H  $VERSION")
-        addMenuHeader(container, "    Developed by MartoDosko © 2026")
-        addMenuHeader(container, "========================================")
+        menuContainer.removeAllViews()
+        addMenuHeader(menuContainer, "========================================")
+        addMenuHeader(menuContainer, "       📤  M A R T O P U S H  $VERSION")
+        addMenuHeader(menuContainer, "    Developed by MartoDosko © 2026")
+        addMenuHeader(menuContainer, "========================================")
         if(savedDefaultPath.isNotEmpty()) {
-            addMenuHeader(container, "💾 BASE DESTINASYON: $savedDefaultPath")
+            addMenuHeader(menuContainer, "💾 BASE DESTINASYON: $savedDefaultPath")
         }
-        addMenuDivider(container)
-        addMenuItem(container, "1", "🖼️ ICON — Pumili, Resize, Ipadala") { buildIconMenu() }
-        addMenuItem(container, "2", "📄 Ipadala ang Cat Code / File") { buildCatCodeMenu() }
-        addMenuItem(container, "3", "📤 Direktang Pagpadala") {
+        addMenuDivider(menuContainer)
+        addMenuItem(menuContainer, "1", "🖼️ ICON — Pumili, Resize, Ipadala") { buildIconMenu() }
+        addMenuItem(menuContainer, "2", "📄 Ipadala ang Cat Code / File") { buildCatCodeMenu() }
+        addMenuItem(menuContainer, "3", "📤 Direktang Pagpadala") {
             if(parsedCatFiles.isNotEmpty()) showDestinationChoiceAndSend()
             else Toast.makeText(this, "⚠️ Mag-paste muna ng code sa Option 2 → 1", Toast.LENGTH_SHORT).show()
         }
-        addMenuItem(container, "4", "📂 Piliin / I-set ang Destination Path") { buildPathCategoryMenu() }
-        addMenuItem(container, "5", "🔄 Tumatsek ng Update at Bersyon") { checkVersionFromGitHub() }
-        addMenuDivider(container)
-        addMenuItem(container, "0", "↩️ Lumabas") { finish() }
+        addMenuItem(menuContainer, "4", "📂 Piliin / I-set ang Destination Path") { buildPathCategoryMenu() }
+        addMenuItem(menuContainer, "5", "🔄 Tumatsek ng Update at Bersyon") { checkVersionFromGitHub() }
+        addMenuDivider(menuContainer)
+        addMenuItem(menuContainer, "0", "↩️ Lumabas") { finish() }
     }
 
     private fun getFileName(u: Uri): String {
