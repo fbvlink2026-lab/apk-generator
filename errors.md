@@ -3,14 +3,14 @@
 > Created & Developed by MartoDosko © Copyright 2026
 
 ---
-📅 **Petsa:** 2026-08-23 19:39 UTC
+📅 **Petsa:** 2026-08-23 21:05 UTC
 🎯 **Target:** GitHubUpdater
 ---
 
 ==================================================
 📦 APLIKASYON: GitHubUpdater
 📂 LOKASYON:   apps/GitHubUpdater
-⏰ ORAS:       2026-08-23 19:39:19 UTC
+⏰ ORAS:       2026-08-23 21:05:11 UTC
 ==================================================
 
 ✅ TAGUMPAY — NABUO ANG APK!
@@ -33,9 +33,9 @@ Downloading https://services.gradle.org/distributions/gradle-8.2-bin.zip
 > Task :app:mapDebugSourceSetPaths
 > Task :app:generateDebugResources
 > Task :app:packageDebugResources
+> Task :app:mergeDebugResources
 > Task :app:createDebugCompatibleScreenManifests
 > Task :app:extractDeepLinksDebug
-> Task :app:mergeDebugResources
 > Task :app:parseDebugLocalResources
 > Task :app:processDebugMainManifest
 > Task :app:processDebugManifest
@@ -50,8 +50,8 @@ Downloading https://services.gradle.org/distributions/gradle-8.2-bin.zip
 > Task :app:checkDebugDuplicateClasses
 > Task :app:processDebugResources
 > Task :app:mergeExtDexDebug
-> Task :app:mergeLibDexDebug
 > Task :app:mergeDebugJniLibFolders
+> Task :app:mergeLibDexDebug
 > Task :app:mergeDebugNativeLibs NO-SOURCE
 > Task :app:stripDebugDebugSymbols NO-SOURCE
 > Task :app:validateSigningDebug
@@ -60,14 +60,14 @@ Downloading https://services.gradle.org/distributions/gradle-8.2-bin.zip
 > Task :app:compileDebugKotlin
 > Task :app:compileDebugJavaWithJavac NO-SOURCE
 > Task :app:processDebugJavaRes
-> Task :app:mergeDebugJavaResource
 > Task :app:dexBuilderDebug
+> Task :app:mergeDebugJavaResource
 > Task :app:mergeProjectDexDebug
 > Task :app:packageDebug
 > Task :app:createDebugApkListingFileRedirect
 > Task :app:assembleDebug
 
-BUILD SUCCESSFUL in 52s
+BUILD SUCCESSFUL in 49s
 32 actionable tasks: 32 executed
 
 ==================================================
