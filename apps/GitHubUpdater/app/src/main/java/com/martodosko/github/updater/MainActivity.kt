@@ -9,7 +9,6 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.OpenableColumns
 import android.util.Base64
-import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -20,7 +19,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.drawerlayout.widget.DrawerLayout
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -35,10 +33,9 @@ import java.net.URL
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var drawerLayout: DrawerLayout
     private lateinit var prefs: SharedPreferences
     private lateinit var mainScrollView: ScrollView
-    private val VERSION = "v5.85 — MAY SCROLL SA LAHAT"
+    private val VERSION = "v5.86 — WALANG ERROR SA COMPILE"
 
     private var repoOwner = ""
     private var repoName = ""
@@ -77,18 +74,17 @@ class MainActivity : AppCompatActivity() {
         loadRepoSettings()
 
         mainScrollView = findViewById(R.id.main_scroll_view)
-        drawerLayout = findViewById(R.id.drawer_layout)
         findViewById<TextView>(R.id.tvCurrentVersion)?.text = "📌 Bersyon: $VERSION"
         updateStatusDisplay()
+
+        findViewById<Button>(R.id.btnCheckVersion)?.setOnClickListener { checkVersionFromGitHub() }
+        findViewById<Button>(R.id.btnCloseDrawer)?.setOnClickListener { buildMainMenu() }
 
         if (!hasGitHubCredentials()) {
             showGitHubSetupDialog()
         }
 
         buildMainMenu()
-
-        findViewById<Button>(R.id.btnCheckVersion)?.setOnClickListener { checkVersionFromGitHub() }
-        findViewById<Button>(R.id.btnCloseDrawer)?.setOnClickListener { drawerLayout.closeDrawers() }
     }
 
     // ==========================================
@@ -107,8 +103,7 @@ class MainActivity : AppCompatActivity() {
     private fun getGitHubToken(): String = prefs.getString("github_token", "")!!
 
     private fun updateStatusDisplay() {
-        findViewById<TextView>(R.id.tvStatus)?.text =
-            "✅ $repoOwner/$repoName"
+        findViewById<TextView>(R.id.tvStatus)?.text = "✅ $repoOwner/$repoName"
     }
 
     private fun scrollToTop() {
@@ -200,7 +195,6 @@ class MainActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 scannedFolders.clear()
-
                 scanDirectory("", 0, 5)
 
                 scannedFolders.add(0, GitHubFolder(".", "root", "🏠 ROOT — Ugat ng Repository"))
@@ -299,7 +293,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 📂 PATH MENU — MAY SCROLL-TO-TOP ✅
+    // 📂 PATH MENU — MAY SCROLL-TO-TOP
     // ==========================================
     private fun buildPathCategoryMenu() {
         currentScreen = "PATH_CATEGORY"
@@ -441,13 +435,18 @@ class MainActivity : AppCompatActivity() {
 
         val progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = 100; progress = 0
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(32, 16, 32, 8) }
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                .apply { setMargins(32, 16, 32, 8) }
         }
         container.addView(progressBar)
-        val progressText = TextView(this).apply { text = "0%"; textSize = 14f; gravity = Gravity.CENTER }
+        val progressText = TextView(this).apply {
+            text = "0%"; textSize = 14f; gravity = android.view.Gravity.CENTER
+        }
         container.addView(progressText)
         addSpace(container, 12)
-        val resultArea = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(16,8,16,8) }
+        val resultArea = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; setPadding(16,8,16,8)
+        }
         container.addView(resultArea)
 
         CoroutineScope(Dispatchers.Main).launch {
@@ -455,7 +454,10 @@ class MainActivity : AppCompatActivity() {
             val stream = contentResolver.openInputStream(selectedImageUri!!)
             val original = BitmapFactory.decodeStream(stream)
             stream?.close()
-            if (original == null) { progressText.text = "❌ HINDI MABASA"; return@launch }
+            if (original == null) {
+                progressText.text = "❌ HINDI MABASA"
+                return@launch
+            }
             progressBar.progress = 10; progressText.text = "✅ NABASA — ${original.width}×${original.height}"; delay(300)
 
             var done = 10; val step = 90 / iconSizes.size
@@ -466,7 +468,9 @@ class MainActivity : AppCompatActivity() {
                 val file = saveResizedBitmap(resized, density)
                 processedIcons.add(file)
                 resultArea.addView(TextView(this@MainActivity).apply {
-                    text = " ✅ $density → $size×$size ✅ NA-SAVE"; setPadding(8,6,8,6); setTextColor(0xFF2E7D32.toInt())
+                    text = " ✅ $density → $size×$size ✅ NA-SAVE"
+                    setPadding(8,6,8,6)
+                    setTextColor(0xFF2E7D32.toInt())
                 })
                 done += step; progressBar.progress = done; delay(350)
             }
@@ -548,7 +552,10 @@ class MainActivity : AppCompatActivity() {
                     if (code == 200 || code == 201) {
                         successCount++
                         launch(Dispatchers.Main) {
-                            Toast.makeText(this@MainActivity, "✅ [${idx+1}/${processedIcons.size}] $fileName — NAIPADALA!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@MainActivity,
+                                "✅ [${idx+1}/${processedIcons.size}] $fileName — NAIPADALA!",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     } else {
                         launch(Dispatchers.Main) {
@@ -587,8 +594,14 @@ class MainActivity : AppCompatActivity() {
         }
         addMenuItem(container, "2", "📂 Piliin ang Destinasyon") { buildPathCategoryMenu() }
         addMenuItem(container, "3", "📤 Ipadala Lahat") {
-            if (!hasGitHubCredentials()) { Toast.makeText(this, "⚠️ I-SET MUNA ANG GITHUB!", Toast.LENGTH_LONG).show(); return@addMenuItem }
-            if (savedDefaultPath.isEmpty()) { Toast.makeText(this, "⚠️ Pumili muna ng destinasyon!", Toast.LENGTH_LONG).show(); return@addMenuItem }
+            if (!hasGitHubCredentials()) {
+                Toast.makeText(this, "⚠️ I-SET MUNA ANG GITHUB!", Toast.LENGTH_LONG).show()
+                return@addMenuItem
+            }
+            if (savedDefaultPath.isEmpty()) {
+                Toast.makeText(this, "⚠️ Pumili muna ng destinasyon!", Toast.LENGTH_LONG).show()
+                return@addMenuItem
+            }
             Toast.makeText(this, "📤 Pinapadala sa: $savedDefaultPath", Toast.LENGTH_LONG).show()
         }
         addMenuDivider(container)
@@ -621,7 +634,9 @@ class MainActivity : AppCompatActivity() {
                         "⚠️ May Bago: v$latest"
                 }
             } catch (e: Exception) {
-                launch(Dispatchers.Main) { tvStatus.text = "⚠️ Hindi matignan" }
+                launch(Dispatchers.Main) {
+                    tvStatus.text = "⚠️ Hindi matignan"
+                }
             }
         }
     }
@@ -667,21 +682,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun addSpace(container: LinearLayout, dp: Int) {
-        container.addView(View(this).apply { layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp) })
+        container.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp)
+        })
     }
 
     private fun addMenuHeader(container: LinearLayout, text: String) {
         container.addView(TextView(this).apply {
             this.text = text; textSize = 14f; setTextColor(0xFF1565C0.toInt())
-            setPadding(0,6,0,6); setTypeface(typeface, android.graphics.Typeface.BOLD); gravity = Gravity.CENTER
+            setPadding(0,6,0,6)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            gravity = android.view.Gravity.CENTER
         })
     }
 
     private fun addMenuItem(container: LinearLayout, num: String, label: String, action: () -> Unit) {
         container.addView(Button(this).apply {
             text = "[$num]   $label"; textSize = 14f; setPadding(24,18,24,18)
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-                .apply { setMargins(8,6,8,6) }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(8,6,8,6) }
             setOnClickListener { action() }
         })
     }
@@ -689,7 +710,8 @@ class MainActivity : AppCompatActivity() {
     private fun addMenuDivider(container: LinearLayout) {
         container.addView(View(this).apply {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1)
-            setBackgroundColor(0xFFE0E0E0.toInt()); setPadding(0,8,0,8)
+            setBackgroundColor(0xFFE0E0E0.toInt())
+            setPadding(0,8,0,8)
         })
     }
 
