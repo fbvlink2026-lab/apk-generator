@@ -36,12 +36,20 @@ import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 
+// ==========================================
+// 📤 MARTOPUSH — GitHub File & Icon Uploader
+// ✅ VERSION: v5.99 — MAY LISTAHAN NG DESTINASYON + WALANG BABALA
+// 🔧 Inayos: Huling 'inContent' redundant warning + Buong Destination Picker
+//    → Pagkatapos i-paste → lumalabas ang LISTAHAN, hindi tanong lang!
+// Developed by MartoDosko © 2026
+// ==========================================
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var prefs: SharedPreferences
     private lateinit var mainScrollView: ScrollView
     private lateinit var menuContainer: LinearLayout
-    private val VERSION = "v5.98 — ✅ WALANG BABALA / TAPOS NA"
+    private val VERSION = "v5.99 — ✅ MAY LISTAHAN NG DESTINASYON"
 
     private var repoOwner = ""
     private var repoName = ""
@@ -380,7 +388,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 📄 OPTION 2 — CAT CODE — ✅ INA-AYOS ANG HULING BABALA
+    // 📄 OPTION 2 — CAT CODE — ✅ INA-AYOS: MAY LISTAHAN NG DESTINASYON
     // ==========================================
     private fun buildCatCodeMenu() {
         currentScreen="CATCODE"; scrollToTop(); parsedCatFiles.clear(); menuContainer.removeAllViews()
@@ -413,19 +421,19 @@ class MainActivity : AppCompatActivity() {
             val line = lines[i]
             var filePath: String?
             var currentContent = StringBuilder()
-            var inContent: Boolean  // ✅ WALANG = false — itinatakda agad sa ibaba
+            var inContent: Boolean // ✅ WALANG = false — itinatakda agad
 
             when {
                 line.startsWith("--- FILE:") -> {
                     detectedHeader = true
                     filePath = line.removePrefix("--- FILE:").substringBefore("---").trim()
-                    inContent = true   // ✅ DITO NA ITINATAKDA
+                    inContent = true
                     i++
                 }
                 line.startsWith("cat >") && line.contains("<<") -> {
                     detectedHeader = true
                     filePath = line.removePrefix("cat >").split("<<")[0].trim()
-                    inContent = true   // ✅ DITO NA ITINATAKDA
+                    inContent = true
                     i++
                 }
                 else -> { i++; continue }
@@ -479,44 +487,61 @@ class MainActivity : AppCompatActivity() {
         addMenuItem(menuContainer,"b","⬅️ Bumalik"){buildCatCodeMenu()}
     }
 
+    // ✅ INA-AYOS — HINDI TANONG LANG → BUONG LISTAHAN NG PAGPIPILIAN!
     private fun showDestinationPickerDialog() {
-        if(parsedCatFiles.isEmpty()) return
+        if(parsedCatFiles.isEmpty()) {
+            Toast.makeText(this,"⚠️ Wala pang file na ipapadala!",Toast.LENGTH_SHORT).show()
+            return
+        }
 
-        val optionsList = mutableListOf<String>()
-        val actionsList = mutableListOf<() -> Unit>()
+        // ✅ BUUIN ANG BUONG LISTAHAN NG PAGPIPILIAN
+        val choices = mutableListOf<String>()
+        val actions = mutableListOf<() -> Unit>()
 
+        // 1 — Default Path
         if(savedDefaultPath.isNotEmpty()) {
-            optionsList.add("✅ GAMITIN DEFAULT: $savedDefaultPath")
-            actionsList.add({ useThisPathAndSend(savedDefaultPath) })
-        }
-        if(detectedPackagePath.isNotEmpty()) {
-            val fullPkgPath = if(detectedJavaRootPath.isNotEmpty()) detectedJavaRootPath + detectedPackagePath else detectedPackagePath
-            optionsList.add("📦 GAMITIN PACKAGE: $fullPkgPath")
-            actionsList.add({ useThisPathAndSend(fullPkgPath) })
-        }
-        optionsList.add("✏️ I-TYPE ANG SARILING DAAN")
-        actionsList.add({ showManualPathDialog() })
-        if(scannedFolders.size > 2) {
-            optionsList.add("📂 PUMILI MULA SA LISTAHAN NG FOLDER")
-            actionsList.add({ showFolderSelectionMenu() })
+            choices.add("✅ Gamitin Default: $savedDefaultPath")
+            actions.add({ applyPathAndConfirm(savedDefaultPath) })
         }
 
-        val optionsArray = optionsList.toTypedArray()
+        // 2 — Auto-detected Package Path
+        if(detectedPackagePath.isNotEmpty()) {
+            val fullPkgPath = if(detectedJavaRootPath.isNotEmpty())
+                                  detectedJavaRootPath + detectedPackagePath
+                              else detectedPackagePath
+            choices.add("📦 Gamitin Package: $fullPkgPath")
+            actions.add({ applyPathAndConfirm(fullPkgPath) })
+        }
+
+        // 3 — Listahan ng Folder
+        choices.add("📂 Pumili mula sa listahan ng folder")
+        actions.add({ showFolderSelectionMenu() })
+
+        // 4 — Sariling daan
+        choices.add("✏️ I-type ang sariling daan")
+        actions.add({ showManualPathDialog() })
+
+        // ✅ IPAPAKITA ANG BUONG LISTAHAN — HINDI TANONG LANG!
         android.app.AlertDialog.Builder(this)
-            .setTitle("📤 SAAN MO GUSTONG IPADALA?")
-            .setMessage("${parsedCatFiles.size} na file — pumili ng destinasyon:")
-            .setItems(optionsArray) { _, index -> actionsList[index].invoke() }
-            .setNegativeButton("❌ KANSILA", null)
+            .setTitle("📤 SAAN MO GUSTONG IPADALA? — ${parsedCatFiles.size} na file")
+            .setItems(choices.toTypedArray()) { _, index ->
+                actions[index].invoke() // ✅ Agad gagana ang napili
+            }
+            .setNegativeButton("❌ Kanselahin", null)
+            .setCancelable(true)
             .show()
     }
 
-    private fun useThisPathAndSend(basePath: String) {
+    private fun applyPathAndConfirm(basePath: String) {
+        // ✅ Ilapat ang napiling daan sa LAHAT ng file
         parsedCatFiles.forEach { file ->
-            file.finalDestination = if(!file.filePath.contains("/")) {
-                if(basePath.endsWith("/")) "$basePath${file.fileName}" else "$basePath/${file.fileName}"
-            } else file.filePath
+            file.finalDestination = when {
+                file.filePath.contains("/") -> file.filePath // may sariling daan — gamitin ito
+                else -> if(basePath.endsWith("/")) "$basePath${file.fileName}"
+                        else "$basePath/${file.fileName}"
+            }
         }
-        confirmAndPushFiles()
+        confirmAndPushFiles() // ✅ Pumunta sa kumpirmasyon
     }
 
     private fun showManualPathDialog() {
@@ -533,7 +558,7 @@ class MainActivity : AppCompatActivity() {
                 if(p.isNotEmpty()) {
                     if(!p.endsWith("/")) p = "$p/"
                     savedDefaultPath = p; saveDefaultPath()
-                    useThisPathAndSend(p)
+                    applyPathAndConfirm(p)
                 }
             }
             .setNegativeButton("❌ BUMALIK", null)
@@ -549,7 +574,7 @@ class MainActivity : AppCompatActivity() {
             addMenuItem(menuContainer,"${i+1}",folder.displayName) {
                 savedDefaultPath = folder.path; saveDefaultPath()
                 Toast.makeText(this,"💾 NAPILI: ${folder.path}",Toast.LENGTH_LONG).show()
-                useThisPathAndSend(folder.path)
+                applyPathAndConfirm(folder.path)
             }
         }
         addMenuDivider(menuContainer)
@@ -558,9 +583,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun confirmAndPushFiles() {
+        // ✅ Ipakita muna kung saan pupunta ang bawat file
+        val previewText = StringBuilder()
+        previewText.append("${parsedCatFiles.size} na file — KUMPIRMA ANG DESTINASYON:\n\n")
+        parsedCatFiles.forEachIndexed { i, file ->
+            previewText.append("  [${i+1}] ${file.fileName}\n      → ${file.finalDestination}\n")
+        }
+
         android.app.AlertDialog.Builder(this)
             .setTitle("📤 KUMPIRMA ANG PAGPADALA")
-            .setMessage("${parsedCatFiles.size} na file → $repoOwner/$repoName")
+            .setMessage(previewText.toString())
             .setPositiveButton("✅ IPADALA NA") { _, _ -> actuallyPushFilesNow() }
             .setNegativeButton("❌ HINDI MUNA", null)
             .show()
