@@ -15,6 +15,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -36,7 +37,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var prefs: SharedPreferences
-    private val VERSION = "v5.84 — BUONG DAAN SA SCAN"
+    private lateinit var mainScrollView: ScrollView
+    private val VERSION = "v5.85 — MAY SCROLL SA LAHAT"
 
     private var repoOwner = ""
     private var repoName = ""
@@ -74,6 +76,7 @@ class MainActivity : AppCompatActivity() {
         prefs = getSharedPreferences("MartoPushPrefs", Context.MODE_PRIVATE)
         loadRepoSettings()
 
+        mainScrollView = findViewById(R.id.main_scroll_view)
         drawerLayout = findViewById(R.id.drawer_layout)
         findViewById<TextView>(R.id.tvCurrentVersion)?.text = "📌 Bersyon: $VERSION"
         updateStatusDisplay()
@@ -85,7 +88,7 @@ class MainActivity : AppCompatActivity() {
         buildMainMenu()
 
         findViewById<Button>(R.id.btnCheckVersion)?.setOnClickListener { checkVersionFromGitHub() }
-        findViewById<Button>(R.id.btnCloseDrawer)?.setOnClickListener { drawerLayout.closeDrawer(Gravity.START) }
+        findViewById<Button>(R.id.btnCloseDrawer)?.setOnClickListener { drawerLayout.closeDrawers() }
     }
 
     // ==========================================
@@ -106,6 +109,10 @@ class MainActivity : AppCompatActivity() {
     private fun updateStatusDisplay() {
         findViewById<TextView>(R.id.tvStatus)?.text =
             "✅ $repoOwner/$repoName"
+    }
+
+    private fun scrollToTop() {
+        mainScrollView.scrollTo(0, 0)
     }
 
     private fun showGitHubSetupDialog() {
@@ -162,7 +169,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 📡 SCAN — LUMALIM HANGGANG MAKITA ANG BUONG DAAN ✅
+    // 📡 SCAN — LUMALIM HANGGANG MAKITA ANG BUONG DAAN
     // ==========================================
     private suspend fun scanDirectory(path: String = "", depth: Int = 0, maxDepth: Int = 5) {
         if (depth > maxDepth) return
@@ -209,6 +216,9 @@ class MainActivity : AppCompatActivity() {
                         "✅ NATAGPUAN: ${scannedFolders.size} na lokasyon!",
                         Toast.LENGTH_SHORT
                     ).show()
+                    if (currentScreen == "PATH_CATEGORY" || currentScreen == "PATH_LIST" || currentScreen == "PATH_ALL") {
+                        buildPathCategoryMenu()
+                    }
                 }
             } catch (e: Exception) {
                 launch(Dispatchers.Main) {
@@ -289,10 +299,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 📂 PATH MENU
+    // 📂 PATH MENU — MAY SCROLL-TO-TOP ✅
     // ==========================================
     private fun buildPathCategoryMenu() {
         currentScreen = "PATH_CATEGORY"
+        scrollToTop()
         val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
         container.removeAllViews()
 
@@ -328,6 +339,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showFilteredPaths(filterType: String) {
         currentScreen = "PATH_LIST"
+        scrollToTop()
         val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
         container.removeAllViews()
 
@@ -354,6 +366,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showAllPaths() {
         currentScreen = "PATH_ALL"
+        scrollToTop()
         val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
         container.removeAllViews()
 
@@ -397,6 +410,7 @@ class MainActivity : AppCompatActivity() {
     // ==========================================
     private fun buildIconMenu() {
         currentScreen = "ICON"
+        scrollToTop()
         val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
         container.removeAllViews()
         addMenuHeader(container, "🖼️ ICON — PUMILI → I-RESIZE → IPADALA")
@@ -417,6 +431,7 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "⚠️ Pumili muna ng larawan!", Toast.LENGTH_LONG).show()
             return
         }
+        scrollToTop()
         val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
         container.removeAllViews()
         processedIcons.clear()
@@ -426,8 +441,7 @@ class MainActivity : AppCompatActivity() {
 
         val progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = 100; progress = 0
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-                .apply { setMargins(32, 16, 32, 8) }
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(32, 16, 32, 8) }
         }
         container.addView(progressBar)
         val progressText = TextView(this).apply { text = "0%"; textSize = 14f; gravity = Gravity.CENTER }
@@ -452,8 +466,7 @@ class MainActivity : AppCompatActivity() {
                 val file = saveResizedBitmap(resized, density)
                 processedIcons.add(file)
                 resultArea.addView(TextView(this@MainActivity).apply {
-                    text = " ✅ $density → $size×$size ✅ NA-SAVE"; setPadding(8,6,8,6)
-                    setTextColor(0xFF2E7D32.toInt())
+                    text = " ✅ $density → $size×$size ✅ NA-SAVE"; setPadding(8,6,8,6); setTextColor(0xFF2E7D32.toInt())
                 })
                 done += step; progressBar.progress = done; delay(350)
             }
@@ -474,7 +487,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 📤 TOTOONG PAGPADALA SA GITHUB
+    // 📤 PAGPADALA SA GITHUB
     // ==========================================
     private fun pushIconToGitHub() {
         if (!hasGitHubCredentials()) {
@@ -564,6 +577,7 @@ class MainActivity : AppCompatActivity() {
     // ==========================================
     private fun buildCatCodeMenu() {
         currentScreen = "CATCODE"
+        scrollToTop()
         val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
         container.removeAllViews()
         addMenuHeader(container, "📄 CAT CODE — SABAY-SABAY NA PAGPADALA")
@@ -617,6 +631,7 @@ class MainActivity : AppCompatActivity() {
     // ==========================================
     private fun buildMainMenu() {
         currentScreen = "MAIN"
+        scrollToTop()
         val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
         container.removeAllViews()
         addMenuHeader(container, "========================================")
@@ -651,6 +666,10 @@ class MainActivity : AppCompatActivity() {
         layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp)
     }
 
+    private fun addSpace(container: LinearLayout, dp: Int) {
+        container.addView(View(this).apply { layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp) })
+    }
+
     private fun addMenuHeader(container: LinearLayout, text: String) {
         container.addView(TextView(this).apply {
             this.text = text; textSize = 14f; setTextColor(0xFF1565C0.toInt())
@@ -672,10 +691,6 @@ class MainActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1)
             setBackgroundColor(0xFFE0E0E0.toInt()); setPadding(0,8,0,8)
         })
-    }
-
-    private fun addSpace(container: LinearLayout, dp: Int) {
-        container.addView(View(this).apply { layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp) })
     }
 
     override fun onBackPressed() {
