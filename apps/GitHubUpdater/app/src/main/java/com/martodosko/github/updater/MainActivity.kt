@@ -38,8 +38,8 @@ import java.net.URL
 
 // ==========================================
 // 📤 MARTOPUSH — GitHub File & Icon Uploader
-// ✅ VERSION: v5.99.1 — 🛠️ INA-AYOS: Direktang napupunta sa napiling Path!
-// 🔧 Ayos: Kapag pinili mo /docs/ → DOON LANG PUMUNTA — walang dagdag na sub-folder!
+// ✅ VERSION: v6.0 — 🆕 PATCH MODE: Maiksing Pagbabago Lang!
+// 🔧 Bago: Option 3 — Ipadala lang ang pagbabago / patch — hindi buong file!
 // Developed by MartoDosko © 2026
 // ==========================================
 
@@ -48,7 +48,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prefs: SharedPreferences
     private lateinit var mainScrollView: ScrollView
     private lateinit var menuContainer: LinearLayout
-    private val VERSION = "v5.99.1 — ✅ DIREKTA SA NAPILING PATH"
+    private val VERSION = "v6.0 — ✅ MAY PATCH MODE"
 
     private var repoOwner = ""
     private var repoName = ""
@@ -77,8 +77,17 @@ class MainActivity : AppCompatActivity() {
         var finalDestination: String? = null
     )
 
+    data class PatchEntry(
+        val filePath: String,
+        val searchText: String,
+        val replaceText: String,
+        val fileName: String,
+        var finalDestination: String? = null
+    )
+
     private val scannedFolders = mutableListOf<GitHubFolder>()
     private val parsedCatFiles = mutableListOf<CatFileEntry>()
+    private val parsedPatches = mutableListOf<PatchEntry>()
 
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -362,7 +371,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun pushIconToGitHub() {
         if(!hasGitHubCredentials()){showGitHubSetupDialog();return}
-        if(savedDefaultPath.isEmpty()){Toast.makeText(this,"⚠️ Piliin muna ang Path sa Option 4",Toast.LENGTH_LONG).show();return}
+        if(savedDefaultPath.isEmpty()){Toast.makeText(this,"⚠️ Piliin muna ang Path sa Option 5",Toast.LENGTH_LONG).show();return}
         android.app.AlertDialog.Builder(this).setTitle("📤 KUMPIRMA").setMessage("${iconSizes.size} na icon → $savedDefaultPath")
             .setPositiveButton("✅ IPADALA"){_,_->
                 val tok=getGitHubToken()
@@ -386,25 +395,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 📄 OPTION 2 — CAT CODE — ✅ INA-AYOS: DIREKTA SA NAPILING PATH!
+    // 📄 OPTION 2 — BUONG FILE / CAT CODE
     // ==========================================
     private fun buildCatCodeMenu() {
         currentScreen="CATCODE"; scrollToTop(); parsedCatFiles.clear(); menuContainer.removeAllViews()
-        addMenuHeader(menuContainer,"📄 OPTION 2 — CAT CODE / FILE PAGPADALA")
+        addMenuHeader(menuContainer,"📄 OPTION 2 — BUONG FILE / CAT CODE")
         if(savedDefaultPath.isNotEmpty()) addMenuHeader(menuContainer,"💾 KASALUKUYANG DESTINASYON: $savedDefaultPath")
-        addMenuItem(menuContainer,"1","📋 I-PASTE ANG LAMAN O CAT CODE"){showCatCodeInputDialog()}
+        addMenuItem(menuContainer,"1","📋 I-PASTE ANG BUONG FILE / CAT CODE"){showCatCodeInputDialog()}
         addMenuItem(menuContainer,"2","📂 Piliin ang Default Path"){buildPathCategoryMenu()}
         addMenuItem(menuContainer,"3","📤 I-PADALA LAHAT"){
             if(parsedCatFiles.isEmpty()) Toast.makeText(this,"⚠️ Mag-paste muna ng code!",Toast.LENGTH_SHORT).show()
-            else showDestinationPickerDialog()
+            else showCatDestinationPickerDialog()
         }
         addMenuDivider(menuContainer); addMenuItem(menuContainer,"b","⬅️ Bumalik"){buildMainMenu()}
     }
 
     private fun showCatCodeInputDialog() {
-        val hintText = "I-paste ang file o Cat Code dito..."
+        val hintText = "I-paste ang buong file o Cat Code dito..."
         val inp=EditText(this).apply{ hint = hintText; minLines=16; maxLines=28; textSize=12f }
-        android.app.AlertDialog.Builder(this).setTitle("📋 I-PASTE ANG LAMAN / CAT CODE").setView(inp)
+        android.app.AlertDialog.Builder(this).setTitle("📋 I-PASTE ANG BUONG FILE").setView(inp)
             .setPositiveButton("✅ BASAHIN"){_,_-> val code=inp.text.toString(); if(code.isBlank()) Toast.makeText(this,"❌ Walang laman!",Toast.LENGTH_SHORT).show() else parseCatCode(code) }
             .setNegativeButton("❌ KANSILA",null).show()
     }
@@ -453,13 +462,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if (!detectedHeader && code.isNotBlank()) { askDestinationForPlainContent(code); return }
+        if (!detectedHeader && code.isNotBlank()) { askCatDestinationForPlainContent(code); return }
         showCatCodePreview()
     }
 
-    private fun askDestinationForPlainContent(content:String){
+    private fun askCatDestinationForPlainContent(content:String){
         val msg="👉 Ilagay ang pangalan ng file"
-        val inp=EditText(this).apply{ hint = "pangalan.txt" }
+        val inp=EditText(this).apply{ hint = "pangalan.kt" }
         android.app.AlertDialog.Builder(this).setTitle("📄 LAMAN LANG ANG NAKITA").setMessage(msg).setView(inp)
             .setPositiveButton("✅ I-ANALISA"){_,_->
                 val p=inp.text.toString().trim()
@@ -471,7 +480,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showCatCodePreview() {
         scrollToTop(); menuContainer.removeAllViews()
-        addMenuHeader(menuContainer,"✅ NABASA — ${parsedCatFiles.size} na file")
+        addMenuHeader(menuContainer,"✅ NABASA — ${parsedCatFiles.size} na buong file")
         parsedCatFiles.forEachIndexed{i,e->
             addMenuItem(menuContainer,"${i+1}","📄 ${e.fileName}"){
                 android.app.AlertDialog.Builder(this).setTitle(e.fileName).setMessage("📂 DAAN: ${e.filePath}\n\n${e.content.take(500)}...").setPositiveButton("OK",null).show()
@@ -479,93 +488,69 @@ class MainActivity : AppCompatActivity() {
             addMenuHeader(menuContainer,"   📂 → ${e.filePath}")
         }
         addMenuDivider(menuContainer)
-        addMenuItem(menuContainer,"3","📤 PUMILI NG DESTINASYON AT IPADALA"){ showDestinationPickerDialog() }
+        addMenuItem(menuContainer,"3","📤 PUMILI NG DESTINASYON AT IPADALA"){ showCatDestinationPickerDialog() }
         addMenuItem(menuContainer,"b","⬅️ Bumalik"){buildCatCodeMenu()}
     }
 
-    // ✅ INA-AYOS — DIREKTA SA NAPILING PATH! WALANG DAGDAG NA SUB-FOLDER!
-    private fun showDestinationPickerDialog() {
+    private fun showCatDestinationPickerDialog() {
         if(parsedCatFiles.isEmpty()) {
             Toast.makeText(this,"⚠️ Wala pang file na ipapadala!",Toast.LENGTH_SHORT).show()
             return
         }
-
         val choices = mutableListOf<String>()
         val actions = mutableListOf<() -> Unit>()
-
-        // 1 — Default Path
         if(savedDefaultPath.isNotEmpty()) {
             choices.add("✅ Gamitin Default: $savedDefaultPath")
-            actions.add({ applyPathAndConfirm(savedDefaultPath) })
+            actions.add({ applyCatPathAndConfirm(savedDefaultPath) })
         }
-
-        // 2 — Package Path
         if(detectedPackagePath.isNotEmpty()) {
-            val fullPkgPath = if(detectedJavaRootPath.isNotEmpty())
-                                  detectedJavaRootPath + detectedPackagePath
-                              else detectedPackagePath
+            val fullPkgPath = if(detectedJavaRootPath.isNotEmpty()) detectedJavaRootPath + detectedPackagePath else detectedPackagePath
             choices.add("📦 Gamitin Package: $fullPkgPath")
-            actions.add({ applyPathAndConfirm(fullPkgPath) })
+            actions.add({ applyCatPathAndConfirm(fullPkgPath) })
         }
-
-        // 3 — Listahan ng Folder
         choices.add("📂 Pumili mula sa listahan ng folder")
-        actions.add({ showFolderSelectionMenu() })
-
-        // 4 — Sariling daan
+        actions.add({ showCatFolderSelectionMenu() })
         choices.add("✏️ I-type ang sariling daan")
-        actions.add({ showManualPathDialog() })
+        actions.add({ showCatManualPathDialog() })
 
         android.app.AlertDialog.Builder(this)
             .setTitle("📤 SAAN MO GUSTONG IPADALA? — ${parsedCatFiles.size} na file")
-            .setItems(choices.toTypedArray()) { _, index ->
-                actions[index].invoke()
-            }
+            .setItems(choices.toTypedArray()) { _, index -> actions[index].invoke() }
             .setNegativeButton("❌ Kanselahin", null)
-            .setCancelable(true)
-            .show()
+            .setCancelable(true).show()
     }
 
-    // ✅ PINAKA-INA-AYOS — DIREKTA SA NAPILING PATH! WALANG DAGDAG!
-    private fun applyPathAndConfirm(basePath: String) {
+    private fun applyCatPathAndConfirm(basePath: String) {
         parsedCatFiles.forEach { file ->
             file.finalDestination = when {
-                // ✅ KUNG MAY SARILING DAAN SA FILE — GAMITIN ITO
                 file.filePath.contains("/") -> file.filePath
-
-                // ✅ KUNG WALANG — DIREKTANG ILAGAY SA NAPILING BASE PATH + PANGALAN NG FILE
                 else -> {
                     val cleanBase = if(basePath.endsWith("/")) basePath else "$basePath/"
                     cleanBase + file.fileName
                 }
             }
         }
-        confirmAndPushFiles()
+        confirmCatAndPushFiles()
     }
 
-    private fun showManualPathDialog() {
-        val inp = EditText(this).apply {
-            hint = "hal: docs/  o  apps/GitHubUpdater/"
-            setText(savedDefaultPath)
-        }
+    private fun showCatManualPathDialog() {
+        val inp = EditText(this).apply { hint = "hal: docs/"; setText(savedDefaultPath) }
         android.app.AlertDialog.Builder(this)
             .setTitle("✏️ ILAGAY ANG DESTINASYON")
-            .setMessage("Ilagay ang base path kung saan pupunta ang lahat ng file:\n👉 Hal: docs/ → direkta sa docs/")
+            .setMessage("Direktang pupunta sa napiling daan + pangalan ng file")
             .setView(inp)
             .setPositiveButton("✅ GAMITIN") { _, _ ->
                 var p = inp.text.toString().trim()
                 if(p.isNotEmpty()) {
                     if(!p.endsWith("/") && !p.contains(".")) p = "$p/"
                     savedDefaultPath = p; saveDefaultPath()
-                    applyPathAndConfirm(p)
+                    applyCatPathAndConfirm(p)
                 }
-            }
-            .setNegativeButton("❌ BUMALIK", null)
-            .show()
+            }.setNegativeButton("❌ BUMALIK", null).show()
     }
 
-    private fun showFolderSelectionMenu() {
-        currentScreen = "PICK_FOLDER"; scrollToTop()
+    private fun showCatFolderSelectionMenu() {
+        currentScreen = "PICK_FOLDER_CAT"; scrollToTop()
         menuContainer.removeAllViews()
         addMenuHeader(menuContainer,"📂 PUMILI NG DESTINASYON")
         addMenuDivider(menuContainer)
@@ -573,30 +558,28 @@ class MainActivity : AppCompatActivity() {
             addMenuItem(menuContainer,"${i+1}",folder.displayName) {
                 savedDefaultPath = folder.path; saveDefaultPath()
                 Toast.makeText(this,"💾 NAPILI: ${folder.path}",Toast.LENGTH_LONG).show()
-                applyPathAndConfirm(folder.path)
+                applyCatPathAndConfirm(folder.path)
             }
         }
         addMenuDivider(menuContainer)
-        addMenuItem(menuContainer,"0","✏️ I-type ang sariling daan") { showManualPathDialog() }
+        addMenuItem(menuContainer,"0","✏️ I-type ang sariling daan") { showCatManualPathDialog() }
         addMenuItem(menuContainer,"b","⬅️ Bumalik") { showCatCodePreview() }
     }
 
-    private fun confirmAndPushFiles() {
+    private fun confirmCatAndPushFiles() {
         val previewText = StringBuilder()
-        previewText.append("${parsedCatFiles.size} na file — KUMPIRMA ANG DESTINASYON:\n\n")
+        previewText.append("${parsedCatFiles.size} na file — KUMPIRMA:\n\n")
         parsedCatFiles.forEachIndexed { i, file ->
             previewText.append("  [${i+1}] ${file.fileName}\n      → ${file.finalDestination}\n")
         }
-
         android.app.AlertDialog.Builder(this)
             .setTitle("📤 KUMPIRMA ANG PAGPADALA")
             .setMessage(previewText.toString())
-            .setPositiveButton("✅ IPADALA NA") { _, _ -> actuallyPushFilesNow() }
-            .setNegativeButton("❌ HINDI MUNA", null)
-            .show()
+            .setPositiveButton("✅ IPADALA NA") { _, _ -> actuallyPushCatFilesNow() }
+            .setNegativeButton("❌ HINDI MUNA", null).show()
     }
 
-    private fun actuallyPushFilesNow() {
+    private fun actuallyPushCatFilesNow() {
         if(!hasGitHubCredentials()){showGitHubSetupDialog();return}
         val list = ArrayList(parsedCatFiles)
         Toast.makeText(this,"📤 Pinapadala...",Toast.LENGTH_SHORT).show()
@@ -614,26 +597,285 @@ class MainActivity : AppCompatActivity() {
                         setRequestProperty("Content-Type", "application/json")
                         doOutput = true
                     }
-                    OutputStreamWriter(conn.outputStream).use {
-                        it.write(JSONObject().put("message","📤 ${file.fileName} — MartoPush").put("content",b64).toString())
+                    val jsonBody = JSONObject()
+                        .put("message","📤 ${file.fileName} — Buong File")
+                        .put("content",b64)
+                    val getConn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/$targetPath").openConnection() as HttpURLConnection
+                    getConn.setRequestProperty("Authorization", "token $tok")
+                    if(getConn.responseCode == 200) {
+                        val existing = JSONObject(getConn.inputStream.readText())
+                        jsonBody.put("sha", existing.getString("sha"))
                     }
+                    getConn.disconnect()
+                    OutputStreamWriter(conn.outputStream).use { it.write(jsonBody.toString()) }
                     if(conn.responseCode in 200..201) {
                         ok++
-                        launch(Dispatchers.Main) {
-                            Toast.makeText(this@MainActivity,"✅ [${index+1}/${list.size}] ${file.fileName}",Toast.LENGTH_SHORT).show()
-                        }
+                        launch(Dispatchers.Main) { Toast.makeText(this@MainActivity,"✅ [${index+1}/${list.size}] ${file.fileName}",Toast.LENGTH_SHORT).show() }
                     }
                     conn.disconnect()
                 } catch(ex: Exception) {
-                    launch(Dispatchers.Main) {
-                        Toast.makeText(this@MainActivity,"❌ ${file.fileName}: ${ex.message}",Toast.LENGTH_SHORT).show()
-                    }
+                    launch(Dispatchers.Main) { Toast.makeText(this@MainActivity,"❌ ${file.fileName}: ${ex.message}",Toast.LENGTH_SHORT).show() }
                 }
             }
             launch(Dispatchers.Main) {
                 Toast.makeText(this@MainActivity,"✅ TAPOS NA! $ok/${list.size} naipadala",Toast.LENGTH_LONG).show()
                 parsedCatFiles.clear()
                 buildCatCodeMenu()
+            }
+        }
+    }
+
+    // ==========================================
+    // 🔧 OPTION 3 — PATCH / MAIKSING PAGBABAGO LANG 🆕
+    // ==========================================
+    private fun buildPatchMenu() {
+        currentScreen="PATCH"; scrollToTop(); parsedPatches.clear(); menuContainer.removeAllViews()
+        addMenuHeader(menuContainer,"🔧 OPTION 3 — PATCH / Pagbabago Lang")
+        addMenuHeader(menuContainer,"   ✅ Hindi kailangang i-paste ang buong file!")
+        addMenuHeader(menuContainer,"   Hanapin → Palitan → Ipadala")
+        if(savedDefaultPath.isNotEmpty()) addMenuHeader(menuContainer,"💾 KASALUKUYANG DESTINASYON: $savedDefaultPath")
+        addMenuDivider(menuContainer)
+        addMenuItem(menuContainer,"1","✏️ ILAGAY ANG PAGBABAGO (Hanapin → Palitan)"){showPatchInputDialog()}
+        addMenuItem(menuContainer,"2","📂 Piliin ang Default Path"){buildPathCategoryMenu()}
+        addMenuItem(menuContainer,"3","📤 IPADALA ANG PAGBABAGO"){
+            if(parsedPatches.isEmpty()) Toast.makeText(this,"⚠️ Ilagay muna ang pagbabago!",Toast.LENGTH_SHORT).show()
+            else showPatchDestinationPicker()
+        }
+        addMenuDivider(menuContainer)
+        addMenuHeader(menuContainer,"📌 FORMAT NG PATCH:")
+        addMenuHeader(menuContainer,"FILE: pangalan.txt")
+        addMenuHeader(menuContainer,"--- HANAPIN ---")
+        addMenuHeader(menuContainer,"lumang laman")
+        addMenuHeader(menuContainer,"--- PALITAN ---")
+        addMenuHeader(menuContainer,"bagong laman")
+        addMenuHeader(menuContainer,"--- END ---")
+        addMenuDivider(menuContainer)
+        addMenuItem(menuContainer,"b","⬅️ Bumalik"){buildMainMenu()}
+    }
+
+    private fun showPatchInputDialog() {
+        val example = """
+Halimbawa:
+
+--- FILE: MainActivity.kt ---
+--- HANAPIN ---
+val VERSION = "v1.0"
+--- PALITAN ---
+val VERSION = "v2.0"
+--- END ---
+
+""".trimIndent()
+        val inp=EditText(this).apply{ hint = example; minLines=18; maxLines=30; textSize=11f }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("✏️ I-PASTE ANG PAGBABAGO / PATCH")
+            .setMessage("Format:\nFILE: pangalan\nHANAPIN → laman na papalitan\nPALITAN → bagong laman")
+            .setView(inp)
+            .setPositiveButton("✅ I-ANALISA"){_,_->
+                val code=inp.text.toString()
+                if(code.isBlank()) Toast.makeText(this,"❌ Walang laman!",Toast.LENGTH_SHORT).show()
+                else parsePatchCode(code)
+            }
+            .setNegativeButton("❌ KANSILA",null).show()
+    }
+
+    private fun parsePatchCode(code: String) {
+        parsedPatches.clear()
+        val blocks = code.split("--- FILE:","FILE:").filter { it.isNotBlank() }
+        for(block in blocks) {
+            val lines = block.lines()
+            var fileName = ""
+            var searchText = StringBuilder()
+            var replaceText = StringBuilder()
+            var mode = "none"
+            var filePath = ""
+
+            for(line in lines) {
+                val t = line.trim()
+                when {
+                    t.startsWith("---") && t.contains("HANAPIN") -> { mode = "search" }
+                    t.startsWith("---") && t.contains("PALITAN") -> { mode = "replace" }
+                    t == "--- END ---" || t == "--- END ---" -> { mode = "done" }
+                    mode == "none" && t.isNotEmpty() -> {
+                        fileName = t.trim()
+                        filePath = if(savedDefaultPath.isNotEmpty() && !fileName.contains("/")) savedDefaultPath + fileName else fileName
+                    }
+                    mode == "search" -> { if(searchText.isNotEmpty()) searchText.append("\n"); searchText.append(line) }
+                    mode == "replace" -> { if(replaceText.isNotEmpty()) replaceText.append("\n"); replaceText.append(line) }
+                }
+            }
+
+            if(fileName.isNotBlank() && searchText.isNotEmpty()) {
+                parsedPatches.add(PatchEntry(
+                    filePath = filePath,
+                    searchText = searchText.toString().trimEnd(),
+                    replaceText = replaceText.toString().trimEnd(),
+                    fileName = fileName.split("/").last()
+                ))
+            }
+        }
+        showPatchPreview()
+    }
+
+    private fun showPatchPreview() {
+        scrollToTop(); menuContainer.removeAllViews()
+        addMenuHeader(menuContainer,"✅ NABASA — ${parsedPatches.size} na PATCH")
+        parsedPatches.forEachIndexed{i,e->
+            addMenuItem(menuContainer,"${i+1}","🔧 ${e.fileName}"){
+                android.app.AlertDialog.Builder(this)
+                    .setTitle("${e.fileName} — PAGBABAGO")
+                    .setMessage(
+                        "📂 DAAN: ${e.filePath}\n\n" +
+                        "🔍 HANAPIN:\n${e.searchText}\n\n" +
+                        "➡️ PALITAN SA:\n${e.replaceText}"
+                    )
+                    .setPositiveButton("OK",null).show()
+            }
+            addMenuHeader(menuContainer,"   📂 → ${e.filePath}")
+        }
+        addMenuDivider(menuContainer)
+        addMenuItem(menuContainer,"3","📤 PUMILI NG DESTINASYON AT IPADALA"){ showPatchDestinationPicker() }
+        addMenuItem(menuContainer,"b","⬅️ Bumalik"){buildPatchMenu()}
+    }
+
+    private fun showPatchDestinationPicker() {
+        if(parsedPatches.isEmpty()) return
+        val choices = mutableListOf<String>()
+        val actions = mutableListOf<() -> Unit>()
+        if(savedDefaultPath.isNotEmpty()) {
+            choices.add("✅ Gamitin Default: $savedDefaultPath")
+            actions.add({ applyPatchPathAndConfirm(savedDefaultPath) })
+        }
+        if(detectedPackagePath.isNotEmpty()) {
+            val fullPkgPath = if(detectedJavaRootPath.isNotEmpty()) detectedJavaRootPath + detectedPackagePath else detectedPackagePath
+            choices.add("📦 Gamitin Package: $fullPkgPath")
+            actions.add({ applyPatchPathAndConfirm(fullPkgPath) })
+        }
+        choices.add("📂 Pumili mula sa listahan")
+        actions.add({ showPatchFolderMenu() })
+        choices.add("✏️ Sariling daan")
+        actions.add({ showPatchManualPath() })
+
+        android.app.AlertDialog.Builder(this)
+            .setTitle("📤 SAAN IPAPADALA ANG PATCH?")
+            .setItems(choices.toTypedArray()) { _, idx -> actions[idx].invoke() }
+            .setNegativeButton("❌ Kanselahin", null).show()
+    }
+
+    private fun applyPatchPathAndConfirm(basePath: String) {
+        parsedPatches.forEach { patch ->
+            patch.finalDestination = when {
+                patch.filePath.contains("/") -> patch.filePath
+                else -> {
+                    val clean = if(basePath.endsWith("/")) basePath else "$basePath/"
+                    clean + patch.fileName
+                }
+            }
+        }
+        confirmAndApplyPatches()
+    }
+
+    private fun showPatchFolderMenu() {
+        currentScreen = "PATCH_FOLDER"; scrollToTop()
+        menuContainer.removeAllViews()
+        addMenuHeader(menuContainer,"📂 PUMILI NG DESTINASYON")
+        scannedFolders.forEachIndexed { i, f ->
+            addMenuItem(menuContainer,"${i+1}",f.displayName) {
+                savedDefaultPath = f.path; saveDefaultPath()
+                applyPatchPathAndConfirm(f.path)
+            }
+        }
+        addMenuDivider(menuContainer)
+        addMenuItem(menuContainer,"b","⬅️ Bumalik") { showPatchPreview() }
+    }
+
+    private fun showPatchManualPath() {
+        val inp = EditText(this).apply { setText(savedDefaultPath) }
+        android.app.AlertDialog.Builder(this).setTitle("✏️ ILAGAY ANG DAAN").setView(inp)
+            .setPositiveButton("✅ GAMITIN") { _, _ ->
+                var p = inp.text.toString().trim()
+                if(p.isNotEmpty()) { if(!p.endsWith("/")) p="$p/"; savedDefaultPath=p; saveDefaultPath(); applyPatchPathAndConfirm(p) }
+            }.show()
+    }
+
+    private fun confirmAndApplyPatches() {
+        val preview = StringBuilder()
+        preview.append("${parsedPatches.size} na PATCH — KUMPIRMA:\n\n")
+        parsedPatches.forEachIndexed { i, p ->
+            preview.append("  [${i+1}] ${p.fileName}\n")
+            preview.append("      📂 → ${p.finalDestination}\n")
+            preview.append("      🔍 Hanapin: ${p.searchText.take(40)}...\n")
+            preview.append("      ➡️ Palitan: ${p.replaceText.take(40)}...\n")
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("🔧 KUMPIRMA ANG PAGBABAGO")
+            .setMessage(preview.toString())
+            .setPositiveButton("✅ IPADALA — AYUSIN ANG FILE") { _, _ -> applyPatchesToFiles() }
+            .setNegativeButton("❌ HINDI MUNA", null).show()
+    }
+
+    private fun applyPatchesToFiles() {
+        if(!hasGitHubCredentials()) { showGitHubSetupDialog(); return }
+        val list = ArrayList(parsedPatches)
+        Toast.makeText(this,"🔧 Binabago...",Toast.LENGTH_SHORT).show()
+        CoroutineScope(Dispatchers.IO).launch {
+            var ok = 0
+            val tok = getGitHubToken()
+            list.forEachIndexed { index, patch ->
+                try {
+                    val targetPath = patch.finalDestination ?: patch.filePath
+                    val getConn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/$targetPath").openConnection() as HttpURLConnection
+                    getConn.setRequestProperty("Authorization", "token $tok")
+                    if(getConn.responseCode != 200) {
+                        launch(Dispatchers.Main) {
+                            Toast.makeText(this@MainActivity,"❌ ${patch.fileName} — Hindi mahanap sa GitHub",Toast.LENGTH_SHORT).show()
+                        }
+                        getConn.disconnect()
+                        return@forEachIndexed
+                    }
+                    val jsonObj = JSONObject(getConn.inputStream.readText())
+                    val sha = jsonObj.getString("sha")
+                    val oldContent = String(Base64.decode(jsonObj.getString("content").replace("\n",""), Base64.DEFAULT))
+                    getConn.disconnect()
+
+                    if(!oldContent.contains(patch.searchText)) {
+                        launch(Dispatchers.Main) {
+                            Toast.makeText(this@MainActivity,"⚠️ ${patch.fileName} — Hindi nakita ang tekstong hahanapin!",Toast.LENGTH_SHORT).show()
+                        }
+                        return@forEachIndexed
+                    }
+
+                    val newContent = oldContent.replace(patch.searchText, patch.replaceText)
+                    val newB64 = Base64.encodeToString(newContent.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+
+                    val putConn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/$targetPath").openConnection() as HttpURLConnection
+                    putConn.apply {
+                        requestMethod = "PUT"
+                        setRequestProperty("Authorization", "token $tok")
+                        setRequestProperty("Content-Type", "application/json")
+                        doOutput = true
+                    }
+                    val body = JSONObject()
+                        .put("message","🔧 PATCH: ${patch.fileName} — Pagbabago")
+                        .put("content",newB64)
+                        .put("sha",sha)
+                    OutputStreamWriter(putConn.outputStream).use { it.write(body.toString()) }
+                    if(putConn.responseCode in 200..201) {
+                        ok++
+                        launch(Dispatchers.Main) {
+                            Toast.makeText(this@MainActivity,"✅ [${index+1}/${list.size}] ${patch.fileName}",Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    putConn.disconnect()
+                } catch(e:Exception) {
+                    launch(Dispatchers.Main) {
+                        Toast.makeText(this@MainActivity,"❌ ${patch.fileName}: ${e.message}",Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            launch(Dispatchers.Main) {
+                Toast.makeText(this@MainActivity,"✅ TAPOS NA! $ok/${list.size} naipatupad",Toast.LENGTH_LONG).show()
+                parsedPatches.clear()
+                buildPatchMenu()
             }
         }
     }
@@ -661,12 +903,14 @@ class MainActivity : AppCompatActivity() {
         addMenuHeader(menuContainer,"    Developed by MartoDosko © 2026")
         addMenuHeader(menuContainer,"========================================")
         if(savedDefaultPath.isNotEmpty()) addMenuHeader(menuContainer,"💾 KASALUKUYANG DESTINASYON: $savedDefaultPath")
+        addMenuDivider(menuContainer)
         addMenuItem(menuContainer,"1","🖼️ ICON — Pumili, Resize, Ipadala"){buildIconMenu()}
-        addMenuItem(menuContainer,"2","📄 Ipadala ang Cat Code / File"){buildCatCodeMenu()}
-        addMenuItem(menuContainer,"3","📤 Direktang Pagpadala"){pushToGitHub()}
+        addMenuItem(menuContainer,"2","📄 BUONG FILE — Ipadala ang Cat Code"){buildCatCodeMenu()}
+        addMenuItem(menuContainer,"3","🔧 PATCH — Pagbabago Lang (Hanapin→Palitan)"){buildPatchMenu()}
         addMenuItem(menuContainer,"4","📂 Piliin / I-set ang Destination Path"){buildPathCategoryMenu()}
         addMenuItem(menuContainer,"5","🔄 Tumatsek ng Update at Bersyon"){checkVersionFromGitHub()}
-        addMenuDivider(menuContainer); addMenuItem(menuContainer,"0","↩️ Lumabas"){finish()}
+        addMenuDivider(menuContainer)
+        addMenuItem(menuContainer,"0","↩️ Lumabas"){finish()}
     }
 
     private fun getFileName(u:Uri):String{
