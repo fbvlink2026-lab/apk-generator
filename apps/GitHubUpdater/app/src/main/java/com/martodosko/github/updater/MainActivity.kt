@@ -36,19 +36,19 @@ import java.net.URL
 
 class MainActivity : AppCompatActivity() {
 
-    // ✅ IDINAGDAG — MGA DECLARATION NG VIEW
+    // ==========================================
+    // ✅ DECLARASYON — UNA SA LAHAT!
+    // ==========================================
     private lateinit var prefs: SharedPreferences
-    private lateinit var mainScrollView: ScrollView          // ← AYOS NA
-    private lateinit var menuContainer: LinearLayout         // ← AYOS NA
-    private val VERSION = "v5.98 — Fixed View References"
+    private lateinit var mainScrollView: ScrollView       // ← DECLARE FIRST
+    private lateinit var menuContainer: LinearLayout      // ← DECLARE FIRST
+    private val VERSION = "v5.99 — Fixed Declaration Order"
 
     private var repoOwner = ""
     private var repoName = ""
-
     private var currentScreen = "MAIN"
     private var selectedImageUri: Uri? = null
     private var savedDefaultPath = ""
-
     private var detectedPackagePath = ""
     private var detectedJavaRootPath = ""
     private val allComPaths = mutableListOf<String>()
@@ -83,11 +83,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ==========================================
+    // ✅ ONCREATE — I-INITIALIZE AGAD ANG MGA VIEW
+    // ==========================================
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // ✅ I-INITIALIZE ANG MGA VIEW
+        // ✅ DAPAT UNA — BAGO TUMAWAG NG ANUMANG FUNKSYON
         mainScrollView = findViewById(R.id.mainScrollView)
         menuContainer = findViewById(R.id.menuContainer)
 
@@ -96,8 +99,14 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.tvCurrentVersion)?.text = "📌 Bersyon: $VERSION"
         findViewById<Button>(R.id.btnCheckVersion)?.setOnClickListener { checkVersionFromGitHub() }
         if (!hasGitHubCredentials()) showGitHubSetupDialog()
+
+        // ✅ BUMUO NG MENU — NAKA-INITIALIZE NA ANG MGA VIEW
         buildMainMenu()
     }
+
+    // ==========================================
+    // ✅ LAHAT NG FUNKSYON — SIGURADO NANG NAKA-INITIALIZE ANG VIEW
+    // ==========================================
 
     private fun loadRepoSettings() {
         repoOwner = prefs.getString("github_username", "") ?: ""
