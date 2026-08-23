@@ -29,17 +29,20 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import org.xmlpull.v1.XmlPullParser
+import java.io.BufferedReader
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
+import java.nio.charset.StandardCharsets
 
 // ==========================================
 // 📤 MARTOPUSH — GitHub File & Icon Uploader
-// ✅ VERSION: v6.0 — 🆕 PATCH MODE: Maiksing Pagbabago Lang!
-// 🔧 Bago: Option 3 — Ipadala lang ang pagbabago / patch — hindi buong file!
+// ✅ VERSION: v6.0.1 — 🛠️ INAAYOS: Android Compilation Errors
+// 🔧 Fixed: readText() sa HttpURLConnection + JSONObject Boolean ambiguity
 // Developed by MartoDosko © 2026
 // ==========================================
 
@@ -48,7 +51,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prefs: SharedPreferences
     private lateinit var mainScrollView: ScrollView
     private lateinit var menuContainer: LinearLayout
-    private val VERSION = "v6.0 — ✅ MAY PATCH MODE"
+    private val VERSION = "v6.0.1 — ✅ INAAYOS ANG COMPILATION"
 
     private var repoOwner = ""
     private var repoName = ""
@@ -141,6 +144,12 @@ class MainActivity : AppCompatActivity() {
     }
     private fun scrollToTop() { mainScrollView.scrollTo(0, 0) }
 
+    // ✅ AUXILIARY: Basahin ang String mula sa URL koneksyon — Android Compatible
+    private fun readConnectionText(conn: HttpURLConnection): String {
+        val reader = BufferedReader(InputStreamReader(conn.inputStream, StandardCharsets.UTF_8))
+        return reader.use { it.readText() }
+    }
+
     private fun showGitHubSetupDialog() {
         val uIn = EditText(this).apply { hint = "GitHub Username"; setText(repoOwner) }
         val rIn = EditText(this).apply { hint = "Repository Name"; setText(repoName) }
@@ -175,7 +184,9 @@ class MainActivity : AppCompatActivity() {
         if (depth>maxDepth) return
         try {
             val apiPath = if(path.isEmpty()) "" else "/$path"
-            val ja = JSONArray(URL("https://api.github.com/repos/$repoOwner/$repoName/contents$apiPath").readText())
+            val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents$apiPath").openConnection() as HttpURLConnection
+            val ja = JSONArray(readConnectionText(conn))
+            conn.disconnect()
             for(i in 0 until ja.length()) {
                 val o = ja.getJSONObject(i)
                 if(o.getString("type")=="dir") {
@@ -248,9 +259,15 @@ class MainActivity : AppCompatActivity() {
         try {
             val searchPaths = listOf("app/src/main/AndroidManifest.xml","src/main/AndroidManifest.xml","AndroidManifest.xml")
             var foundPath = ""
-            for(p in searchPaths) { try { URL("https://api.github.com/repos/$repoOwner/$repoName/contents/$p").readText(); foundPath = p; break } catch(_:Exception){} }
+            for(p in searchPaths) {
+                val connCheck = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/$p").openConnection() as HttpURLConnection
+                if(connCheck.responseCode == 200) { foundPath = p; connCheck.disconnect(); break }
+                connCheck.disconnect()
+            }
             if(foundPath.isEmpty()) return ""
-            val json = JSONObject(URL("https://api.github.com/repos/$repoOwner/$repoName/contents/$foundPath").readText())
+            val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/$foundPath").openConnection() as HttpURLConnection
+            val json = JSONObject(readConnectionText(conn))
+            conn.disconnect()
             val manifestXml = String(Base64.decode(json.getString("content").replace("\n",""), Base64.DEFAULT))
             val parser: XmlPullParser = Xml.newPullParser()
             parser.setInput(ByteArrayInputStream(manifestXml.toByteArray(Charsets.UTF_8)), null)
@@ -590,6 +607,17 @@ class MainActivity : AppCompatActivity() {
                 try {
                     val targetPath = file.finalDestination ?: file.filePath
                     val b64 = Base64.encodeToString(file.content.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+
+                    // Kunin muna ang SHA kung mayroon na
+                    var sha: String? = null
+                    val getConn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/$targetPath").openConnection() as HttpURLConnection
+                    getConn.setRequestProperty("Authorization", "token $tok")
+                    if(getConn.responseCode == 200) {
+                        val jsonObj = JSONObject(readConnectionText(getConn))
+                        sha = jsonObj.getString("sha")
+                    }
+                    getConn.disconnect()
+
                     val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/$targetPath").openConnection() as HttpURLConnection
                     conn.apply {
                         requestMethod = "PUT"
@@ -600,13 +628,7 @@ class MainActivity : AppCompatActivity() {
                     val jsonBody = JSONObject()
                         .put("message","📤 ${file.fileName} — Buong File")
                         .put("content",b64)
-                    val getConn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/$targetPath").openConnection() as HttpURLConnection
-                    getConn.setRequestProperty("Authorization", "token $tok")
-                    if(getConn.responseCode == 200) {
-                        val existing = JSONObject(getConn.inputStream.readText())
-                        jsonBody.put("sha", existing.getString("sha"))
-                    }
-                    getConn.disconnect()
+                    if(sha != null) jsonBody.put("sha", sha)
                     OutputStreamWriter(conn.outputStream).use { it.write(jsonBody.toString()) }
                     if(conn.responseCode in 200..201) {
                         ok++
@@ -663,7 +685,6 @@ val VERSION = "v1.0"
 --- PALITAN ---
 val VERSION = "v2.0"
 --- END ---
-
 """.trimIndent()
         val inp=EditText(this).apply{ hint = example; minLines=18; maxLines=30; textSize=11f }
         android.app.AlertDialog.Builder(this)
@@ -694,7 +715,7 @@ val VERSION = "v2.0"
                 when {
                     t.startsWith("---") && t.contains("HANAPIN") -> { mode = "search" }
                     t.startsWith("---") && t.contains("PALITAN") -> { mode = "replace" }
-                    t == "--- END ---" || t == "--- END ---" -> { mode = "done" }
+                    t == "--- END ---" -> { mode = "done" }
                     mode == "none" && t.isNotEmpty() -> {
                         fileName = t.trim()
                         filePath = if(savedDefaultPath.isNotEmpty() && !fileName.contains("/")) savedDefaultPath + fileName else fileName
@@ -832,7 +853,7 @@ val VERSION = "v2.0"
                         getConn.disconnect()
                         return@forEachIndexed
                     }
-                    val jsonObj = JSONObject(getConn.inputStream.readText())
+                    val jsonObj = JSONObject(readConnectionText(getConn))
                     val sha = jsonObj.getString("sha")
                     val oldContent = String(Base64.decode(jsonObj.getString("content").replace("\n",""), Base64.DEFAULT))
                     getConn.disconnect()
@@ -889,8 +910,9 @@ val VERSION = "v2.0"
         tv.text="🔍 Tinitignan..."
         CoroutineScope(Dispatchers.IO).launch{
             try{
-                val ver=JSONObject(URL("https://api.github.com/repos/$repoOwner/$repoName/releases/latest").readText())
-                    .optString("tag_name",VERSION).removePrefix("v")
+                val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/releases/latest").openConnection() as HttpURLConnection
+                val ver=JSONObject(readConnectionText(conn)).optString("tag_name",VERSION).removePrefix("v")
+                conn.disconnect()
                 launch(Dispatchers.Main){ tv.text=if(ver==VERSION.removePrefix("v")) "✅ Pinakabago: v$ver" else "⚠️ May Bago: v$ver" }
             }catch(_:Exception){ launch(Dispatchers.Main){ tv.text="⚠️ Hindi matignan" } }
         }
@@ -925,7 +947,7 @@ val VERSION = "v2.0"
     private fun space(dp:Int)=View(this).apply{layoutParams=LinearLayout.LayoutParams(0,dp)}
     private fun addMenuHeader(c:LinearLayout,t:String){
         c.addView(TextView(this).apply{text=t;gravity=Gravity.CENTER;setTextColor(0xFF1565C0.toInt());setTypeface(null,android.graphics.Typeface.BOLD)})
-    }
+    }    
     private fun addMenuItem(c:LinearLayout,n:String,l:String,a:()->Unit){
         c.addView(Button(this).apply{text="[$n]   $l";setOnClickListener{a()}})
     }
