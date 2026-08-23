@@ -1,63 +1,72 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- ✅ PANGUNAHING LUGAR — MENU SA GITNA! -->
+    <!-- ✅ GITNA — BUONG MENU NG MARTOPUSH -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:background="#F5F5F5"
-        android:padding="24dp">
+        android:background="#F8F9FA"
+        android:padding="16dp">
 
-        <!-- ✅ PAMAGAT SA TAAS -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="🎸 MartoDosko Updater"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:textColor="#2196F3"
-            android:gravity="center"
-            android:layout_marginBottom="8dp"/>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Awtomatikong Pag-tsek at Pag-download ng Update"
-            android:textSize="14sp"
-            android:textColor="#757575"
-            android:gravity="center"
-            android:layout_marginBottom="40dp"/>
-
-        <!-- ✅ MENU SA GITNA — ANG PANGUNAHING LAMAN! -->
         <LinearLayout
-            android:id="@+id/main_menu_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:gravity="center_horizontal"/>
+            android:gravity="center"
+            android:paddingVertical="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📤 MARTO PUSH"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:textColor="#1565C0"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="MartoDosko GitHub Updater"
+                android:textSize="14sp"
+                android:textColor="#757575"
+                android:layout_marginTop="2dp"/>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#E0E0E0"/>
+
+        <LinearLayout
+            android:id="@+id/main_menu_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:padding="8dp"/>
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="← Hilahin pakaliwa para sa Impormasyon at Bersyon"
-            android:textSize="13sp"
+            android:text="← Hilahin pakaliwa para sa Impormasyon"
+            android:textSize="12sp"
             android:textColor="#9E9E9E"
-            android:layout_marginTop="40dp"/>
+            android:gravity="center"
+            android:padding="8dp"/>
     </LinearLayout>
 
-    <!-- ✅ GILID — DITO ILILIPAT ANG IMPORMASYON NG BERSYON AT UPDATE! -->
-    <com.google.android.material.navigation.NavigationView
-        android:id="@+id/nav_view"
+    <!-- ✅ GILID — IMPORMASYON LANG -->
+    <LinearLayout
         android:layout_width="300dp"
         android:layout_height="match_parent"
-        android:layout_gravity="start">
+        android:layout_gravity="start"
+        android:orientation="vertical"
+        android:background="#FFFFFF">
 
-        <!-- ✅ ULO SA GILID — IMPORMASYON -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -68,7 +77,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="📋 Impormasyon"
+                android:text="ℹ️ Impormasyon"
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:textColor="#1976D2"
@@ -78,75 +87,68 @@
                 android:id="@+id/tvCurrentVersion"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="📌 Kasalukuyan: —"
+                android:text="📌 Bersyon: —"
                 android:textSize="15sp"
                 android:textColor="#333333"
                 android:paddingBottom="8dp"/>
 
             <TextView
-                android:id="@+id/tvNewVersion"
+                android:id="@+id/tvStatus"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="🔄 Pinakabago: —"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:textColor="#4CAF50"
-                android:paddingBottom="12dp"/>
+                android:text="Katayuan: —"
+                android:textSize="14sp"
+                android:textColor="#666666"
+                android:paddingBottom="16dp"/>
 
             <Button
-                android:id="@+id/btnCheck"
+                android:id="@+id/btnCheckVersion"
                 android:layout_width="match_parent"
                 android:layout_height="45dp"
-                android:text="🔍 Tumatsek ulit"
+                android:text="🔍 Tumatsek ng Bersyon"
                 android:textSize="14sp"
                 android:backgroundTint="#2196F3"
-                android:textColor="#FFFFFF"
-                android:layout_marginBottom="8dp"/>
-
-            <Button
-                android:id="@+id/btnDownload"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:text="⬇️ I-download"
-                android:textSize="15sp"
-                android:backgroundTint="#4CAF50"
                 android:textColor="#FFFFFF"/>
         </LinearLayout>
 
-        <!-- ✅ IBA PANG OPSYON SA GILID -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#EEEEEE"/>
+
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:orientation="vertical"
             android:padding="16dp">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="📂 Iba pa"
+                android:text="📋 Tungkol"
                 android:textSize="14sp"
                 android:textStyle="bold"
                 android:textColor="#757575"
                 android:layout_marginBottom="12dp"/>
 
-            <Button
-                android:id="@+id/btnAbout"
+            <TextView
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:text="ℹ️ Tungkol sa App"
-                android:backgroundTint="#F5F5F5"
-                android:textColor="#333333"
-                android:textSize="14sp"/>
-
-            <Button
-                android:id="@+id/btnGitHub"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:text="📂 Buksan sa GitHub"
-                android:backgroundTint="#F5F5F5"
-                android:textColor="#333333"
-                android:textSize="14sp"/>
+                android:layout_height="wrap_content"
+                android:text="Galing sa Termux Script — Ngayon ay APK na!\n\nDeveloped by MartoDosko © 2026"
+                android:textSize="14sp"
+                android:textColor="#424242"
+                android:lineSpacingExtra="4dp"/>
         </LinearLayout>
-    </com.google.android.material.navigation.NavigationView>
+
+        <Button
+            android:id="@+id/btnCloseDrawer"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="✖️ Isara"
+            android:backgroundTint="#F5F5F5"
+            android:textColor="#333333"
+            android:textSize="15sp"/>
+    </LinearLayout>
 
 </androidx.drawerlayout.widget.DrawerLayout>
