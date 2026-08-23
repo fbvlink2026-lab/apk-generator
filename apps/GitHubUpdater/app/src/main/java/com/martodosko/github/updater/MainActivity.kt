@@ -41,7 +41,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prefs: SharedPreferences
     private lateinit var mainScrollView: ScrollView
     private lateinit var menuContainer: LinearLayout
-    private val VERSION = "v5.97 — WALANG BABALA / MALINIS NA BUILD"
+    private val VERSION = "v5.98 — ✅ WALANG BABALA / TAPOS NA"
 
     private var repoOwner = ""
     private var repoName = ""
@@ -94,7 +94,6 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnCheckVersion)?.setOnClickListener { checkVersionFromGitHub() }
         findViewById<Button>(R.id.btnCloseDrawer)?.setOnClickListener { buildMainMenu() }
 
-        // ✅ BAGONG PARAAN — WALANG DEPRECATED
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (currentScreen != "MAIN") buildMainMenu() else finish()
@@ -381,7 +380,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 📄 OPTION 2 — CAT CODE
+    // 📄 OPTION 2 — CAT CODE — ✅ INA-AYOS ANG HULING BABALA
     // ==========================================
     private fun buildCatCodeMenu() {
         currentScreen="CATCODE"; scrollToTop(); parsedCatFiles.clear(); menuContainer.removeAllViews()
@@ -414,19 +413,19 @@ class MainActivity : AppCompatActivity() {
             val line = lines[i]
             var filePath: String?
             var currentContent = StringBuilder()
-            var inContent = false
+            var inContent: Boolean  // ✅ WALANG = false — itinatakda agad sa ibaba
 
             when {
                 line.startsWith("--- FILE:") -> {
                     detectedHeader = true
                     filePath = line.removePrefix("--- FILE:").substringBefore("---").trim()
-                    inContent = true
+                    inContent = true   // ✅ DITO NA ITINATAKDA
                     i++
                 }
                 line.startsWith("cat >") && line.contains("<<") -> {
                     detectedHeader = true
                     filePath = line.removePrefix("cat >").split("<<")[0].trim()
-                    inContent = true
+                    inContent = true   // ✅ DITO NA ITINATAKDA
                     i++
                 }
                 else -> { i++; continue }
