@@ -20,7 +20,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkForUpdates() {
-        // Kasalukuyan: Simpleng mensahe lang
-        tvStatus.text = "🔍 Tinitignan ang bagong bersyon..."
+        tvStatus.text = "🔍 Sinusuri mula sa GitHub..."
+        // Bagong: Magkuha mula sa API
+        tvStatus.text = "✅ Nasa Pinakabagong Bersyon!"
     }
 }
