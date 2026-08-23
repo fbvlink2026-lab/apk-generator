@@ -1,11 +1,13 @@
 package com.martodosko.github.updater
 
 import android.app.DownloadManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.view.Gravity
+import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -21,14 +23,11 @@ import java.net.URL
 class MainActivity : AppCompatActivity() {
 
     private lateinit var drawerLayout: DrawerLayout
-    private val currentVersion = "1.0.0"
-
+    private val VERSION = "v5.77"
     private val REPO_OWNER = "fbvlink2026-lab"
     private val REPO_NAME = "apk-generator"
-    private val APK_URL = "https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/main/docs/GitHubUpdater-debug.apk"
 
-    private var latestVersion: String? = null
-    private var isChecking = false
+    private var currentScreen = "MAIN"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,144 +35,265 @@ class MainActivity : AppCompatActivity() {
 
         drawerLayout = findViewById(R.id.drawer_layout)
 
-        val tvCurrent = findViewById<TextView>(R.id.tvCurrentVersion)
-        val tvNew = findViewById<TextView>(R.id.tvNewVersion)
-        val btnCheck = findViewById<Button>(R.id.btnCheck)
-        val btnDownload = findViewById<Button>(R.id.btnDownload)
-        val btnAbout = findViewById<Button>(R.id.btnAbout)
-        val btnGitHub = findViewById<Button>(R.id.btnGitHub)
+        findViewById<TextView>(R.id.tvCurrentVersion).text = "📌 Bersyon: $VERSION"
+        findViewById<TextView>(R.id.tvStatus).text = "Katayuan: Handa na"
 
-        tvCurrent.text = "📌 Kasalukuyan: v$currentVersion"
+        buildMainMenu()
 
-        val mainMenu = findViewById<LinearLayout>(R.id.main_menu_container)
-        buildMainMenu(mainMenu)
-
-        checkForUpdates(tvCurrent, tvNew, btnDownload)
-
-        btnCheck.setOnClickListener { checkForUpdates(tvCurrent, tvNew, btnDownload) }
-        btnDownload.setOnClickListener { downloadApk() }
-        btnAbout.setOnClickListener { showAboutDialog() }
-        btnGitHub.setOnClickListener { openGitHubPage() }
-    }
-
-    private fun buildMainMenu(container: LinearLayout) {
-        container.removeAllViews()
-
-        val menuItems = listOf(
-            "🔄 Tumatsek ng Bagong Bersyon" to {
-                checkForUpdates(
-                    findViewById(R.id.tvCurrentVersion),
-                    findViewById(R.id.tvNewVersion),
-                    findViewById(R.id.btnDownload)
-                )
-                Toast.makeText(this, "🔍 Tinitignan...", Toast.LENGTH_SHORT).show()
-            },
-            "⬇️ I-download ang Pinakabago" to {
-                downloadApk()
-            },
-            "📂 Buksan ang Pahina sa GitHub" to {
-                openGitHubPage()
-            },
-            "ℹ️ Tungkol sa Programang Ito" to {
-                showAboutDialog()
-            }
-        )
-
-        for ((label, action) in menuItems) {
-            val btn = Button(this).apply {
-                text = label
-                textSize = 17f
-                setPadding(32, 24, 32, 24)
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { setMargins(0, 0, 0, 16) }
-                setOnClickListener { action() }
-            }
-            container.addView(btn)
+        findViewById<Button>(R.id.btnCheckVersion).setOnClickListener {
+            checkVersion()
+        }
+        findViewById<Button>(R.id.btnCloseDrawer).setOnClickListener {
+            drawerLayout.closeDrawer(Gravity.START)
         }
     }
 
-    private fun checkForUpdates(
-        tvCurrent: TextView,
-        tvNew: TextView,
-        btnDownload: Button
-    ) {
-        isChecking = true
-        tvNew.text = "🔍 Tinitignan..."
-        btnDownload.isEnabled = false
+    // ==========================================
+    //   📤 M A I N   M E N U  — KATULAD NG MARTOPUSH
+    // ==========================================
+    private fun buildMainMenu() {
+        currentScreen = "MAIN"
+        val container = findViewById<LinearLayout>(R.id.main_menu_container)
+        container.removeAllViews()
+
+        addMenuHeader(container, "========================================")
+        addMenuHeader(container, "       📤  M A R T O P U S H  $VERSION")
+        addMenuHeader(container, "    Developed by MartoDosko © 2026")
+        addMenuHeader(container, "========================================")
+        addSpace(container, 16)
+
+        addMenuItem(container, "1", "🖼️ ICON — Pumili, I-resize, Ipadala") {
+            buildIconMenu()
+        }
+
+        addMenuItem(container, "2", "📄 Ipadala ang Cat Code / Maraming File") {
+            showCatCodeMenu()
+        }
+
+        addMenuItem(container, "3", "📤 Direktang Pagpadala sa GitHub") {
+            showDirectPushMenu()
+        }
+
+        addMenuItem(container, "4", "📂 Pumili / I-set ang Destination Path") {
+            showPathMenu()
+        }
+
+        addMenuItem(container, "5", "🔄 Tumatsek ng Update at Bersyon") {
+            checkVersion()
+        }
+
+        addMenuDivider(container)
+
+        addMenuItem(container, "0", "↩️ Lumabas / Isara") {
+            finish()
+        }
+    }
+
+    // ==========================================
+    //   🖼️ O P T I O N   1  —  I C O N   M E N U
+    // ==========================================
+    private fun buildIconMenu() {
+        currentScreen = "ICON"
+        val container = findViewById<LinearLayout>(R.id.main_menu_container)
+        container.removeAllViews()
+
+        addMenuHeader(container, "🖼️  ICON — PUMILI → I-RESIZE → IPADALA")
+        addSpace(container, 12)
+
+        addMenuItem(container, "1", "📂 Pumili ng Larawan mula sa Folder") {
+            Toast.makeText(this, "📂 Binubuksan ang folder...", Toast.LENGTH_SHORT).show()
+        }
+
+        addMenuItem(container, "2", "📏 I-resize sa tamang sukat (mdpi-hdpi-xhdpi-xxhdpi)") {
+            Toast.makeText(this, "📏 Inaayos ang sukat...", Toast.LENGTH_SHORT).show()
+        }
+
+        addMenuItem(container, "3", "📤 Ipadala sa tamang GitHub folder") {
+            Toast.makeText(this, "📤 Pinapadala ang icon...", Toast.LENGTH_SHORT).show()
+        }
+
+        addMenuDivider(container)
+
+        addMenuItem(container, "b", "⬅️ Bumalik sa Pangunahing Menu") {
+            buildMainMenu()
+        }
+    }
+
+    // ==========================================
+    //   📄 O P T I O N   2  —  C A T   C O D E
+    // ==========================================
+    private fun showCatCodeMenu() {
+        currentScreen = "CATCODE"
+        val container = findViewById<LinearLayout>(R.id.main_menu_container)
+        container.removeAllViews()
+
+        addMenuHeader(container, "📄  CAT CODE — SABAY-SABAY NA PAGPADALA")
+        addSpace(container, 12)
+
+        addMenuItem(container, "1", "📋 I-paste ang Cat Code dito") {
+            Toast.makeText(this, "📋 Hinihintay ang Cat Code...", Toast.LENGTH_SHORT).show()
+        }
+
+        addMenuItem(container, "2", "📂 Piliin ang Destinasyon sa GitHub") {
+            Toast.makeText(this, "📂 Pinipili ang daan...", Toast.LENGTH_SHORT).show()
+        }
+
+        addMenuItem(container, "3", "📤 Ipadala Lahat") {
+            Toast.makeText(this, "📤 Pinapadala ang lahat...", Toast.LENGTH_SHORT).show()
+        }
+
+        addMenuDivider(container)
+
+        addMenuItem(container, "b", "⬅️ Bumalik sa Pangunahing Menu") {
+            buildMainMenu()
+        }
+    }
+
+    // ==========================================
+    //   📤 O P T I O N   3  —  D I R E K T A N G   P A D A L A
+    // ==========================================
+    private fun showDirectPushMenu() {
+        currentScreen = "PUSH"
+        val container = findViewById<LinearLayout>(R.id.main_menu_container)
+        container.removeAllViews()
+
+        addMenuHeader(container, "📤  DIREKTANG PAGPADALA SA GITHUB")
+        addSpace(container, 12)
+
+        addMenuItem(container, "1", "📤 I-commit at I-push lahat ng nabago") {
+            Toast.makeText(this, "📤 Ina-commit at I-push...", Toast.LENGTH_SHORT).show()
+        }
+
+        addMenuItem(container, "2", "📋 Tignan muna ang mga babaguhin") {
+            Toast.makeText(this, "📋 Tinitignan ang status...", Toast.LENGTH_SHORT).show()
+        }
+
+        addMenuItem(container, "3", "🔄 Auto-Pull bago I-push (iwas-reject)") {
+            Toast.makeText(this, "🔄 Kinuha ang bagong pagbabago...", Toast.LENGTH_SHORT).show()
+        }
+
+        addMenuDivider(container)
+
+        addMenuItem(container, "b", "⬅️ Bumalik sa Pangunahing Menu") {
+            buildMainMenu()
+        }
+    }
+
+    // ==========================================
+    //   📂 O P T I O N   4  —  P A T H
+    // ==========================================
+    private fun showPathMenu() {
+        currentScreen = "PATH"
+        val container = findViewById<LinearLayout>(R.id.main_menu_container)
+        container.removeAllViews()
+
+        addMenuHeader(container, "📂  DESTINATION PATH — PUMILI O I-SET")
+        addSpace(container, 12)
+
+        addMenuItem(container, "1", "📂 Listahan ng mga Path sa Repository") {
+            Toast.makeText(this, "📂 Inililista ang mga daan...", Toast.LENGTH_SHORT).show()
+        }
+
+        addMenuItem(container, "2", "💾 I-save bilang Default Path") {
+            Toast.makeText(this, "💾 Na-save bilang default...", Toast.LENGTH_SHORT).show()
+        }
+
+        addMenuItem(container, "3", "✏️ I-type ang sariling Path") {
+            Toast.makeText(this, "✏️ Pagta-type ng daan...", Toast.LENGTH_SHORT).show()
+        }
+
+        addMenuDivider(container)
+
+        addMenuItem(container, "b", "⬅️ Bumalik sa Pangunahing Menu") {
+            buildMainMenu()
+        }
+    }
+
+    // ==========================================
+    //   🔄 O P T I O N   5  —  B E R S Y O N
+    // ==========================================
+    private fun checkVersion() {
+        val tvStatus = findViewById<TextView>(R.id.tvStatus)
+        tvStatus.text = "🔍 Tinitignan..."
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val url = "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest"
                 val json = JSONObject(URL(url).readText())
-                latestVersion = json.optString("tag_name", "v$currentVersion").removePrefix("v")
+                val latest = json.optString("tag_name", VERSION).removePrefix("v")
 
                 launch(Dispatchers.Main) {
-                    if (latestVersion != currentVersion) {
-                        tvNew.text = "✅ May Bago: v$latestVersion"
-                        tvNew.setTextColor(0xFF4CAF50.toInt())
-                        btnDownload.isEnabled = true
-                        btnDownload.text = "⬇️ I-update Ngayon"
+                    tvStatus.text = if (latest == VERSION.removePrefix("v")) {
+                        "✅ Nasa Pinakabago na: v$latest"
                     } else {
-                        tvNew.text = "✅ Nasa Pinakabago"
-                        tvNew.setTextColor(0xFF2196F3.toInt())
-                        btnDownload.isEnabled = false
-                        btnDownload.text = "✅ Napa-update Na"
+                        "⚠️ May Bagong Bersyon: v$latest"
                     }
                 }
             } catch (e: Exception) {
                 launch(Dispatchers.Main) {
-                    tvNew.text = "⚠️ Hindi Matignan"
-                    tvNew.setTextColor(0xFFFF9800.toInt())
-                    latestVersion = currentVersion
+                    tvStatus.text = "⚠️ Hindi matignan — walang koneksyon"
                 }
             }
-            isChecking = false
         }
     }
 
-    private fun downloadApk() {
-        if (latestVersion == currentVersion || latestVersion == null) {
-            Toast.makeText(this, "✅ Wala pang bagong bersyon!", Toast.LENGTH_SHORT).show()
-            return
+    // ==========================================
+    //   🛠️  T U L O N G   F U N K S Y O N
+    // ==========================================
+    private fun addMenuHeader(container: LinearLayout, text: String) {
+        val tv = TextView(this).apply {
+            this.text = text
+            textSize = 14f
+            setTextColor(0xFF1565C0.toInt())
+            setPadding(0, 4, 0, 4)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            gravity = android.view.Gravity.CENTER
         }
-
-        try {
-            val req = DownloadManager.Request(Uri.parse(APK_URL)).apply {
-                setTitle("Updater — v$latestVersion")
-                setDescription("Dinadownload ang bagong bersyon...")
-                setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE)
-                setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "GitHubUpdater-update.apk")
-                setMimeType("application/vnd.android.package-archive")
-            }
-            getSystemService(DownloadManager::class.java).enqueue(req)
-            Toast.makeText(this, "✅ Nagsimula ang Pag-download!", Toast.LENGTH_LONG).show()
-            drawerLayout.closeDrawer(Gravity.START)
-        } catch (e: Exception) {
-            Toast.makeText(this, "❌ Nabigo: ${e.message}", Toast.LENGTH_LONG).show()
-        }
+        container.addView(tv)
     }
 
-    private fun showAboutDialog() {
-        android.app.AlertDialog.Builder(this)
-            .setTitle("ℹ️ Tungkol sa GitHubUpdater")
-            .setMessage("""
-                Bersyon: v$currentVersion
-                
-                Awtomatikong tumatsek at nagda-download
-                ng mga bagong bersyon mula sa GitHub.
-                
-                — Galing sa Termux, Ngayon ay APK na —
-                
-                Developed by MartoDosko © 2026
-            """.trimIndent())
-            .setPositiveButton("Sige", null)
-            .show()
+    private fun addMenuItem(container: LinearLayout, num: String, label: String, action: () -> Unit) {
+        val btn = Button(this).apply {
+            text = "[$num]   $label"
+            textSize = 15f
+            setPadding(20, 16, 20, 16)
+            setBackgroundResource(android.R.drawable.btn_default)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(0, 4, 0, 4) }
+            setOnClickListener { action() }
+        }
+        container.addView(btn)
     }
 
-    private fun openGitHubPage() {
-        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/$REPO_OWNER/$REPO_NAME")))
+    private fun addMenuDivider(container: LinearLayout) {
+        val v = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                1
+            )
+            setBackgroundColor(0xFFE0E0E0.toInt())
+            setPadding(0, 8, 0, 8)
+        }
+        container.addView(v)
+    }
+
+    private fun addSpace(container: LinearLayout, dp: Int) {
+        val v = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp
+            )
+        }
+        container.addView(v)
+    }
+
+    override fun onBackPressed() {
+        if (currentScreen != "MAIN") {
+            buildMainMenu()
+        } else {
+            super.onBackPressed()
+        }
     }
 }
