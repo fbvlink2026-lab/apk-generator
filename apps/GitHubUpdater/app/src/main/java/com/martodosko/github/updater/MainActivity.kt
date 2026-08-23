@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.OpenableColumns
 import android.util.Base64
+import android.util.Xml
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
@@ -26,6 +27,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
+import org.xmlpull.v1.XmlPullParser
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStreamWriter
@@ -36,7 +39,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var prefs: SharedPreferences
     private lateinit var mainScrollView: ScrollView
-    private val VERSION = "v5.91 — Gumaganang Icon + Ligtas na Cat Code"
+    private val VERSION = "v5.93 — Package Path mula sa Manifest/Structure"
 
     private var repoOwner = ""
     private var repoName = ""
@@ -44,6 +47,10 @@ class MainActivity : AppCompatActivity() {
     private var currentScreen = "MAIN"
     private var selectedImageUri: Uri? = null
     private var savedDefaultPath = ""
+
+    // ✅ TOTOONG PACKAGE PATH — KUKUNIN MULA SA MANIFEST O FOLDER
+    private var detectedPackagePath: String = ""       // hal: com/martodosko/github/updater/
+    private var detectedJavaRootPath: String = ""      // hal: apps/GitHubUpdater/app/src/main/java/
 
     private val iconSizes = listOf(
         "mipmap-mdpi" to 48,
@@ -128,7 +135,7 @@ class MainActivity : AppCompatActivity() {
             .setCancelable(false).show()
     }
 
-    private suspend fun scanDirectory(path: String="", depth:Int=0, maxDepth:Int=5) {
+    private suspend fun scanDirectory(path: String="", depth:Int=0, maxDepth:Int=8) {
         if (depth>maxDepth) return
         try {
             val apiPath = if(path.isEmpty()) "" else "/$path"
@@ -143,36 +150,144 @@ class MainActivity : AppCompatActivity() {
         } catch(_:Exception){}
     }
 
+    // ==========================================
+    // 🎯 HANAPIN ANG TOTOONG PACKAGE — MULA SA FOLDER STRUKTURA
+    // ==========================================
+    private fun classifyAndAddFolder(name:String, fp:String) {
+        val disp: String
+        val t: String
+
+        // 📦 KAPAG NAKITA ANG java/ → ITALA ANG DAAN
+        if (fp.contains("/java/") && detectedJavaRootPath.isEmpty()) {
+            val idx = fp.indexOf("/java/")
+            detectedJavaRootPath = fp.substring(0, idx+6) + "/"  // hanggang .../java/
+        }
+
+        // 📦 KAPAG NAKITA ANG com/ → HANAPIN ANG BUONG PACKAGE PATH
+        if (fp.contains("/com/") && detectedPackagePath.isEmpty()) {
+            val parts = fp.split("/").filter { it.isNotEmpty() }
+            val comIndex = parts.indexOf("com")
+            if (comIndex >= 0 && comIndex < parts.size - 1) {
+                // mula sa com/ hanggang sa huling folder
+                detectedPackagePath = parts.drop(comIndex).joinToString("/") + "/"
+            }
+        }
+
+        when {
+            fp.contains("mipmap-") || fp.contains("drawable") -> {
+                disp = "🖼️ $fp"
+                t = "icon"
+            }
+            fp.contains("/java/") && fp.contains("/com/") -> {
+                disp = "📦 PACKAGE → $fp"
+                t = "package"
+            }
+            fp.contains("/java/") || fp.contains("kotlin/") -> {
+                disp = "💻 $fp"
+                t = "code"
+            }
+            fp.contains("layout/") || fp.contains("values/") -> {
+                disp = "🎨 $fp"
+                t = "layout"
+            }
+            else -> {
+                disp = "📁 $fp"
+                t = "other"
+            }
+        }
+        scannedFolders.add(GitHubFolder(fp, t, disp))
+    }
+
     private fun scanRepositoryFolders() {
         if(!hasGitHubCredentials()) return
         CoroutineScope(Dispatchers.IO).launch {
             scannedFolders.clear()
-            scanDirectory("",0,5)
+            detectedPackagePath = ""
+            detectedJavaRootPath = ""
+
+            scanDirectory("",0,8)
+
             scannedFolders.add(0, GitHubFolder(".","root","🏠 ROOT"))
             scannedFolders.add(GitHubFolder("docs/","docs","📄 docs/"))
             val seen = mutableSetOf<String>()
             scannedFolders.removeAll { !seen.add(it.path) }
+
+            // 📦 KUNG NAHANAP ANG PACKAGE — KUMPLETUHIN ANG DAAN
+            if (detectedPackagePath.isNotEmpty() && detectedJavaRootPath.isNotEmpty()) {
+                val fullPackagePath = detectedJavaRootPath + detectedPackagePath
+                launch(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "✅ NAKITA ANG PACKAGE: $detectedPackagePath", Toast.LENGTH_LONG).show()
+                }
+            }
+
+            // 📦 BASAHIN ANG MANIFEST PARA SA TOTOONG PACKAGE NAME
+            tryReadManifestForPackage()
+
             launch(Dispatchers.Main) {
                 if(currentScreen.startsWith("PATH")) buildPathCategoryMenu()
             }
         }
     }
 
-    private fun classifyAndAddFolder(name:String,fp:String){
-        val disp:String; val t:String
-        when{
-            fp.contains("mipmap-")->{disp="🖼️ $fp";t="icon"}
-            fp.contains("java/")||fp.contains("kotlin/")->{disp="💻 $fp";t="code"}
-            fp.contains("layout/")->{disp="🎨 $fp";t="code"}
-            else->{disp="📁 $fp";t="other"}
-        }
-        scannedFolders.add(GitHubFolder(fp,t,disp))
+    // ==========================================
+    // 🎯 BASAHIN ANG AndroidManifest.xml PARA SA TOTOONG package="..."
+    // ==========================================
+    private suspend fun tryReadManifestForPackage() {
+        try {
+            // Hanapin ang manifest file
+            val searchPaths = listOf(
+                "app/src/main/AndroidManifest.xml",
+                "src/main/AndroidManifest.xml",
+                "AndroidManifest.xml"
+            )
+            var foundPath = ""
+            for(p in searchPaths) {
+                try {
+                    URL("https://api.github.com/repos/$repoOwner/$repoName/contents/$p").readText()
+                    foundPath = p
+                    break
+                } catch(_:Exception) {}
+            }
+            if(foundPath.isEmpty()) return
+
+            // Kunin ang laman (base64)
+            val json = JSONObject(URL("https://api.github.com/repos/$repoOwner/$repoName/contents/$foundPath").readText())
+            val contentB64 = json.getString("content").replace("\n","")
+            val manifestXml = String(Base64.decode(contentB64, Base64.DEFAULT))
+
+            // I-parse para kunin ang package="..."
+            val parser: XmlPullParser = Xml.newPullParser()
+            parser.setInput(ByteArrayInputStream(manifestXml.toByteArray(Charsets.UTF_8)), null)
+            while (parser.eventType != XmlPullParser.END_DOCUMENT) {
+                if (parser.eventType == XmlPullParser.START_TAG && parser.name == "manifest") {
+                    val pkg = parser.getAttributeValue(null, "package")
+                    if (!pkg.isNullOrEmpty()) {
+                        // com.example.app → com/example/app/
+                        detectedPackagePath = pkg.replace(".", "/") + "/"
+                        break
+                    }
+                }
+                parser.next()
+            }
+        } catch(_:Exception) {}
     }
 
     private fun buildPathCategoryMenu() {
         currentScreen="PATH_CATEGORY"; scrollToTop()
         val c=findViewById<LinearLayout>(R.id.main_menu_container)?:return; c.removeAllViews()
         addMenuHeader(c,"📂 DESTINASYON — $repoOwner/$repoName")
+
+        // 📦 Ipakita ang nahanap na package path
+        if (detectedPackagePath.isNotEmpty()) {
+            addMenuHeader(c,"📦 NAKITANG PACKAGE: $detectedPackagePath")
+            val fullPath = if(detectedJavaRootPath.isNotEmpty()) detectedJavaRootPath + detectedPackagePath else detectedPackagePath
+            addMenuItem(c,"P","📦 GAMITIN ANG NAKITANG PACKAGE → $fullPath") {
+                savedDefaultPath = fullPath
+                Toast.makeText(this,"💾 NA-SAVE: $fullPath",Toast.LENGTH_LONG).show()
+            }
+            addMenuDivider(c)
+        }
+
         if(scannedFolders.isEmpty()){
             addMenuHeader(c,"🔍 SCANNING...")
             CoroutineScope(Dispatchers.Main).launch { scanRepositoryFolders(); delay(1200); buildPathCategoryMenu() }
@@ -180,8 +295,10 @@ class MainActivity : AppCompatActivity() {
         }
         addMenuItem(c,"1","🖼️ ICON FOLDER"){showFilteredPaths("icon")}
         addMenuItem(c,"2","💻 CODE FOLDER"){showFilteredPaths("code")}
-        addMenuItem(c,"3","📂 LAHAT NG FOLDER"){showAllPaths()}
+        addMenuItem(c,"3","🎨 LAYOUT/RES FOLDER"){showFilteredPaths("layout")}
+        addMenuItem(c,"4","📂 LAHAT NG FOLDER"){showAllPaths()}
         addMenuDivider(c)
+        addMenuItem(c,"0","✏️ I-type ang sariling Path"){showCustomPathInput()}
         addMenuItem(c,"b","⬅️ Bumalik"){buildMainMenu()}
     }
 
@@ -189,9 +306,13 @@ class MainActivity : AppCompatActivity() {
         currentScreen="PATH_LIST"; scrollToTop()
         val c=findViewById<LinearLayout>(R.id.main_menu_container)?:return; c.removeAllViews()
         addMenuHeader(c,"📂 $ft — BUONG DAAN")
-        scannedFolders.filter { it.type==ft||it.type=="root"||it.type=="docs" }.forEachIndexed { i,f->
-            addMenuItem(c,"${i+1}",f.name){savedDefaultPath=f.path;Toast.makeText(this,"💾 NA-SAVE: $savedDefaultPath",Toast.LENGTH_LONG).show()}
-        }
+        scannedFolders.filter { it.type==ft || it.type=="package" || it.type=="root" || it.type=="docs" }
+            .forEachIndexed { i,f->
+                addMenuItem(c,"${i+1}",f.name){
+                    savedDefaultPath=f.path
+                    Toast.makeText(this,"💾 NA-SAVE: $savedDefaultPath",Toast.LENGTH_LONG).show()
+                }
+            }
         addMenuDivider(c)
         addMenuItem(c,"0","✏️ I-type ang sariling Path"){showCustomPathInput()}
         addMenuItem(c,"b","⬅️ Bumalik"){buildPathCategoryMenu()}
@@ -202,7 +323,10 @@ class MainActivity : AppCompatActivity() {
         val c=findViewById<LinearLayout>(R.id.main_menu_container)?:return; c.removeAllViews()
         addMenuHeader(c,"📂 LAHAT NG FOLDER")
         scannedFolders.forEachIndexed { i,f->
-            addMenuItem(c,"${i+1}",f.name){savedDefaultPath=f.path;Toast.makeText(this,"💾 NA-SAVE: $savedDefaultPath",Toast.LENGTH_LONG).show()}
+            addMenuItem(c,"${i+1}",f.name){
+                savedDefaultPath=f.path
+                Toast.makeText(this,"💾 NA-SAVE: $savedDefaultPath",Toast.LENGTH_LONG).show()
+            }
         }
         addMenuDivider(c)
         addMenuItem(c,"0","✏️ I-type ang sariling Path"){showCustomPathInput()}
@@ -210,19 +334,37 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showCustomPathInput() {
-        val inp=EditText(this).apply{hint="hal: docs/file.txt";setText(savedDefaultPath)}
+        val examplePath = if(detectedPackagePath.isNotEmpty()) {
+            "Hal: $detectedPackagePath/MyFile.kt"
+        } else {
+            "Hal: com/iyong/package/MyFile.kt"
+        }
+        val inp=EditText(this).apply{
+            hint=examplePath
+            if(savedDefaultPath.isNotEmpty()) setText(savedDefaultPath)
+        }
         android.app.AlertDialog.Builder(this)
             .setTitle("✏️ ILAGAY ANG DAAN")
+            .setMessage("💡 $examplePath\n\n(Kung nakita ang package, awtomatikong idadagdag)")
             .setView(inp)
             .setPositiveButton("I-SAVE"){d,_->
                 var p=inp.text.toString().trim()
-                if(p.isNotEmpty()){if(!p.endsWith("/"))p="$p/";savedDefaultPath=p;Toast.makeText(this,"💾 NA-SAVE: $p",Toast.LENGTH_LONG).show()}
+                if(p.isNotEmpty()){
+                    // 📦 Kung pangalan lang ng file at may nakitang package — idugtong kusa
+                    if(!p.contains("/") && detectedPackagePath.isNotEmpty()) {
+                        p = detectedPackagePath + p
+                        Toast.makeText(this,"📦 Idinugtong sa package: $p",Toast.LENGTH_LONG).show()
+                    }
+                    if(!p.endsWith("/") && !p.contains(".")) p="$p/"
+                    savedDefaultPath=p
+                    Toast.makeText(this,"💾 NA-SAVE: $p",Toast.LENGTH_LONG).show()
+                }
                 d.dismiss()
             }.show()
     }
 
     // ==========================================
-    // 🖼️ OPTION 1 — ICON — IBINALIK MULA SA v5.89 — GUMAGANA WALANG CRASH!
+    // 🖼️ OPTION 1 — ICON — GUMAGANA WALANG CRASH
     // ==========================================
     private fun buildIconMenu() {
         currentScreen="ICON"; scrollToTop()
@@ -242,57 +384,29 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this,"⚠️ Pumili muna ng larawan!",Toast.LENGTH_LONG).show()
             return
         }
-
         val c=findViewById<LinearLayout>(R.id.main_menu_container)?:return
         c.removeAllViews()
-
         addMenuHeader(c,"📏 NAGSISIMULA ANG RESIZE...")
-
-        val pb=ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply{
-            max=100
-            progress=0
-        }
+        val pb=ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply{max=100;progress=0}
         c.addView(pb)
-
-        val pt=TextView(this).apply{
-            text="0%"
-            gravity=Gravity.CENTER
-        }
+        val pt=TextView(this).apply{text="0%";gravity=Gravity.CENTER}
         c.addView(pt)
-
         CoroutineScope(Dispatchers.Main).launch{
-            pt.text="🔍 Binabasa..."
-            delay(400)
-
+            pt.text="🔍 Binabasa..."; delay(400)
             val bm=BitmapFactory.decodeStream(contentResolver.openInputStream(selectedImageUri!!))
-            if(bm==null){
-                pt.text="❌ Hindi mabasa ang larawan"
-                return@launch
-            }
-
-            var progress=10
-            val step=(90 / iconSizes.size)
-
+            if(bm==null){pt.text="❌ Hindi mabasa ang larawan";return@launch}
+            var progress=10; val step=(90 / iconSizes.size)
             iconSizes.forEach { (folderName, sizePx) ->
                 pt.text="📏 $folderName — $sizePx×$sizePx"
                 pb.progress=progress
-
                 val resized=Bitmap.createScaledBitmap(bm,sizePx,sizePx,true)
                 val outDir=File(getExternalFilesDir(Environment.DIRECTORY_PICTURES),"processed-icons")
                 if(!outDir.exists()) outDir.mkdirs()
                 val outFile=File(outDir,"${folderName}_ic_launcher.png")
-                FileOutputStream(outFile).use{ os->
-                    resized.compress(Bitmap.CompressFormat.PNG,100,os)
-                }
-
-                progress+=step
-                pb.progress=progress
-                delay(350)
+                FileOutputStream(outFile).use{ resized.compress(Bitmap.CompressFormat.PNG,100,it) }
+                progress+=step; pb.progress=progress; delay(350)
             }
-
-            pb.progress=100
-            pt.text="100% ✅ TAPOS NA LAHAT NG SUKAT!"
-
+            pb.progress=100; pt.text="100% ✅ TAPOS NA LAHAT NG SUKAT!"
             addMenuDivider(c)
             addMenuItem(c,"3","📤 Ipadala sa GitHub"){pushIconToGitHub()}
         }
@@ -301,20 +415,17 @@ class MainActivity : AppCompatActivity() {
     private fun pushIconToGitHub() {
         if(!hasGitHubCredentials()){showGitHubSetupDialog();return}
         if(savedDefaultPath.isEmpty()){Toast.makeText(this,"⚠️ Piliin muna ang Path sa Option 4",Toast.LENGTH_LONG).show();return}
-
         android.app.AlertDialog.Builder(this)
             .setTitle("📤 KUMPIRMA")
-            .setMessage("${iconSizes.size} na icon file → $savedDefaultPath")
+            .setMessage("${iconSizes.size} na icon → $savedDefaultPath")
             .setPositiveButton("✅ IPADALA"){_,_->
                 val tok=getGitHubToken()
                 CoroutineScope(Dispatchers.IO).launch{
                     var okCount=0
                     val outDir=File(getExternalFilesDir(Environment.DIRECTORY_PICTURES),"processed-icons")
-
                     iconSizes.forEach { (folderName, _) ->
                         val file=File(outDir,"${folderName}_ic_launcher.png")
                         if(!file.exists()) return@forEach
-
                         try{
                             val b64=Base64.encodeToString(file.readBytes(),Base64.NO_WRAP)
                             val conn=URL("https://api.github.com/repos/$repoOwner/$repoName/contents/${savedDefaultPath}$folderName/ic_launcher.png")
@@ -335,18 +446,15 @@ class MainActivity : AppCompatActivity() {
                             conn.disconnect()
                         }catch(_:Exception){}
                     }
-
                     launch(Dispatchers.Main){
-                        Toast.makeText(this@MainActivity,"✅ $okCount/${iconSizes.size} naipadala sa GitHub!",Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@MainActivity,"✅ $okCount/${iconSizes.size} naipadala!",Toast.LENGTH_LONG).show()
                     }
                 }
-            }
-            .setNegativeButton("❌ HINDI MUNA",null)
-            .show()
+            }.setNegativeButton("❌ HINDI MUNA",null).show()
     }
 
     // ==========================================
-    // 📄 OPTION 2 — CAT CODE — LIGTAS NA TINATANGGAL ANG NASA ILALIM NG EOF/END
+    // 📄 OPTION 2 — CAT CODE — TAMA ANG PACKAGE PATH
     // ==========================================
     private fun buildCatCodeMenu() {
         currentScreen="CATCODE"; scrollToTop()
@@ -361,8 +469,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showCatCodeInputDialog() {
+        val hintText = if(detectedPackagePath.isNotEmpty()) {
+            "I-paste ang file o Cat Code dito...\n📦 Package: $detectedPackagePath"
+        } else {
+            "I-paste ang file o Cat Code dito..."
+        }
         val inp=EditText(this).apply{
-            hint="I-paste ang file o Cat Code dito..."
+            hint = hintText
             minLines=16; maxLines=28; textSize=12f
         }
         android.app.AlertDialog.Builder(this)
@@ -397,39 +510,34 @@ class MainActivity : AppCompatActivity() {
                     inContent = true
                     i++
                 }
-
                 line.startsWith("cat >") && line.contains("<<") -> {
                     detectedHeader = true
                     filePath = line.removePrefix("cat >").split("<<")[0].trim()
                     inContent = true
                     i++
                 }
-
                 else -> { i++ ; continue }
             }
 
             while (i < lines.size && inContent) {
                 val contentLine = lines[i]
                 val trimmed = contentLine.trim()
-
                 val isEndMarker = trimmed == "--- END ---" ||
                                    trimmed == "EOF" || trimmed == "'EOF'" || trimmed == "\"EOF\"" ||
                                    trimmed == "ENDSCRIPT" || trimmed == "'ENDSCRIPT'" ||
                                    trimmed == "ENDOFFILE" || trimmed == "'ENDOFFILE'" ||
                                    trimmed.startsWith("--- END ---")
-
-                if (isEndMarker) {
-                    inContent = false
-                    i++
-                    break
-                }
-
+                if (isEndMarker) { inContent=false; i++; break }
                 if (currentContent.isNotEmpty()) currentContent.append("\n")
                 currentContent.append(contentLine)
                 i++
             }
 
             if (!filePath.isNullOrBlank() && currentContent.isNotBlank()) {
+                // 📦 Kung pangalan lang ng file at may nakitang package — idugtong kusa
+                if (!filePath.contains("/") && detectedPackagePath.isNotEmpty()) {
+                    filePath = detectedPackagePath + filePath
+                }
                 val fileName = filePath.split("/").last()
                 parsedCatFiles.add(CatFileEntry(filePath, currentContent.toString().trimEnd(), fileName))
             }
@@ -439,22 +547,34 @@ class MainActivity : AppCompatActivity() {
             askDestinationForPlainContent(code)
             return
         }
-
         showCatCodePreview()
     }
 
     private fun askDestinationForPlainContent(content:String){
         val inp=EditText(this).apply{
-            hint="hal: docs/filename.txt"
+            hint = if(detectedPackagePath.isNotEmpty()) {
+                "Pangalan.kt — awtomatikong pupunta sa package"
+            } else {
+                "hal: com/iyong/package/Pangalan.kt"
+            }
             if(savedDefaultPath.isNotEmpty()) setText(savedDefaultPath)
         }
         android.app.AlertDialog.Builder(this)
             .setTitle("📄 LAMAN LANG ANG NAKITA")
-            .setMessage("❌ Walang nakitang header.\n👉 Ilagay ang DAAN + PANGALAN ng file:")
+            .setMessage(if(detectedPackagePath.isNotEmpty()) {
+                "📦 NAKITANG PACKAGE: $detectedPackagePath\n👉 I-type lang ang pangalan ng file — idadagdag ko na ang daan!"
+            } else {
+                "👉 Ilagay ang buong daan + pangalan ng file"
+            })
             .setView(inp)
             .setPositiveButton("✅ I-ANALISA"){d,_->
                 var p=inp.text.toString().trim()
                 if(p.isBlank()){Toast.makeText(this,"❌ Kailangan ang daan!",Toast.LENGTH_SHORT).show();return@setPositiveButton}
+                // 📦 KUNG PANGALAN LANG — IDUGTONG SA NAKITANG PACKAGE
+                if(!p.contains("/") && detectedPackagePath.isNotEmpty()) {
+                    p = detectedPackagePath + p
+                    Toast.makeText(this,"📦 Idinugtong: $p",Toast.LENGTH_LONG).show()
+                }
                 if(!p.contains("/") && savedDefaultPath.isNotEmpty()) p=savedDefaultPath+p
                 parsedCatFiles.add(CatFileEntry(p,content.trimEnd(),p.split("/").last()))
                 d.dismiss()
@@ -467,17 +587,13 @@ class MainActivity : AppCompatActivity() {
         scrollToTop()
         val c=findViewById<LinearLayout>(R.id.main_menu_container)?:return; c.removeAllViews()
         addMenuHeader(c,"✅ NABASA — ${parsedCatFiles.size} na file")
-        if(parsedCatFiles.isEmpty()){
-            addMenuHeader(c,"⚠️ Walang file na nakita")
-        }else{
-            parsedCatFiles.forEachIndexed{i,e->
-                addMenuItem(c,"${i+1}","📄 ${e.fileName}"){
-                    android.app.AlertDialog.Builder(this)
-                        .setTitle(e.fileName).setMessage("📂 DAAN: ${e.filePath}\n\n${e.content}")
-                        .setPositiveButton("OK",null).show()
-                }
-                addMenuHeader(c,"   📂 → ${e.filePath}")
+        parsedCatFiles.forEachIndexed{i,e->
+            addMenuItem(c,"${i+1}","📄 ${e.fileName}"){
+                android.app.AlertDialog.Builder(this)
+                    .setTitle(e.fileName).setMessage("📂 DAAN: ${e.filePath}\n\n${e.content}")
+                    .setPositiveButton("OK",null).show()
             }
+            addMenuHeader(c,"   📂 → ${e.filePath}")
         }
         addMenuDivider(c)
         if(parsedCatFiles.isNotEmpty()) addMenuItem(c,"3","📤 I-PADALA LAHAT"){sendAllCatCodeToGitHub()}
@@ -529,16 +645,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ==========================================
-    // 📤 OPTION 3 — DIREKTANG PAGPADALA
-    // ==========================================
     private fun pushToGitHub() {
         Toast.makeText(this,"📤 Direktang pagpadala — Tapos na!",Toast.LENGTH_SHORT).show()
     }
 
-    // ==========================================
-    // 🔄 OPTION 5 — BERSYON
-    // ==========================================
     private fun checkVersionFromGitHub() {
         val tv=findViewById<TextView>(R.id.tvStatus)?:return
         tv.text="🔍 Tinitignan..."
@@ -553,9 +663,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ==========================================
-    // 📋 PANGUNAHING MENU
-    // ==========================================
     private fun buildMainMenu() {
         currentScreen="MAIN"; scrollToTop()
         val c=findViewById<LinearLayout>(R.id.main_menu_container)?:return; c.removeAllViews()
@@ -572,9 +679,6 @@ class MainActivity : AppCompatActivity() {
         addMenuItem(c,"0","↩️ Lumabas"){finish()}
     }
 
-    // ==========================================
-    // 🛠️ TULONG
-    // ==========================================
     private fun getFileName(u:Uri):String{
         contentResolver.query(u,null,null,null,null)?.use{
             if(it.moveToFirst()){
