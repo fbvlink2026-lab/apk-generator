@@ -36,7 +36,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var prefs: SharedPreferences
     private lateinit var mainScrollView: ScrollView
-    private val VERSION = "v5.87 — BAWAT ICON MAY SARILING FOLDER"
+    private val VERSION = "v5.88 — OPTION 2 GUMAGANA NA"
 
     private var repoOwner = ""
     private var repoName = ""
@@ -60,7 +60,14 @@ class MainActivity : AppCompatActivity() {
         val name: String
     )
 
+    data class CatFileEntry(
+        val filePath: String,
+        val content: String,
+        val fileName: String
+    )
+
     private val scannedFolders = mutableListOf<GitHubFolder>()
+    private val parsedCatFiles = mutableListOf<CatFileEntry>()
 
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -298,7 +305,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 📂 PATH MENU — MAY SCROLL-TO-TOP
+    // 📂 PATH MENU
     // ==========================================
     private fun buildPathCategoryMenu() {
         currentScreen = "PATH_CATEGORY"
@@ -407,7 +414,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 🖼️ ICON MENU — I-RESIZE SA LAHAT NG 5 SUKAT
+    // 🖼️ OPTION 1 — ICON MENU
     // ==========================================
     private fun buildIconMenu() {
         currentScreen = "ICON"
@@ -417,12 +424,8 @@ class MainActivity : AppCompatActivity() {
         addMenuHeader(container, "🖼️ ICON — PUMILI → I-RESIZE → IPADALA")
         addSpace(container, 12)
         addMenuItem(container, "1", "📂 Pumili ng Larawan") { pickImage() }
-        addMenuItem(container, "2", "📏 I-resize sa 5 sukat (mdpi/hdpi/xhdpi/xxhdpi/xxxhdpi)") {
-            resizeSelectedIconWithProcess()
-        }
-        addMenuItem(container, "3", "📤 Ipadala sa GitHub — bawat isa sa sariling folder") {
-            pushIconToGitHub()
-        }
+        addMenuItem(container, "2", "📏 I-resize sa 5 sukat") { resizeSelectedIconWithProcess() }
+        addMenuItem(container, "3", "📤 Ipadala sa GitHub — bawat isa sa sariling folder") { pushIconToGitHub() }
         addMenuDivider(container)
         addMenuItem(container, "b", "⬅️ Bumalik", { buildMainMenu() })
     }
@@ -487,23 +490,17 @@ class MainActivity : AppCompatActivity() {
             addSpace(container, 12)
             addMenuHeader(container, "✅ LAHAT NG SUKAT — TAPOS NA! (${iconSizes.size} na larawan)")
             addSpace(container, 16)
-            addMenuItem(container, "3", "📤 Ipadala Lahat sa GitHub — bawat isa sa sariling folder", {
-                pushIconToGitHub()
-            })
+            addMenuItem(container, "3", "📤 Ipadala Lahat sa GitHub", { pushIconToGitHub() })
             addMenuItem(container, "b", "⬅️ Bumalik", { buildIconMenu() })
         }
     }
 
     private fun saveResizedBitmap(bitmap: Bitmap, folderName: String) {
         val dir = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "processed-icons").apply { mkdirs() }
-        // ✅ LAGING IC_LAUNCHER.PNG — TAMA ANG PANGALAN NG ICON SA ANDROID
         val file = File(dir, "${folderName}_ic_launcher.png")
         FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 
-    // ==========================================
-    // 📤 PAGPADALA — BAWAT SUKAT → SARILING FOLDER!
-    // ==========================================
     private fun pushIconToGitHub() {
         if (!hasGitHubCredentials()) {
             Toast.makeText(this, "⚠️ I-SET MUNA ANG GITHUB KONEKSYON!", Toast.LENGTH_LONG).show()
@@ -511,20 +508,15 @@ class MainActivity : AppCompatActivity() {
             return
         }
         if (savedDefaultPath.isEmpty()) {
-            Toast.makeText(this, "⚠️ Pumili muna ng destinasyon sa Option 4!\nHalimbawa: .../res/", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "⚠️ Pumili muna ng destinasyon sa Option 4!", Toast.LENGTH_LONG).show()
             buildPathCategoryMenu()
             return
         }
 
         android.app.AlertDialog.Builder(this)
             .setTitle("📤 KUMPIRMA ANG PAGPADALA")
-            .setMessage("📂 DEDIKASYON NG BAWAT ICON:\n" +
-                    "${savedDefaultPath}mipmap-*/ic_launcher.png\n\n" +
-                    "📄 KABUUANG FILES: ${iconSizes.size}\n" +
-                    "📤 REPO: $repoOwner/$repoName")
-            .setPositiveButton("✅ IPADALA NA — BAWAT MAY SARILING FOLDER") { _, _ ->
-                actuallyPushAllIcons()
-            }
+            .setMessage("📂 DEDIKASYON:\n${savedDefaultPath}mipmap-*/ic_launcher.png\n\n📄 KABUUANG FILES: ${iconSizes.size}")
+            .setPositiveButton("✅ IPADALA NA") { _, _ -> actuallyPushAllIcons() }
             .setNegativeButton("❌ HINDI MUNA", null)
             .show()
     }
@@ -532,78 +524,34 @@ class MainActivity : AppCompatActivity() {
     private fun actuallyPushAllIcons() {
         Toast.makeText(this, "📤 NAGSISIMULA ANG PAGPADALA...", Toast.LENGTH_SHORT).show()
         val token = getGitHubToken()
-
         CoroutineScope(Dispatchers.IO).launch {
             var successCount = 0
             val localDir = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "processed-icons")
-
-            // ✅ BAWAT ICON → SARILING FOLDER SA GITHUB!
-            iconSizes.forEachIndexed { idx, (densityFolder, size) ->
+            iconSizes.forEachIndexed { idx, (densityFolder, _) ->
                 val localFile = File(localDir, "${densityFolder}_ic_launcher.png")
-
-                if (!localFile.exists()) {
-                    launch(Dispatchers.Main) {
-                        Toast.makeText(this@MainActivity,
-                            "⚠️ HINDI MAHANAP: $densityFolder",
-                            Toast.LENGTH_SHORT).show()
-                    }
-                    return@forEachIndexed
-                }
-
-                // ✅ DITO ANG SUSI — BAWAT SUKAT MAY SARILING SUB-FOLDER!
+                if (!localFile.exists()) return@forEachIndexed
                 val githubPath = "${savedDefaultPath}$densityFolder/ic_launcher.png"
-                val displayPath = "$densityFolder/ic_launcher.png"
-
                 try {
-                    val bytes = localFile.readBytes()
-                    val encoded = Base64.encodeToString(bytes, Base64.NO_WRAP)
-
-                    val apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/contents/$githubPath"
-                    val conn = URL(apiUrl).openConnection() as HttpURLConnection
+                    val encoded = Base64.encodeToString(localFile.readBytes(), Base64.NO_WRAP)
+                    val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/$githubPath")
+                        .openConnection() as HttpURLConnection
                     conn.apply {
                         requestMethod = "PUT"
                         setRequestProperty("Authorization", "token $token")
                         setRequestProperty("Content-Type", "application/json")
-                        setRequestProperty("User-Agent", "MartoPush-App")
                         doOutput = true
                     }
-
-                    val json = JSONObject().apply {
+                    JSONObject().apply {
                         put("message", "📤 ICON: $densityFolder — MartoPush")
                         put("content", encoded)
-                    }
-
-                    OutputStreamWriter(conn.outputStream).use { it.write(json.toString()) }
-                    val code = conn.responseCode
-
-                    if (code == 200 || code == 201) {
-                        successCount++
-                        launch(Dispatchers.Main) {
-                            Toast.makeText(this@MainActivity,
-                                "✅ $displayPath — NAIPADALA!",
-                                Toast.LENGTH_SHORT).show()
-                        }
-                    } else {
-                        launch(Dispatchers.Main) {
-                            Toast.makeText(this@MainActivity,
-                                "⚠️ $displayPath — Code $code",
-                                Toast.LENGTH_SHORT).show()
-                        }
-                    }
+                    }.let { OutputStreamWriter(conn.outputStream).use { w -> w.write(it.toString()) } }
+                    if (conn.responseCode in 200..201) successCount++
                     conn.disconnect()
-                } catch (e: Exception) {
-                    launch(Dispatchers.Main) {
-                        Toast.makeText(this@MainActivity,
-                            "❌ $displayPath: ${e.message}",
-                            Toast.LENGTH_SHORT).show()
-                    }
-                }
+                } catch (e: Exception) { }
             }
-
             launch(Dispatchers.Main) {
                 Toast.makeText(this@MainActivity,
-                    "✅ TAPOS NA!\n$successCount / ${iconSizes.size} na icon naipadala!\n" +
-                            "📂 Bawat isa ay nasa sariling mipmap-*/ folder!",
+                    "✅ TAPOS NA!\n$successCount / ${iconSizes.size} na icon naipadala!",
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -611,32 +559,227 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 📄 OPTION 2 — CAT CODE
+    // 📄 OPTION 2 — CAT CODE — GUMAGANA NA! TANGGALIN LAHAT NG TANDANG!
     // ==========================================
     private fun buildCatCodeMenu() {
         currentScreen = "CATCODE"
         scrollToTop()
         val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
         container.removeAllViews()
-        addMenuHeader(container, "📄 CAT CODE — SABAY-SABAY NA PAGPADALA")
+        parsedCatFiles.clear()
+
+        addMenuHeader(container, "📄 OPTION 2 — CAT CODE PAGPADALA")
         addSpace(container, 12)
-        addMenuItem(container, "1", "📋 I-paste ang Cat Code dito") {
-            Toast.makeText(this, "📋 Hinihintay ang Cat Code...", Toast.LENGTH_SHORT).show()
-        }
-        addMenuItem(container, "2", "📂 Piliin ang Destinasyon") { buildPathCategoryMenu() }
-        addMenuItem(container, "3", "📤 Ipadala Lahat") {
-            if (!hasGitHubCredentials()) {
-                Toast.makeText(this, "⚠️ I-SET MUNA ANG GITHUB!", Toast.LENGTH_LONG).show()
-                return@addMenuItem
-            }
-            if (savedDefaultPath.isEmpty()) {
-                Toast.makeText(this, "⚠️ Pumili muna ng destinasyon!", Toast.LENGTH_LONG).show()
-                return@addMenuItem
-            }
-            Toast.makeText(this, "📤 Pinapadala sa: $savedDefaultPath", Toast.LENGTH_LONG).show()
-        }
+
+        addMenuItem(container, "1", "📋 I-PASTE ANG CAT CODE DITO") { showCatCodeInputDialog() }
+        addMenuItem(container, "2", "📂 Piliin ang Default Destination Path") { buildPathCategoryMenu() }
+        addMenuItem(container, "3", "📤 I-PADALA LAHAT SA GITHUB") { sendAllCatCodeToGitHub() }
         addMenuDivider(container)
-        addMenuItem(container, "b", "⬅️ Bumalik", { buildMainMenu() })
+        addMenuItem(container, "b", "⬅️ Bumalik sa Main Menu", { buildMainMenu() })
+    }
+
+    private fun showCatCodeInputDialog() {
+        val input = EditText(this).apply {
+            hint = "I-paste dito ang Cat Code...\n\n--- FILE: daan/pangalan ---\nNilalaman...\n--- END ---\n\nO kaya:\ncat > daan/pangalan << 'EOF'\nNilalaman...\nEOF"
+            minLines = 14
+            maxLines = 24
+            setHorizontallyScrolling(false)
+            textSize = 12f
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("📋 I-PASTE ANG CAT CODE")
+            .setMessage("Tumatanggap ng:\n• --- FILE: ... ---\n• cat > ... << 'EOF'")
+            .setView(input)
+            .setPositiveButton("✅ BASAHIN AT I-ANALISA") { d, _ ->
+                val code = input.text.toString()
+                if (code.isBlank()) {
+                    Toast.makeText(this, "❌ Walang nakalagay!", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                parseCatCode(code)
+                d.dismiss()
+            }
+            .setNegativeButton("❌ KANSILA", null)
+            .show()
+    }
+
+    private fun parseCatCode(code: String) {
+        parsedCatFiles.clear()
+        val lines = code.lines()
+        var i = 0
+
+        while (i < lines.size) {
+            val line = lines[i]
+            var filePath: String? = null
+            var currentContent = StringBuilder()
+            var inContent = false
+
+            when {
+                // 📌 FORMAT 1: --- FILE: daan/pangalan ---
+                line.startsWith("--- FILE:") -> {
+                    filePath = line.removePrefix("--- FILE:").removeSuffix("---").trim()
+                    inContent = true
+                    i++
+                }
+
+                // 📌 FORMAT 2: cat > daan/pangalan << 'EOF'
+                line.startsWith("cat >") && line.contains("<<") -> {
+                    filePath = line.removePrefix("cat >").split("<<")[0].trim()
+                    inContent = true
+                    i++
+                }
+
+                else -> { i++ ; continue }
+            }
+
+            // ✅ BASAHIN ANG LAMAN — TUMIGIL SA ANUMANG DULONG TANDA!
+            while (i < lines.size && inContent) {
+                val contentLine = lines[i]
+
+                // 🛑 HUMINTO — TANGGALIN — HINDI KASAMA SA LAMAN!
+                if (contentLine == "--- END ---" ||
+                    contentLine == "EOF" || contentLine == "'EOF'" || contentLine == "\"EOF\"" ||
+                    contentLine == "ENDSCRIPT" || contentLine == "'ENDSCRIPT'" ||
+                    contentLine == "ENDOFFILE" || contentLine == "'ENDOFFILE'") {
+                    inContent = false
+                    i++
+                    break
+                }
+
+                if (currentContent.isNotEmpty()) currentContent.append("\n")
+                currentContent.append(contentLine)
+                i++
+            }
+
+            // ✅ ILAGAY SA LISTAHAN KUNG MAY LAMAN
+            if (!filePath.isNullOrBlank() && currentContent.isNotBlank()) {
+                val fileName = filePath.split("/").last()
+                parsedCatFiles.add(
+                    CatFileEntry(
+                        filePath = filePath,
+                        content = currentContent.toString().trimEnd(),
+                        fileName = fileName
+                    )
+                )
+            }
+        }
+        showCatCodePreview()
+    }
+
+    private fun showCatCodePreview() {
+        scrollToTop()
+        val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
+        container.removeAllViews()
+
+        addMenuHeader(container, "✅ NABASA — ${parsedCatFiles.size} NA FILE")
+        addSpace(container, 8)
+
+        if (parsedCatFiles.isEmpty()) {
+            addMenuHeader(container, "⚠️ WALANG MAKITANG FILE — Suriin ang pormat")
+        } else {
+            parsedCatFiles.forEachIndexed { idx, entry ->
+                addMenuItem(container, "${idx+1}", "📄 ${entry.fileName}") {
+                    android.app.AlertDialog.Builder(this)
+                        .setTitle("📄 ${entry.fileName}")
+                        .setMessage("📂 DAAN: ${entry.filePath}\n\n📄 LAMAN:\n${entry.content}")
+                        .setPositiveButton("OK", null)
+                        .show()
+                }
+                addMenuHeader(container, "   📂 → ${entry.filePath}")
+            }
+        }
+
+        addSpace(container, 12)
+        addMenuDivider(container)
+        if (parsedCatFiles.isNotEmpty()) {
+            addMenuItem(container, "3", "📤 I-PADALA LAHAT SA GITHUB", { sendAllCatCodeToGitHub() })
+        }
+        addMenuItem(container, "b", "⬅️ Bumalik", { buildCatCodeMenu() })
+    }
+
+    private fun sendAllCatCodeToGitHub() {
+        if (!hasGitHubCredentials()) {
+            Toast.makeText(this, "⚠️ I-SET MUNA ANG GITHUB KONEKSYON!", Toast.LENGTH_LONG).show()
+            showGitHubSetupDialog()
+            return
+        }
+        if (parsedCatFiles.isEmpty()) {
+            Toast.makeText(this, "⚠️ Wala pang Cat Code na nabasa!", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        android.app.AlertDialog.Builder(this)
+            .setTitle("📤 KUMPIRMA ANG PAGPADALA")
+            .setMessage("${parsedCatFiles.size} na file na ipapadala sa:\n$repoOwner/$repoName")
+            .setPositiveButton("✅ IPADALA NA") { _, _ -> actuallyPushCatFiles() }
+            .setNegativeButton("❌ HINDI MUNA", null)
+            .show()
+    }
+
+    private fun actuallyPushCatFiles() {
+        Toast.makeText(this, "📤 NAGSISIMULA ANG PAGPADALA...", Toast.LENGTH_SHORT).show()
+        val token = getGitHubToken()
+        val filesToSend = ArrayList(parsedCatFiles)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            var successCount = 0
+            filesToSend.forEachIndexed { idx, entry ->
+                try {
+                    // ✅ AWTOMATIKONG BASE64 — TEKSTO man o HINDI
+                    val encoded = if (entry.content.isBase64()) {
+                        entry.content
+                    } else {
+                        Base64.encodeToString(entry.content.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+                    }
+
+                    val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/${entry.filePath}")
+                        .openConnection() as HttpURLConnection
+                    conn.apply {
+                        requestMethod = "PUT"
+                        setRequestProperty("Authorization", "token $token")
+                        setRequestProperty("Content-Type", "application/json")
+                        setRequestProperty("User-Agent", "MartoPush-App")
+                        doOutput = true
+                    }
+                    JSONObject().apply {
+                        put("message", "📤 CatCode: ${entry.fileName} — MartoPush")
+                        put("content", encoded)
+                    }.let { OutputStreamWriter(conn.outputStream).use { w -> w.write(it.toString()) } }
+
+                    if (conn.responseCode in 200..201) {
+                        successCount++
+                        launch(Dispatchers.Main) {
+                            Toast.makeText(this@MainActivity,
+                                "✅ [${idx+1}/${filesToSend.size}] ${entry.fileName}",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                    conn.disconnect()
+                } catch (e: Exception) {
+                    launch(Dispatchers.Main) {
+                        Toast.makeText(this@MainActivity,
+                            "❌ ${entry.fileName}: ${e.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
+            launch(Dispatchers.Main) {
+                Toast.makeText(this@MainActivity,
+                    "✅ TAPOS NA!\n$successCount / ${filesToSend.size} na file naipadala!",
+                    Toast.LENGTH_LONG
+                ).show()
+                parsedCatFiles.clear()
+            }
+        }
+    }
+
+    // ✅ TULONG — TIGNAN KUNG BASE64 BA
+    private fun String.isBase64(): Boolean {
+        val trimmed = this.trim()
+        if (trimmed.length % 4 != 0) return false
+        return trimmed.all { c -> c in 'A'..'Z' || c in 'a'..'z' || c in '0'..'9' || c in "+/=" }
     }
 
     // ==========================================
@@ -655,19 +798,14 @@ class MainActivity : AppCompatActivity() {
         tvStatus.text = "🔍 Tinitignan..."
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
-                val json = JSONObject(URL(url).readText())
+                val json = JSONObject(URL("https://api.github.com/repos/$repoOwner/$repoName/releases/latest").readText())
                 val latest = json.optString("tag_name", VERSION).removePrefix("v")
                 launch(Dispatchers.Main) {
                     tvStatus.text = if (latest == VERSION.removePrefix("v"))
-                        "✅ Nasa Pinakabago: v$latest"
-                    else
-                        "⚠️ May Bago: v$latest"
+                        "✅ Nasa Pinakabago: v$latest" else "⚠️ May Bago: v$latest"
                 }
             } catch (e: Exception) {
-                launch(Dispatchers.Main) {
-                    tvStatus.text = "⚠️ Hindi matignan"
-                }
+                launch(Dispatchers.Main) { tvStatus.text = "⚠️ Hindi matignan" }
             }
         }
     }
