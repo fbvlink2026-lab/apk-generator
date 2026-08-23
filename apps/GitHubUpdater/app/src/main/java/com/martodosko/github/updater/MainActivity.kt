@@ -36,7 +36,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var prefs: SharedPreferences
     private lateinit var mainScrollView: ScrollView
-    private val VERSION = "v5.90 — Tinatanggal ang lahat sa ilalim ng EOF"
+    private val VERSION = "v5.91 — Gumaganang Icon + Ligtas na Cat Code"
 
     private var repoOwner = ""
     private var repoName = ""
@@ -222,7 +222,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 🖼️ OPTION 1 — ICON
+    // 🖼️ OPTION 1 — ICON — IBINALIK MULA SA v5.89 — GUMAGANA WALANG CRASH!
     // ==========================================
     private fun buildIconMenu() {
         currentScreen="ICON"; scrollToTop()
@@ -238,31 +238,62 @@ class MainActivity : AppCompatActivity() {
     private fun pickImage() = pickImageLauncher.launch("image/*")
 
     private fun resizeSelectedIconWithProcess() {
-        if(selectedImageUri==null){Toast.makeText(this,"⚠️ Pumili muna ng larawan!",Toast.LENGTH_LONG).show();return}
-        val c=findViewById<LinearLayout>(R.id.main_menu_container)?:return; c.removeAllViews()
+        if(selectedImageUri==null){
+            Toast.makeText(this,"⚠️ Pumili muna ng larawan!",Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val c=findViewById<LinearLayout>(R.id.main_menu_container)?:return
+        c.removeAllViews()
+
         addMenuHeader(c,"📏 NAGSISIMULA ANG RESIZE...")
-        val pb=ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply{max=100;progress=0}
+
+        val pb=ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply{
+            max=100
+            progress=0
+        }
         c.addView(pb)
-        val pt=TextView(this).apply{text="0%";gravity=Gravity.CENTER}
+
+        val pt=TextView(this).apply{
+            text="0%"
+            gravity=Gravity.CENTER
+        }
         c.addView(pt)
-        val ra=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL}
-        c.addView(ra)
+
         CoroutineScope(Dispatchers.Main).launch{
-            pt.text="🔍 Binabasa..."; delay(400)
+            pt.text="🔍 Binabasa..."
+            delay(400)
+
             val bm=BitmapFactory.decodeStream(contentResolver.openInputStream(selectedImageUri!!))
-            if(bm==null){pt.text="❌ Hindi mabasa";return@launch}
-            var d=10; val st=90/iconSizes.size
-            iconSizes.forEach{(fn,sz)->
-                pt.text="📏 $fn — $sz×$sz"
-                pb.progress=d
-                Bitmap.createScaledBitmap(bm,sz,sz,true).let{
-                    val f=File(getExternalFilesDir(Environment.DIRECTORY_PICTURES),"processed-icons/${fn}_ic_launcher.png")
-                    FileOutputStream(f).use{os->it.compress(Bitmap.CompressFormat.PNG,100,os)}
-                }
-                ra.addView(TextView(this@MainActivity).apply{text="✅ $fn — NA-SAVE"})
-                d+=st; pb.progress=d; delay(350)
+            if(bm==null){
+                pt.text="❌ Hindi mabasa ang larawan"
+                return@launch
             }
-            pb.progress=100; pt.text="100% — TAPOS NA!"
+
+            var progress=10
+            val step=(90 / iconSizes.size)
+
+            iconSizes.forEach { (folderName, sizePx) ->
+                pt.text="📏 $folderName — $sizePx×$sizePx"
+                pb.progress=progress
+
+                val resized=Bitmap.createScaledBitmap(bm,sizePx,sizePx,true)
+                val outDir=File(getExternalFilesDir(Environment.DIRECTORY_PICTURES),"processed-icons")
+                if(!outDir.exists()) outDir.mkdirs()
+                val outFile=File(outDir,"${folderName}_ic_launcher.png")
+                FileOutputStream(outFile).use{ os->
+                    resized.compress(Bitmap.CompressFormat.PNG,100,os)
+                }
+
+                progress+=step
+                pb.progress=progress
+                delay(350)
+            }
+
+            pb.progress=100
+            pt.text="100% ✅ TAPOS NA LAHAT NG SUKAT!"
+
+            addMenuDivider(c)
             addMenuItem(c,"3","📤 Ipadala sa GitHub"){pushIconToGitHub()}
         }
     }
@@ -270,20 +301,24 @@ class MainActivity : AppCompatActivity() {
     private fun pushIconToGitHub() {
         if(!hasGitHubCredentials()){showGitHubSetupDialog();return}
         if(savedDefaultPath.isEmpty()){Toast.makeText(this,"⚠️ Piliin muna ang Path sa Option 4",Toast.LENGTH_LONG).show();return}
+
         android.app.AlertDialog.Builder(this)
             .setTitle("📤 KUMPIRMA")
-            .setMessage("${iconSizes.size} na file → $savedDefaultPath")
+            .setMessage("${iconSizes.size} na icon file → $savedDefaultPath")
             .setPositiveButton("✅ IPADALA"){_,_->
                 val tok=getGitHubToken()
                 CoroutineScope(Dispatchers.IO).launch{
-                    var ok=0
-                    val dir=File(getExternalFilesDir(Environment.DIRECTORY_PICTURES),"processed-icons")
-                    iconSizes.forEach{(fn,_)->
-                        val f=File(dir,"${fn}_ic_launcher.png")
-                        if(!f.exists())return@forEach
+                    var okCount=0
+                    val outDir=File(getExternalFilesDir(Environment.DIRECTORY_PICTURES),"processed-icons")
+
+                    iconSizes.forEach { (folderName, _) ->
+                        val file=File(outDir,"${folderName}_ic_launcher.png")
+                        if(!file.exists()) return@forEach
+
                         try{
-                            val b64=Base64.encodeToString(f.readBytes(),Base64.NO_WRAP)
-                            val conn=URL("https://api.github.com/repos/$repoOwner/$repoName/contents/${savedDefaultPath}$fn/ic_launcher.png").openConnection() as HttpURLConnection
+                            val b64=Base64.encodeToString(file.readBytes(),Base64.NO_WRAP)
+                            val conn=URL("https://api.github.com/repos/$repoOwner/$repoName/contents/${savedDefaultPath}$folderName/ic_launcher.png")
+                                .openConnection() as HttpURLConnection
                             conn.apply{
                                 requestMethod="PUT"
                                 setRequestProperty("Authorization","token $tok")
@@ -291,21 +326,27 @@ class MainActivity : AppCompatActivity() {
                                 doOutput=true
                             }
                             OutputStreamWriter(conn.outputStream).use{
-                                it.write(JSONObject().put("message","📤 ICON $fn — MartoPush").put("content",b64).toString())
+                                it.write(JSONObject()
+                                    .put("message","📤 ICON $folderName — MartoPush")
+                                    .put("content",b64)
+                                    .toString())
                             }
-                            if(conn.responseCode in 200..201) ok++
+                            if(conn.responseCode in 200..201) okCount++
                             conn.disconnect()
                         }catch(_:Exception){}
                     }
+
                     launch(Dispatchers.Main){
-                        Toast.makeText(this@MainActivity,"✅ $ok/${iconSizes.size} na naipadala!",Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@MainActivity,"✅ $okCount/${iconSizes.size} naipadala sa GitHub!",Toast.LENGTH_LONG).show()
                     }
                 }
-            }.setNegativeButton("❌ HINDI MUNA",null).show()
+            }
+            .setNegativeButton("❌ HINDI MUNA",null)
+            .show()
     }
 
     // ==========================================
-    // 📄 OPTION 2 — CAT CODE — TINATANGGAL LAHAT SA ILALIM NG EOF!
+    // 📄 OPTION 2 — CAT CODE — LIGTAS NA TINATANGGAL ANG NASA ILALIM NG EOF/END
     // ==========================================
     private fun buildCatCodeMenu() {
         currentScreen="CATCODE"; scrollToTop()
@@ -321,7 +362,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showCatCodeInputDialog() {
         val inp=EditText(this).apply{
-            hint="I-paste ang file o Cat Code dito...\n\n• --- FILE: daan/pangalan ---\n  laman...\n  --- END ---\n\n• cat > daan/pangalan << 'EOF'\n  laman...\n  EOF\n\n• O LAMAN LANG — itatanong ko ang daan!"
+            hint="I-paste ang file o Cat Code dito..."
             minLines=16; maxLines=28; textSize=12f
         }
         android.app.AlertDialog.Builder(this)
@@ -348,17 +389,15 @@ class MainActivity : AppCompatActivity() {
             var inContent = false
 
             when {
-                // 📌 FORMAT 1: --- FILE: daan/pangalan ---
                 line.startsWith("--- FILE:") -> {
                     detectedHeader = true
                     filePath = line.removePrefix("--- FILE:")
-                        .substringBefore("---") // ✅ tanggalin pati anuman pagkatapos ---
+                        .substringBefore("---")
                         .trim()
                     inContent = true
                     i++
                 }
 
-                // 📌 FORMAT 2: cat > daan/pangalan << 'EOF'
                 line.startsWith("cat >") && line.contains("<<") -> {
                     detectedHeader = true
                     filePath = line.removePrefix("cat >").split("<<")[0].trim()
@@ -369,24 +408,20 @@ class MainActivity : AppCompatActivity() {
                 else -> { i++ ; continue }
             }
 
-            // ✅ BASAHIN ANG LAMAN — HUMINTO AGAD SA DULONG TANDA!
             while (i < lines.size && inContent) {
                 val contentLine = lines[i]
                 val trimmed = contentLine.trim()
 
-                // 🛑 KAHIT MAY KASUNOD PA SA PAREHONG LINYA — TUKUYIN ANG DULONG TANDA!
                 val isEndMarker = trimmed == "--- END ---" ||
                                    trimmed == "EOF" || trimmed == "'EOF'" || trimmed == "\"EOF\"" ||
                                    trimmed == "ENDSCRIPT" || trimmed == "'ENDSCRIPT'" ||
                                    trimmed == "ENDOFFILE" || trimmed == "'ENDOFFILE'" ||
-                                   trimmed.startsWith("--- END ---") || // ✅ kahit may kasunod sa parehong linya
-                                   trimmed.startsWith("EOF ") || // ✅ EOF may kasunod na espasyo
-                                   trimmed.startsWith("EOF\t")
+                                   trimmed.startsWith("--- END ---")
 
                 if (isEndMarker) {
                     inContent = false
                     i++
-                    break // ✅ HINDI NA BABASAHIN ANG ANUMANG SUSUNOD — echo, exit, comments — LAHAT TINATANGGAL!
+                    break
                 }
 
                 if (currentContent.isNotEmpty()) currentContent.append("\n")
@@ -400,7 +435,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // ✅ WALANG HEADER? → PURONG LAMAN LANG — ITATANONG ANG DAAN
         if (!detectedHeader && code.isNotBlank()) {
             askDestinationForPlainContent(code)
             return
@@ -411,12 +445,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun askDestinationForPlainContent(content:String){
         val inp=EditText(this).apply{
-            hint="hal: docs/filename.txt o res/layout/act.xml"
+            hint="hal: docs/filename.txt"
             if(savedDefaultPath.isNotEmpty()) setText(savedDefaultPath)
         }
         android.app.AlertDialog.Builder(this)
             .setTitle("📄 LAMAN LANG ANG NAKITA")
-            .setMessage("❌ Walang nakitang `--- FILE:` o `cat >` header.\n\n👉 Ilagay ang DAAN + PANGALAN ng file:")
+            .setMessage("❌ Walang nakitang header.\n👉 Ilagay ang DAAN + PANGALAN ng file:")
             .setView(inp)
             .setPositiveButton("✅ I-ANALISA"){d,_->
                 var p=inp.text.toString().trim()
@@ -468,8 +502,7 @@ class MainActivity : AppCompatActivity() {
             var ok=0
             list.forEachIndexed{i,e->
                 try{
-                    val b64=if(e.content.isBase64()) e.content
-                    else Base64.encodeToString(e.content.toByteArray(Charsets.UTF_8),Base64.NO_WRAP)
+                    val b64=Base64.encodeToString(e.content.toByteArray(Charsets.UTF_8),Base64.NO_WRAP)
                     val conn=URL("https://api.github.com/repos/$repoOwner/$repoName/contents/${e.filePath}").openConnection() as HttpURLConnection
                     conn.apply{
                         requestMethod="PUT"
@@ -494,12 +527,6 @@ class MainActivity : AppCompatActivity() {
                 parsedCatFiles.clear()
             }
         }
-    }
-
-    private fun String.isBase64():Boolean{
-        val t=this.trim()
-        if(t.length%4!=0)return false
-        return t.all{it in 'A'..'Z'||it in 'a'..'z'||it in '0'..'9'||it in "+/="}
     }
 
     // ==========================================
