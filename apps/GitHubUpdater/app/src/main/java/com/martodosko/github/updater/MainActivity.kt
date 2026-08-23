@@ -38,9 +38,8 @@ import java.net.URL
 
 // ==========================================
 // 📤 MARTOPUSH — GitHub File & Icon Uploader
-// ✅ VERSION: v5.99 — MAY LISTAHAN NG DESTINASYON + WALANG BABALA
-// 🔧 Inayos: Huling 'inContent' redundant warning + Buong Destination Picker
-//    → Pagkatapos i-paste → lumalabas ang LISTAHAN, hindi tanong lang!
+// ✅ VERSION: v5.99.1 — 🛠️ INA-AYOS: Direktang napupunta sa napiling Path!
+// 🔧 Ayos: Kapag pinili mo /docs/ → DOON LANG PUMUNTA — walang dagdag na sub-folder!
 // Developed by MartoDosko © 2026
 // ==========================================
 
@@ -49,7 +48,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prefs: SharedPreferences
     private lateinit var mainScrollView: ScrollView
     private lateinit var menuContainer: LinearLayout
-    private val VERSION = "v5.99 — ✅ MAY LISTAHAN NG DESTINASYON"
+    private val VERSION = "v5.99.1 — ✅ DIREKTA SA NAPILING PATH"
 
     private var repoOwner = ""
     private var repoName = ""
@@ -315,13 +314,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showCustomPathInput() {
-        val exampleText = if(detectedPackagePath.isNotEmpty()) "📦 NAKITA: $detectedPackagePath\n👉 I-type lang ang pangalan ng file — idadagdag ko na!" else "👉 Halimbawa: com/buong/package/hanggang/dulo/Pangalan.kt"
-        val inp=EditText(this).apply{ hint = if(detectedPackagePath.isNotEmpty()) "Pangalan.kt" else "com/iyong/package/Pangalan.kt"; setText(savedDefaultPath) }
+        val exampleText = "👉 Ilagay ang buong daan + pangalan ng file\nHal: docs/  o  apps/GitHubUpdater/app/src/main/java/"
+        val inp=EditText(this).apply{ hint = "docs/  o  filename.txt"; setText(savedDefaultPath) }
         android.app.AlertDialog.Builder(this).setTitle("✏️ ILAGAY ANG DAAN").setMessage(exampleText).setView(inp)
             .setPositiveButton("I-SAVE"){_,_->
                 var p=inp.text.toString().trim()
                 if(p.isNotEmpty()){
-                    if(!p.contains("/") && detectedPackagePath.isNotEmpty()) { p = detectedPackagePath + p; Toast.makeText(this,"📦 BUONG DAAN: $p",Toast.LENGTH_LONG).show() }
                     if(!p.endsWith("/") && !p.contains(".")) p="$p/"
                     savedDefaultPath=p; saveDefaultPath(); Toast.makeText(this,"💾 NA-SAVE: $p",Toast.LENGTH_LONG).show()
                 }
@@ -388,7 +386,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // 📄 OPTION 2 — CAT CODE — ✅ INA-AYOS: MAY LISTAHAN NG DESTINASYON
+    // 📄 OPTION 2 — CAT CODE — ✅ INA-AYOS: DIREKTA SA NAPILING PATH!
     // ==========================================
     private fun buildCatCodeMenu() {
         currentScreen="CATCODE"; scrollToTop(); parsedCatFiles.clear(); menuContainer.removeAllViews()
@@ -404,7 +402,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showCatCodeInputDialog() {
-        val hintText = if(detectedPackagePath.isNotEmpty()) "📦 Package: $detectedPackagePath\nI-paste dito..." else "I-paste ang file o Cat Code dito..."
+        val hintText = "I-paste ang file o Cat Code dito..."
         val inp=EditText(this).apply{ hint = hintText; minLines=16; maxLines=28; textSize=12f }
         android.app.AlertDialog.Builder(this).setTitle("📋 I-PASTE ANG LAMAN / CAT CODE").setView(inp)
             .setPositiveButton("✅ BASAHIN"){_,_-> val code=inp.text.toString(); if(code.isBlank()) Toast.makeText(this,"❌ Walang laman!",Toast.LENGTH_SHORT).show() else parseCatCode(code) }
@@ -421,7 +419,7 @@ class MainActivity : AppCompatActivity() {
             val line = lines[i]
             var filePath: String?
             var currentContent = StringBuilder()
-            var inContent: Boolean // ✅ WALANG = false — itinatakda agad
+            var inContent: Boolean
 
             when {
                 line.startsWith("--- FILE:") -> {
@@ -450,7 +448,6 @@ class MainActivity : AppCompatActivity() {
             }
 
             if (!filePath.isNullOrBlank() && currentContent.isNotBlank()) {
-                if (!filePath.contains("/") && detectedPackagePath.isNotEmpty()) filePath = detectedPackagePath + filePath
                 val fn = filePath.split("/").last()
                 parsedCatFiles.add(CatFileEntry(filePath, currentContent.toString().trimEnd(), fn))
             }
@@ -461,13 +458,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun askDestinationForPlainContent(content:String){
-        val msg=if(detectedPackagePath.isNotEmpty()) "📦 BUONG PACKAGE: $detectedPackagePath\n👉 I-type lang ang pangalan ng file" else "👉 Ilagay ang buong daan + pangalan ng file"
-        val inp=EditText(this).apply{ hint = if(detectedPackagePath.isNotEmpty()) "Pangalan.kt" else "com/iyong/package/Pangalan.kt" }
+        val msg="👉 Ilagay ang pangalan ng file"
+        val inp=EditText(this).apply{ hint = "pangalan.txt" }
         android.app.AlertDialog.Builder(this).setTitle("📄 LAMAN LANG ANG NAKITA").setMessage(msg).setView(inp)
             .setPositiveButton("✅ I-ANALISA"){_,_->
-                var p=inp.text.toString().trim()
-                if(p.isBlank()){Toast.makeText(this,"❌ Kailangan ang daan!",Toast.LENGTH_SHORT).show();return@setPositiveButton}
-                if(!p.contains("/") && detectedPackagePath.isNotEmpty()) p=detectedPackagePath+p
+                val p=inp.text.toString().trim()
+                if(p.isBlank()){Toast.makeText(this,"❌ Kailangan ang pangalan ng file!",Toast.LENGTH_SHORT).show();return@setPositiveButton}
                 parsedCatFiles.add(CatFileEntry(p,content.trimEnd(),p.split("/").last()))
                 showCatCodePreview()
             }.setNegativeButton("❌ KANSILA",null).show()
@@ -487,14 +483,13 @@ class MainActivity : AppCompatActivity() {
         addMenuItem(menuContainer,"b","⬅️ Bumalik"){buildCatCodeMenu()}
     }
 
-    // ✅ INA-AYOS — HINDI TANONG LANG → BUONG LISTAHAN NG PAGPIPILIAN!
+    // ✅ INA-AYOS — DIREKTA SA NAPILING PATH! WALANG DAGDAG NA SUB-FOLDER!
     private fun showDestinationPickerDialog() {
         if(parsedCatFiles.isEmpty()) {
             Toast.makeText(this,"⚠️ Wala pang file na ipapadala!",Toast.LENGTH_SHORT).show()
             return
         }
 
-        // ✅ BUUIN ANG BUONG LISTAHAN NG PAGPIPILIAN
         val choices = mutableListOf<String>()
         val actions = mutableListOf<() -> Unit>()
 
@@ -504,7 +499,7 @@ class MainActivity : AppCompatActivity() {
             actions.add({ applyPathAndConfirm(savedDefaultPath) })
         }
 
-        // 2 — Auto-detected Package Path
+        // 2 — Package Path
         if(detectedPackagePath.isNotEmpty()) {
             val fullPkgPath = if(detectedJavaRootPath.isNotEmpty())
                                   detectedJavaRootPath + detectedPackagePath
@@ -521,42 +516,46 @@ class MainActivity : AppCompatActivity() {
         choices.add("✏️ I-type ang sariling daan")
         actions.add({ showManualPathDialog() })
 
-        // ✅ IPAPAKITA ANG BUONG LISTAHAN — HINDI TANONG LANG!
         android.app.AlertDialog.Builder(this)
             .setTitle("📤 SAAN MO GUSTONG IPADALA? — ${parsedCatFiles.size} na file")
             .setItems(choices.toTypedArray()) { _, index ->
-                actions[index].invoke() // ✅ Agad gagana ang napili
+                actions[index].invoke()
             }
             .setNegativeButton("❌ Kanselahin", null)
             .setCancelable(true)
             .show()
     }
 
+    // ✅ PINAKA-INA-AYOS — DIREKTA SA NAPILING PATH! WALANG DAGDAG!
     private fun applyPathAndConfirm(basePath: String) {
-        // ✅ Ilapat ang napiling daan sa LAHAT ng file
         parsedCatFiles.forEach { file ->
             file.finalDestination = when {
-                file.filePath.contains("/") -> file.filePath // may sariling daan — gamitin ito
-                else -> if(basePath.endsWith("/")) "$basePath${file.fileName}"
-                        else "$basePath/${file.fileName}"
+                // ✅ KUNG MAY SARILING DAAN SA FILE — GAMITIN ITO
+                file.filePath.contains("/") -> file.filePath
+
+                // ✅ KUNG WALANG — DIREKTANG ILAGAY SA NAPILING BASE PATH + PANGALAN NG FILE
+                else -> {
+                    val cleanBase = if(basePath.endsWith("/")) basePath else "$basePath/"
+                    cleanBase + file.fileName
+                }
             }
         }
-        confirmAndPushFiles() // ✅ Pumunta sa kumpirmasyon
+        confirmAndPushFiles()
     }
 
     private fun showManualPathDialog() {
         val inp = EditText(this).apply {
-            hint = "hal: apps/GitHubUpdater/app/src/main/java/"
+            hint = "hal: docs/  o  apps/GitHubUpdater/"
             setText(savedDefaultPath)
         }
         android.app.AlertDialog.Builder(this)
             .setTitle("✏️ ILAGAY ANG DESTINASYON")
-            .setMessage("Ilagay ang base path kung saan pupunta ang lahat ng file:")
+            .setMessage("Ilagay ang base path kung saan pupunta ang lahat ng file:\n👉 Hal: docs/ → direkta sa docs/")
             .setView(inp)
             .setPositiveButton("✅ GAMITIN") { _, _ ->
                 var p = inp.text.toString().trim()
                 if(p.isNotEmpty()) {
-                    if(!p.endsWith("/")) p = "$p/"
+                    if(!p.endsWith("/") && !p.contains(".")) p = "$p/"
                     savedDefaultPath = p; saveDefaultPath()
                     applyPathAndConfirm(p)
                 }
@@ -583,7 +582,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun confirmAndPushFiles() {
-        // ✅ Ipakita muna kung saan pupunta ang bawat file
         val previewText = StringBuilder()
         previewText.append("${parsedCatFiles.size} na file — KUMPIRMA ANG DESTINASYON:\n\n")
         parsedCatFiles.forEachIndexed { i, file ->
