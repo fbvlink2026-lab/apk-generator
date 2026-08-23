@@ -3,7 +3,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F5F5F5">
+    android:background="#F5F5F5"
+    android:id="@+id/drawer_layout">
 
     <!-- 📌 STATUS BAR SA TAAS -->
     <LinearLayout
@@ -17,7 +18,7 @@
             android:id="@+id/tvCurrentVersion"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="📌 Bersyon: v5.85 — MAY SCROLL"
+            android:text="📌 Bersyon: v5.86 — WALANG ERROR"
             android:textColor="#FFFFFF"
             android:textSize="14sp"
             android:textStyle="bold"/>
@@ -30,9 +31,29 @@
             android:textColor="#E3F2FD"
             android:textSize="12sp"
             android:layout_marginTop="4dp"/>
+
+        <Button
+            android:id="@+id/btnCheckVersion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔄 Tignan ang Update"
+            android:textSize="12sp"
+            android:layout_marginTop="8dp"
+            android:backgroundTint="#FF9800"
+            android:textColor="#FFFFFF"/>
+
+        <Button
+            android:id="@+id/btnCloseDrawer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✕ Isara"
+            android:textSize="12sp"
+            android:layout_marginTop="4dp"
+            android:backgroundTint="#666666"
+            android:textColor="#FFFFFF"/>
     </LinearLayout>
 
-    <!-- ✅ SCROLLVIEW — LAHAT NG LAMAN MAKAKA-SCROLL NA! -->
+    <!-- ✅ SCROLLVIEW — LAHAT MAKAKA-SCROLL NA! -->
     <ScrollView
         android:id="@+id/main_scroll_view"
         android:layout_width="match_parent"
