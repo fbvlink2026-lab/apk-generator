@@ -1,12 +1,14 @@
 package com.martodosko.github.updater
 
-import android.content.Intent
+import android.content.Context
+import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.provider.OpenableColumns
+import android.util.Base64
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
@@ -22,68 +24,42 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
 import java.net.URL
+import java.nio.charset.StandardCharsets
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var drawerLayout: DrawerLayout
-    private val VERSION = "v5.81"
-    private val REPO_OWNER = "fbvlink2026-lab"
-    private val REPO_NAME = "apk-generator"
+    private lateinit var prefs: SharedPreferences
+    private val VERSION = "v5.83 — DYNAMIC PATHS"
+
+    // ✅ KAYA NANG BAGUHIN — HINDI NA HARD-CODED!
+    private var repoOwner = ""
+    private var repoName = ""
 
     private var currentScreen = "MAIN"
     private var selectedImageUri: Uri? = null
     private var savedDefaultPath = ""
     private val processedIcons = mutableListOf<String>()
 
-    // ✅ LIMA NA — KASAMA NA ANG xxxhdpi!
+    // ✅ ICON SIZES — PAREHO SA LAHAT NG ANDROID APP
     private val iconSizes = listOf(
-        "mdpi" to 48,
-        "hdpi" to 72,
-        "xhdpi" to 96,
-        "xxhdpi" to 144,
-        "xxxhdpi" to 192
+        "mdpi" to 48, "hdpi" to 72, "xhdpi" to 96, "xxhdpi" to 144, "xxxhdpi" to 192
     )
 
-    // ✅ KUMPLETONG LISTAHAN NG LAHAT NG DESTINASYON SA REPOSITORY
-    private val allDestinations = listOf(
-        // 🖼️ ICON — Mga Densidad
-        "apps/GitHubUpdater/app/src/main/res/mipmap-mdpi/",
-        "apps/GitHubUpdater/app/src/main/res/mipmap-hdpi/",
-        "apps/GitHubUpdater/app/src/main/res/mipmap-xhdpi/",
-        "apps/GitHubUpdater/app/src/main/res/mipmap-xxhdpi/",
-        "apps/GitHubUpdater/app/src/main/res/mipmap-xxxhdpi/",
+    // ✅ DYNAMIC — KUKUHA MULA SA SCAN HINDI NAKA-LISTA!
+    private val scannedFolders = mutableListOf<GitHubFolder>()
 
-        // 💻 CODE — Mga Lugar para sa Programang File
-        "apps/GitHubUpdater/app/src/main/java/com/martodosko/github/updater/",
-        "apps/GitHubUpdater/app/src/main/res/layout/",
-        "apps/GitHubUpdater/app/src/main/res/",
-        "apps/GitHubUpdater/",
-        ".github/workflows/",
-        "docs/",
-        "."
-    )
-
-    // ✅ PANGALAN PARA SA BAWAT DESTINASYON — MALINAW NA!
-    private val destLabels = listOf(
-        // 🖼️ ICON
-        "mdpi    → mipmap-mdpi/",
-        "hdpi    → mipmap-hdpi/",
-        "xhdpi   → mipmap-xhdpi/",
-        "xxhdpi  → mipmap-xxhdpi/",
-        "xxxhdpi → mipmap-xxxhdpi/",
-
-        // 💻 CODE
-        "📄 Kotlin Code → java/com/martodosko/github/updater/",
-        "📄 Layout XML → res/layout/",
-        "📄 Resources → res/",
-        "📄 Ugat ng App → apps/GitHubUpdater/",
-        "⚙️ Workflows → .github/workflows/",
-        "📄 Dokumentasyon → docs/",
-        "🏠 ROOT → Ugat ng Buong Repository"
+    data class GitHubFolder(
+        val path: String,
+        val type: String, // "icon" o "code" o "root"
+        val name: String
     )
 
     private val pickImageLauncher = registerForActivityResult(
@@ -91,10 +67,7 @@ class MainActivity : AppCompatActivity() {
     ) { uri ->
         if (uri != null) {
             selectedImageUri = uri
-            val fileName = getFileName(uri)
-            Toast.makeText(this, "✅ NAPILI: $fileName", Toast.LENGTH_LONG).show()
-        } else {
-            Toast.makeText(this, "❌ Walang napiling larawan", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "✅ NAPILI: ${getFileName(uri)}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -102,9 +75,17 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        prefs = getSharedPreferences("MartoPushPrefs", Context.MODE_PRIVATE)
+        loadRepoSettings() // ✅ I-LOAD ANG USER + REPO
+
         drawerLayout = findViewById(R.id.drawer_layout)
         findViewById<TextView>(R.id.tvCurrentVersion)?.text = "📌 Bersyon: $VERSION"
-        findViewById<TextView>(R.id.tvStatus)?.text = "Katayuan: Handa na"
+        updateStatusDisplay()
+
+        // ✅ WALANG CREDENTIALS → MAGTANONG
+        if (!hasGitHubCredentials()) {
+            showGitHubSetupDialog()
+        }
 
         buildMainMenu()
 
@@ -112,225 +93,373 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnCloseDrawer)?.setOnClickListener { drawerLayout.closeDrawer(Gravity.START) }
     }
 
-    private fun buildMainMenu() {
-        currentScreen = "MAIN"
-        val container = findViewById<LinearLayout>(R.id.main_menu_container)
-        container?.removeAllViews() ?: return
+    // ==========================================
+    // 🔑 GITHUB + REPO SETTINGS — PWEDENG PALITAN! ✅
+    // ==========================================
+    private fun loadRepoSettings() {
+        repoOwner = prefs.getString("github_username", "") ?: ""
+        repoName = prefs.getString("github_repo", "apk-generator") ?: "apk-generator"
+    }
 
-        addMenuHeader(container, "========================================")
-        addMenuHeader(container, "       📤  M A R T O P U S H  $VERSION")
-        addMenuHeader(container, "    Developed by MartoDosko © 2026")
-        addMenuHeader(container, "========================================")
-        addSpace(container, 16)
+    private fun hasGitHubCredentials(): Boolean {
+        val token = prefs.getString("github_token", "")
+        return !token.isNullOrEmpty() && repoOwner.isNotEmpty()
+    }
 
-        addMenuItem(container, "1", "🖼️ ICON — Pumili, I-resize, Ipadala") { buildIconMenu() }
-        addMenuItem(container, "2", "📄 Ipadala ang Cat Code / Maraming File") { buildCatCodeMenu() }
-        addMenuItem(container, "3", "📤 Direktang Pagpadala sa GitHub") { pushToGitHub() }
-        addMenuItem(container, "4", "📂 Pumili / I-set ang Destination Path") { buildPathCategoryMenu() }
-        addMenuItem(container, "5", "🔄 Tumatsek ng Update at Bersyon") { checkVersionFromGitHub() }
-        addMenuDivider(container)
-        addMenuItem(container, "0", "↩️ Lumabas / Isara") { finish() }
+    private fun getGitHubToken(): String = prefs.getString("github_token", "")!!
+
+    private fun updateStatusDisplay() {
+        findViewById<TextView>(R.id.tvStatus)?.text =
+            "✅ $repoOwner/$repoName"
+    }
+
+    private fun showGitHubSetupDialog() {
+        val usernameInput = EditText(this).apply {
+            hint = "GitHub Username"
+            setText(repoOwner)
+        }
+        val repoInput = EditText(this).apply {
+            hint = "Repository Name"
+            setText(repoName)
+        }
+        val tokenInput = EditText(this).apply {
+            hint = "Personal Access Token"
+            inputType = android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 16, 48, 8)
+            addView(usernameInput)
+            addView(space(12))
+            addView(repoInput)
+            addView(space(12))
+            addView(tokenInput)
+        }
+
+        android.app.AlertDialog.Builder(this)
+            .setTitle("🔑 I-SET ANG GITHUB KONEKSYON")
+            .setMessage("Pwede mong baguhin anumang oras.\nIba pang user? Iba pang app? Palitan lang dito!")
+            .setView(container)
+            .setPositiveButton("✅ I-SAVE AT SCAN") { dialog, _ ->
+                repoOwner = usernameInput.text.toString().trim()
+                repoName = repoInput.text.toString().trim()
+                val token = tokenInput.text.toString().trim()
+
+                if (repoOwner.isNotEmpty() && repoName.isNotEmpty() && token.isNotEmpty()) {
+                    prefs.edit()
+                        .putString("github_username", repoOwner)
+                        .putString("github_repo", repoName)
+                        .putString("github_token", token)
+                        .apply()
+
+                    updateStatusDisplay()
+                    Toast.makeText(this, "✅ NA-SAVE! SCANNING REPOSITORY...", Toast.LENGTH_LONG).show()
+
+                    // ✅ AGAD NA SCAN ANG REPO — KUNG ANO ANG NASA LOOB!
+                    scanRepositoryFolders()
+                } else {
+                    Toast.makeText(this, "❌ Punan ang lahat!", Toast.LENGTH_LONG).show()
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton("❌ MAMAYA NA", null)
+            .setCancelable(false)
+            .show()
     }
 
     // ==========================================
-    //   📂 PATH MENU — PUMILI MUNA NG URI NG DESTINASYON ✅
+    // 📡 DYNAMIC SCAN — KUKUHA MULA SA GITHUB ANG TUNAY NA FOLDER! ✅
+    // ==========================================
+    private fun scanRepositoryFolders() {
+        if (!hasGitHubCredentials()) return
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                scannedFolders.clear()
+
+                // ✅ SCAN ANG ROOT NG REPOSITORY
+                val rootUrl = "https://api.github.com/repos/$repoOwner/$repoName/contents/"
+                val rootJson = JSONArray(URL(rootUrl).readText())
+
+                // ✅ I-PROSESO ANG MGA NATAGPUANG FOLDER
+                for (i in 0 until rootJson.length()) {
+                    val item = rootJson.getJSONObject(i)
+                    val name = item.getString("name")
+                    val type = item.getString("type")
+
+                    if (type == "dir") {
+                        classifyAndAddFolder(name, item.getString("path"))
+                    }
+                }
+
+                // ✅ LAGYAN NG DAGDAG NA KARANIWANG LUGAR
+                scannedFolders.add(GitHubFolder(".", "root", "🏠 ROOT — Ugat ng Repository"))
+                scannedFolders.add(GitHubFolder("docs/", "docs", "📄 docs/ — Dokumentasyon"))
+
+                // ✅ I-SAVE ANG PAG-SCAN
+                launch(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity,
+                        "✅ NATAGPUAN: ${scannedFolders.size} na lokasyon!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+            } catch (e: Exception) {
+                launch(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity,
+                        "⚠️ HINDI MA-SCAN: ${e.message}\nGagamitin ang pangkalahatang listahan",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    loadDefaultFolders() // ✅ FALLBACK KUNG WALANG KONEKSYON
+                }
+            }
+        }
+    }
+
+    // ✅ URI NG FOLDER — KUNG ICON BA O CODE
+    private fun classifyAndAddFolder(name: String, path: String) {
+        when {
+            // 🖼️ MGA ICON FOLDER — KUNG NASA RES/
+            path.contains("mipmap") || path.contains("drawable") -> {
+                scannedFolders.add(GitHubFolder(
+                    "$path/",
+                    "icon",
+                    "🖼️ $name/"
+                ))
+            }
+
+            // 💻 MGA CODE FOLDER
+            path.contains("java/") || path.contains("kotlin/") -> {
+                scannedFolders.add(GitHubFolder(
+                    "$path/",
+                    "code",
+                    "📄 $name/"
+                ))
+            }
+            path.contains("layout/") || path.contains("res/") -> {
+                scannedFolders.add(GitHubFolder(
+                    "$path/",
+                    "resource",
+                    "🎨 $name/"
+                ))
+            }
+            path.contains(".github/workflows") -> {
+                scannedFolders.add(GitHubFolder(
+                    "$path/",
+                    "workflow",
+                    "⚙️ Workflows"
+                ))
+            }
+
+            // 📂 IBANG FOLDER — IBANG APP
+            path.startsWith("apps/") && !path.contains("/") -> {
+                scannedFolders.add(GitHubFolder(
+                    "$path/",
+                    "app",
+                    "📂 $name/"
+                ))
+            }
+
+            // IBA PANG FOLDER
+            else -> {
+                scannedFolders.add(GitHubFolder(
+                    "$path/",
+                    "other",
+                    "📁 $name/"
+                ))
+            }
+        }
+    }
+
+    // ✅ KUNG WALANG MA-SCAN — DEFAULT NA LANG
+    private fun loadDefaultFolders() {
+        scannedFolders.clear()
+        scannedFolders.addAll(listOf(
+            GitHubFolder("apps/YourApp/app/src/main/res/mipmap-mdpi/", "icon", "🖼️ mdpi"),
+            GitHubFolder("apps/YourApp/app/src/main/res/mipmap-hdpi/", "icon", "🖼️ hdpi"),
+            GitHubFolder("apps/YourApp/app/src/main/res/mipmap-xhdpi/", "icon", "🖼️ xhdpi"),
+            GitHubFolder("apps/YourApp/app/src/main/res/mipmap-xxhdpi/", "icon", "🖼️ xxhdpi"),
+            GitHubFolder("apps/YourApp/app/src/main/res/mipmap-xxxhdpi/", "icon", "🖼️ xxxhdpi"),
+            GitHubFolder("apps/YourApp/app/src/main/java/", "code", "📄 Kotlin/Java Code"),
+            GitHubFolder("apps/YourApp/app/src/main/res/layout/", "resource", "🎨 Layout XML"),
+            GitHubFolder(".github/workflows/", "workflow", "⚙️ Workflows"),
+            GitHubFolder("docs/", "docs", "📄 Dokumentasyon"),
+            GitHubFolder(".", "root", "🏠 ROOT")
+        ))
+    }
+
+    // ==========================================
+    // 📂 PATH MENU — DYNAMIC NA! ✅
     // ==========================================
     private fun buildPathCategoryMenu() {
         currentScreen = "PATH_CATEGORY"
-        val container = findViewById<LinearLayout>(R.id.main_menu_container)
-        container?.removeAllViews() ?: return
+        val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
+        container.removeAllViews()
 
-        addMenuHeader(container, "📂 ANO ANG URI NG IPAPADALA MO?")
-        addSpace(container, 12)
+        addMenuHeader(container, "📂 DESTINASYON — NAKUHA MULA SA: $repoOwner/$repoName")
+        addSpace(container, 8)
+
+        // ✅ WALANG NA-SCAN? I-SCAN MUNA!
+        if (scannedFolders.isEmpty()) {
+            addMenuHeader(container, "🔍 SCANNING NG MGA FOLDER...")
+            CoroutineScope(Dispatchers.Main).launch {
+                scanRepositoryFolders()
+                delay(800)
+                buildPathCategoryMenu() // I-refresh pagkatapos ma-scan
+            }
+            return
+        }
 
         addMenuItem(container, "1", "🖼️  ICON / LARAWAN — Mga mipmap folder") {
-            showIconDestinations()
+            showDynamicPaths("icon")
         }
         addMenuItem(container, "2", "💻 CODE / SCRIPT / FILE — Source at iba pa") {
-            showCodeDestinations()
+            showDynamicPaths("code")
+        }
+        addMenuItem(container, "3", "📂 LAHAT NG FOLDER — Buong Listahan") {
+            showAllDynamicPaths()
         }
 
         addMenuDivider(container)
-        addMenuItem(container, "b", "⬅️ Bumalik sa Pangunahing Menu") { buildMainMenu() }
+        addMenuItem(container, "s", "🔧 PALITAN ANG REPOSITORY / USERNAME") {
+            showGitHubSetupDialog() // ✅ IBANG USER? IBANG APP? PALITAN DITO!
+        }
+        addMenuItem(container, "b", "⬅️ Bumalik", { buildMainMenu() })
     }
 
-    // ✅ PARA SA ICON — 5 DESTINASYON
-    private fun showIconDestinations() {
-        currentScreen = "PATH_ICON"
-        val container = findViewById<LinearLayout>(R.id.main_menu_container)
-        container?.removeAllViews() ?: return
+    // ✅ IPAPAKITA ANG NAKUHA MULA SA SCAN — ICON LANG
+    private fun showDynamicPaths(filterType: String) {
+        currentScreen = "PATH_LIST"
+        val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
+        container.removeAllViews()
 
-        addMenuHeader(container, "🖼️  DESTINASYON PARA SA ICON / LARAWAN")
+        addMenuHeader(container, if (filterType == "icon") "🖼️ MGA ICON FOLDER" else "💻 MGA CODE FOLDER")
         addSpace(container, 8)
 
-        for (i in 0..4) {
-            addMenuItem(container, "${i+1}", destLabels[i]) {
-                savedDefaultPath = allDestinations[i]
-                Toast.makeText(this, "💾 NA-SAVE ANG DAAN:\n$savedDefaultPath", Toast.LENGTH_LONG).show()
+        val filtered = scannedFolders.filter { it.type == filterType || it.type == "root" || it.type == "docs" }
+        if (filtered.isEmpty()) {
+            addMenuHeader(container, "⚠️ WALANG NATAGPUANG FOLDER — I-type ang sariling daan")
+        } else {
+            filtered.forEachIndexed { i, folder ->
+                addMenuItem(container, "${i+1}", folder.name) {
+                    savedDefaultPath = folder.path
+                    Toast.makeText(this, "💾 NA-SAVE:\n$savedDefaultPath", Toast.LENGTH_LONG).show()
+                }
             }
         }
 
         addMenuDivider(container)
-        addMenuItem(container, "0", "✏️ I-type ang sariling Path") {
-            showCustomPathInput()
-        }
-        addMenuItem(container, "b", "⬅️ Bumalik sa Uri ng File") { buildPathCategoryMenu() }
+        addMenuItem(container, "0", "✏️ I-type ang sariling Path") { showCustomPathInput() }
+        addMenuItem(container, "b", "⬅️ Bumalik", { buildPathCategoryMenu() })
     }
 
-    // ✅ PARA SA CODE — 7 DESTINASYON
-    private fun showCodeDestinations() {
-        currentScreen = "PATH_CODE"
-        val container = findViewById<LinearLayout>(R.id.main_menu_container)
-        container?.removeAllViews() ?: return
+    private fun showAllDynamicPaths() {
+        currentScreen = "PATH_ALL"
+        val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
+        container.removeAllViews()
 
-        addMenuHeader(container, "💻 DESTINASYON PARA SA CODE / SCRIPT / FILE")
+        addMenuHeader(container, "📂 LAHAT NG NATAGPUANG FOLDER SA REPOSITORY")
         addSpace(container, 8)
 
-        for (i in 5 until allDestinations.size) {
-            addMenuItem(container, "${i-4}", destLabels[i]) {
-                savedDefaultPath = allDestinations[i]
-                Toast.makeText(this, "💾 NA-SAVE ANG DAAN:\n$savedDefaultPath", Toast.LENGTH_LONG).show()
+        scannedFolders.forEachIndexed { i, folder ->
+            addMenuItem(container, "${i+1}", folder.name) {
+                savedDefaultPath = folder.path
+                Toast.makeText(this, "💾 NA-SAVE:\n$savedDefaultPath", Toast.LENGTH_LONG).show()
             }
         }
 
         addMenuDivider(container)
-        addMenuItem(container, "0", "✏️ I-type ang sariling Path") {
-            showCustomPathInput()
-        }
-        addMenuItem(container, "b", "⬅️ Bumalik sa Uri ng File") { buildPathCategoryMenu() }
+        addMenuItem(container, "0", "✏️ I-type ang sariling Path") { showCustomPathInput() }
+        addMenuItem(container, "b", "⬅️ Bumalik", { buildPathCategoryMenu() })
     }
 
-    // ✅ SARILING DAAN — AYUS NA WALANG ERROR!
     private fun showCustomPathInput() {
-        val input = EditText(this)
-        input.hint = "hal: apps/GitHubUpdater/app/src/main/"
-
+        val input = EditText(this).apply {
+            hint = "hal: apps/AkingApp/app/src/main/res/"
+            setText(savedDefaultPath)
+        }
         android.app.AlertDialog.Builder(this)
             .setTitle("✏️ ILAGAY ANG DESTINASYON")
             .setView(input)
-            .setPositiveButton("I-SAVE") { dialog, _ ->
+            .setPositiveButton("I-SAVE") { d, _ ->
                 val path = input.text.toString().trim()
                 if (path.isNotEmpty()) {
                     savedDefaultPath = if (path.endsWith("/")) path else "$path/"
                     Toast.makeText(this, "💾 NA-SAVE:\n$savedDefaultPath", Toast.LENGTH_LONG).show()
                 }
-                dialog.dismiss() // ✅ TAMA — WALANG ERROR NA!
+                d.dismiss()
             }
             .setNegativeButton("❌ KANSILA", null)
             .show()
     }
 
     // ==========================================
-    //   🖼️ ICON MENU
+    // 🖼️ ICON MENU — PAREHO
     // ==========================================
     private fun buildIconMenu() {
         currentScreen = "ICON"
-        val container = findViewById<LinearLayout>(R.id.main_menu_container)
-        container?.removeAllViews() ?: return
-
-        addMenuHeader(container, "🖼️  ICON — PUMILI → I-RESIZE → IPADALA")
+        val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
+        container.removeAllViews()
+        addMenuHeader(container, "🖼️ ICON — PUMILI → I-RESIZE → IPADALA")
         addSpace(container, 12)
-
-        addMenuItem(container, "1", "📂 Pumili ng Larawan mula sa Folder") { pickImage() }
-        addMenuItem(container, "2", "📏 I-resize sa 5 tamang sukat") { resizeSelectedIconWithProcess() }
-        addMenuItem(container, "3", "📤 Ipadala sa tamang GitHub folder") { pushIconToGitHub() }
+        addMenuItem(container, "1", "📂 Pumili ng Larawan") { pickImage() }
+        addMenuItem(container, "2", "📏 I-resize sa 5 sukat") { resizeSelectedIconWithProcess() }
+        addMenuItem(container, "3", "📤 Ipadala sa GitHub") { pushIconToGitHub() }
         addMenuDivider(container)
-        addMenuItem(container, "b", "⬅️ Bumalik sa Pangunahing Menu") { buildMainMenu() }
+        addMenuItem(container, "b", "⬅️ Bumalik", { buildMainMenu() })
     }
 
-    private fun pickImage() {
-        pickImageLauncher.launch("image/*")
-    }
+    private fun pickImage() { pickImageLauncher.launch("image/*") }
 
     private fun resizeSelectedIconWithProcess() {
         if (selectedImageUri == null) {
-            Toast.makeText(this, "⚠️ Pumili muna ng larawan! [Option 1.1]", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "⚠️ Pumili muna ng larawan!", Toast.LENGTH_LONG).show()
             return
         }
-
-        val container = findViewById<LinearLayout>(R.id.main_menu_container)
-        container?.removeAllViews() ?: return
+        val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
+        container.removeAllViews()
         processedIcons.clear()
 
         addMenuHeader(container, "📏 NAGSISIMULA ANG PAGBABAGO NG SUKAT...")
         addSpace(container, 8)
 
         val progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
-            max = 100
-            progress = 0
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { setMargins(32, 16, 32, 8) }
+            max = 100; progress = 0
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                .apply { setMargins(32, 16, 32, 8) }
         }
         container.addView(progressBar)
-
-        val progressText = TextView(this).apply {
-            text = "0%"
-            textSize = 14f
-            setTextColor(0xFF333333.toInt())
-            gravity = Gravity.CENTER
-        }
+        val progressText = TextView(this).apply { text = "0%"; textSize = 14f; gravity = Gravity.CENTER }
         container.addView(progressText)
-
         addSpace(container, 12)
-
-        val resultArea = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(16, 8, 16, 8)
-        }
+        val resultArea = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(16,8,16,8) }
         container.addView(resultArea)
 
         CoroutineScope(Dispatchers.Main).launch {
-            progressBar.progress = 5
-            progressText.text = "🔍 BINABASA ANG LARAWAN..."
-            delay(400)
+            progressBar.progress = 5; progressText.text = "🔍 BINABASA ANG LARAWAN..."; delay(400)
+            val stream = contentResolver.openInputStream(selectedImageUri!!)
+            val original = BitmapFactory.decodeStream(stream)
+            stream?.close()
+            if (original == null) { progressText.text = "❌ HINDI MABASA"; return@launch }
+            progressBar.progress = 10; progressText.text = "✅ NABASA — ${original.width}×${original.height}"; delay(300)
 
-            val inputStream = contentResolver.openInputStream(selectedImageUri!!)
-            val originalBitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream?.close()
-
-            if (originalBitmap == null) {
-                progressText.text = "❌ HINDI MABASA ANG LARAWAN!"
-                return@launch
-            }
-
-            progressBar.progress = 10
-            progressText.text = "✅ NABASA — ${originalBitmap.width}×${originalBitmap.height}"
-            delay(300)
-
-            var done = 10
-            val step = 90 / iconSizes.size
-
+            var done = 10; val step = 90 / iconSizes.size
             iconSizes.forEach { (density, size) ->
-
                 progressText.text = "📏 INA-AYOS ANG $density — $size×$size..."
                 progressBar.progress = done
-
-                val resized = Bitmap.createScaledBitmap(originalBitmap, size, size, true)
-                val savedFile = saveResizedBitmap(resized, density)
-                processedIcons.add(savedFile)
-
-                val resultLine = TextView(this@MainActivity).apply {
-                    text = " ✅ $density → $size×$size ✅ NA-SAVE"
-                    textSize = 14f
-                    setPadding(8, 6, 8, 6)
+                val resized = Bitmap.createScaledBitmap(original, size, size, true)
+                val file = saveResizedBitmap(resized, density)
+                processedIcons.add(file)
+                resultArea.addView(TextView(this@MainActivity).apply {
+                    text = " ✅ $density → $size×$size ✅ NA-SAVE"; setPadding(8,6,8,6)
                     setTextColor(0xFF2E7D32.toInt())
-                }
-                resultArea.addView(resultLine)
-
-                done += step
-                progressBar.progress = done
-                delay(350)
+                })
+                done += step; progressBar.progress = done; delay(350)
             }
-
-            progressBar.progress = 100
-            progressText.text = "100% — TAPOS NA!"
-
+            progressBar.progress = 100; progressText.text = "100% — TAPOS NA!"
             addSpace(container, 12)
-            addMenuHeader(container, "✅ LAHAT NG SUKAT — TAPOS NA!")
-            addMenuHeader(container, "📋 KABUUANG NAPROSESO: ${iconSizes.size} na larawan")
-
+            addMenuHeader(container, "✅ LAHAT NG SUKAT — TAPOS NA! (${iconSizes.size} na larawan)")
             addSpace(container, 16)
             addMenuItem(container, "3", "📤 Ipadala Lahat sa GitHub", { pushIconToGitHub() })
             addMenuItem(container, "b", "⬅️ Bumalik", { buildIconMenu() })
@@ -338,125 +467,174 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveResizedBitmap(bitmap: Bitmap, density: String): String {
-        val filename = "ic_launcher_$density.png"
-        val dir = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "processed-icons")
-        if (!dir.exists()) dir.mkdirs()
-        val file = File(dir, filename)
-        FileOutputStream(file).use {
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
-        }
+        val dir = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "processed-icons").apply { mkdirs() }
+        val file = File(dir, "ic_launcher_$density.png")
+        FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         return file.absolutePath
     }
 
     // ==========================================
-    //   📤 IPADALA ANG ICON — TIGNAN MAY PATH BA ✅
+    // 📤 TOTOONG PAGPADALA — GAMIT ANG TAMAANG REPO ✅
     // ==========================================
     private fun pushIconToGitHub() {
-        if (processedIcons.isEmpty()) {
-            Toast.makeText(this, "⚠️ Gawin muna ang Option 1.2 — I-resize!", Toast.LENGTH_LONG).show()
+        if (!hasGitHubCredentials()) {
+            Toast.makeText(this, "⚠️ I-SET MUNA ANG GITHUB KONEKSYON!", Toast.LENGTH_LONG).show()
+            showGitHubSetupDialog()
             return
         }
-
-        // ✅ KUNG WALA PANG PATH — PUMILI MUNA!
+        if (processedIcons.isEmpty()) {
+            Toast.makeText(this, "⚠️ I-resize muna ang larawan!", Toast.LENGTH_LONG).show()
+            return
+        }
         if (savedDefaultPath.isEmpty()) {
-            Toast.makeText(this, "⚠️ Wala pang napiling destinasyon!\n📂 Pumili muna kung saan pupunta...", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "⚠️ Pumili muna ng destinasyon!", Toast.LENGTH_LONG).show()
             buildPathCategoryMenu()
             return
         }
 
-        confirmAndPush()
-    }
-
-    private fun confirmAndPush() {
         android.app.AlertDialog.Builder(this)
             .setTitle("📤 KUMPIRMA ANG PAGPADALA")
-            .setMessage(
-                """
-                📂 DESTINASYON:
-                $savedDefaultPath
-                
-                📄 BILANG NG FILE:
-                ${processedIcons.size} na icon
-                
-                ✅ SIGURADO KA BANG IPAPADALA NA SA GITHUB?
-                """.trimIndent()
-            )
-            .setPositiveButton("✅ OO — IPADALA NA") { _, _ ->
-                actuallyPushNow()
-            }
+            .setMessage("📂 DESTINASYON: $savedDefaultPath\n📄 FILES: ${processedIcons.size}\n📤 REPO: $repoOwner/$repoName")
+            .setPositiveButton("✅ IPADALA NA") { _, _ -> actuallyPushAllIcons() }
             .setNegativeButton("❌ HINDI MUNA", null)
             .show()
     }
 
-    private fun actuallyPushNow() {
-        Toast.makeText(
-            this,
-            "📤 IPINAPADALA SA GITHUB...\n" +
-            "📂 LOKASYON: $savedDefaultPath\n" +
-            "📄 FILES: ${processedIcons.size}\n" +
-            "\n✅ Handa na — gagawin ang Git Commit + Push",
-            Toast.LENGTH_LONG
-        ).show()
+    private fun actuallyPushAllIcons() {
+        Toast.makeText(this, "📤 NAGSISIMULA ANG PAGPADALA SA $repoOwner/$repoName...", Toast.LENGTH_SHORT).show()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            var successCount = 0
+            val token = getGitHubToken()
+
+            processedIcons.forEachIndexed { idx, filePath ->
+                val fileName = File(filePath).name
+                val githubPath = "$savedDefaultPath$fileName"
+
+                try {
+                    val bytes = File(filePath).readBytes()
+                    val encoded = Base64.encodeToString(bytes, Base64.NO_WRAP)
+
+                    val apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/contents/$githubPath"
+                    val connection = URL(apiUrl).openConnection() as HttpURLConnection
+                    connection.apply {
+                        requestMethod = "PUT"
+                        setRequestProperty("Authorization", "token $token")
+                        setRequestProperty("Content-Type", "application/json")
+                        setRequestProperty("User-Agent", "MartoPush-App")
+                        doOutput = true
+                    }
+
+                    val json = JSONObject().apply {
+                        put("message", "📤 Ipadala: $fileName — MartoPush")
+                        put("content", encoded)
+                    }
+
+                    OutputStreamWriter(connection.outputStream).use { it.write(json.toString()) }
+                    val responseCode = connection.responseCode
+
+                    if (responseCode == 200 || responseCode == 201) {
+                        successCount++
+                        launch(Dispatchers.Main) {
+                            Toast.makeText(this@MainActivity, "✅ [$((idx+1))/${processedIcons.size}] $fileName — NAIPADALA!", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        launch(Dispatchers.Main) {
+                            Toast.makeText(this@MainActivity, "⚠️ $fileName — Code: $responseCode", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    connection.disconnect()
+
+                } catch (e: Exception) {
+                    launch(Dispatchers.Main) {
+                        Toast.makeText(this@MainActivity, "❌ ERROR: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+
+            launch(Dispatchers.Main) {
+                Toast.makeText(this@MainActivity,
+                    "✅ TAPOS NA!\n$successCount / ${processedIcons.size} na file → $repoOwner/$repoName",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
     }
 
     // ==========================================
-    //   📄 OPTION 2 — CAT CODE
+    // 📄 OPTION 2 — CAT CODE
     // ==========================================
     private fun buildCatCodeMenu() {
         currentScreen = "CATCODE"
-        val container = findViewById<LinearLayout>(R.id.main_menu_container)
-        container?.removeAllViews() ?: return
+        val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
+        container.removeAllViews()
         addMenuHeader(container, "📄 CAT CODE — SABAY-SABAY NA PAGPADALA")
         addSpace(container, 12)
         addMenuItem(container, "1", "📋 I-paste ang Cat Code dito") {
             Toast.makeText(this, "📋 Hinihintay ang Cat Code...", Toast.LENGTH_SHORT).show()
         }
-        addMenuItem(container, "2", "📂 Piliin ang Destinasyon sa GitHub") { buildPathCategoryMenu() }
+        addMenuItem(container, "2", "📂 Piliin ang Destinasyon") { buildPathCategoryMenu() }
         addMenuItem(container, "3", "📤 Ipadala Lahat") {
-            if (savedDefaultPath.isEmpty()) {
-                Toast.makeText(this, "⚠️ Pumili muna ng destinasyon sa Option 2.2!", Toast.LENGTH_LONG).show()
-                return@addMenuItem
-            }
-            Toast.makeText(this, "📤 Pinapadala ang lahat sa: $savedDefaultPath", Toast.LENGTH_LONG).show()
+            if (!hasGitHubCredentials()) { Toast.makeText(this, "⚠️ I-SET MUNA ANG GITHUB!", Toast.LENGTH_LONG).show(); return@addMenuItem }
+            if (savedDefaultPath.isEmpty()) { Toast.makeText(this, "⚠️ Pumili muna ng destinasyon!", Toast.LENGTH_LONG).show(); return@addMenuItem }
+            Toast.makeText(this, "📤 Pinapadala sa: $savedDefaultPath", Toast.LENGTH_LONG).show()
         }
         addMenuDivider(container)
         addMenuItem(container, "b", "⬅️ Bumalik", { buildMainMenu() })
     }
 
     // ==========================================
-    //   📤 OPTION 3 — DIREKTANG PAGPADALA
+    // 📤 OPTION 3 — DIREKTANG PAGPADALA
     // ==========================================
     private fun pushToGitHub() {
+        if (!hasGitHubCredentials()) { showGitHubSetupDialog(); return }
         Toast.makeText(this, "📤 I-COMMIT AT I-PUSH...\n✅ Tagumpay!", Toast.LENGTH_LONG).show()
     }
 
     // ==========================================
-    //   🔄 OPTION 5 — TUMATSEK NG BERSYON
+    // 🔄 OPTION 5 — TUMATSEK NG BERSYON
     // ==========================================
     private fun checkVersionFromGitHub() {
         val tvStatus = findViewById<TextView>(R.id.tvStatus) ?: return
         tvStatus.text = "🔍 Tinitignan..."
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest"
+                val url = "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
                 val json = JSONObject(URL(url).readText())
                 val latest = json.optString("tag_name", VERSION).removePrefix("v")
                 launch(Dispatchers.Main) {
-                    tvStatus.text = if (latest == VERSION.removePrefix("v"))
-                        "✅ Nasa Pinakabago: v$latest"
-                    else
-                        "⚠️ May Bago: v$latest"
+                    tvStatus.text = if (latest == VERSION.removePrefix("v")) "✅ Nasa Pinakabago: v$latest" else "⚠️ May Bago: v$latest"
                 }
             } catch (e: Exception) {
-                launch(Dispatchers.Main) {
-                    tvStatus.text = "⚠️ Hindi matignan"
-                }
+                launch(Dispatchers.Main) { tvStatus.text = "⚠️ Hindi matignan" }
             }
         }
     }
 
     // ==========================================
-    //   🛠️ TULONG NA PAMAMARAAN
+    // 📋 PANGUNAHING MENU
+    // ==========================================
+    private fun buildMainMenu() {
+        currentScreen = "MAIN"
+        val container = findViewById<LinearLayout>(R.id.main_menu_container) ?: return
+        container.removeAllViews()
+        addMenuHeader(container, "========================================")
+        addMenuHeader(container, "       📤  M A R T O P U S H  $VERSION")
+        addMenuHeader(container, "    Developed by MartoDosko © 2026")
+        addMenuHeader(container, "========================================")
+        addSpace(container, 16)
+        addMenuItem(container, "1", "🖼️ ICON — Pumili, I-resize, Ipadala") { buildIconMenu() }
+        addMenuItem(container, "2", "📄 Ipadala ang Cat Code / Maraming File") { buildCatCodeMenu() }
+        addMenuItem(container, "3", "📤 Direktang Pagpadala sa GitHub") { pushToGitHub() }
+        addMenuItem(container, "4", "📂 Pumili / I-set ang Destination Path") { buildPathCategoryMenu() }
+        addMenuItem(container, "5", "🔄 Tumatsek ng Update at Bersyon") { checkVersionFromGitHub() }
+        addMenuDivider(container)
+        addMenuItem(container, "s", "🔧 PALITAN ANG REPOSITORY / USER") { showGitHubSetupDialog() }
+        addMenuItem(container, "0", "↩️ Lumabas / Isara") { finish() }
+    }
+
+    // ==========================================
+    // 🛠️ TULONG NA PAMAMARAAN
     // ==========================================
     private fun getFileName(uri: Uri): String {
         contentResolver.query(uri, null, null, null, null)?.use {
@@ -468,26 +646,22 @@ class MainActivity : AppCompatActivity() {
         return "larawan.png"
     }
 
+    private fun space(dp: Int) = View(this).apply {
+        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp)
+    }
+
     private fun addMenuHeader(container: LinearLayout, text: String) {
         container.addView(TextView(this).apply {
-            this.text = text
-            textSize = 14f
-            setTextColor(0xFF1565C0.toInt())
-            setPadding(0, 6, 0, 6)
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
-            gravity = Gravity.CENTER
+            this.text = text; textSize = 14f; setTextColor(0xFF1565C0.toInt())
+            setPadding(0,6,0,6); setTypeface(typeface, android.graphics.Typeface.BOLD); gravity = Gravity.CENTER
         })
     }
 
     private fun addMenuItem(container: LinearLayout, num: String, label: String, action: () -> Unit) {
         container.addView(Button(this).apply {
-            text = "[$num]   $label"
-            textSize = 14f
-            setPadding(24, 18, 24, 18)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { setMargins(8, 6, 8, 6) }
+            text = "[$num]   $label"; textSize = 14f; setPadding(24,18,24,18)
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                .apply { setMargins(8,6,8,6) }
             setOnClickListener { action() }
         })
     }
@@ -495,15 +669,12 @@ class MainActivity : AppCompatActivity() {
     private fun addMenuDivider(container: LinearLayout) {
         container.addView(View(this).apply {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1)
-            setBackgroundColor(0xFFE0E0E0.toInt())
-            setPadding(0, 8, 0, 8)
+            setBackgroundColor(0xFFE0E0E0.toInt()); setPadding(0,8,0,8)
         })
     }
 
     private fun addSpace(container: LinearLayout, dp: Int) {
-        container.addView(View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp)
-        })
+        container.addView(View(this).apply { layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp) })
     }
 
     override fun onBackPressed() {
