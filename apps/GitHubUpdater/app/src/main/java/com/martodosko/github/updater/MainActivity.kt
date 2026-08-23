@@ -10,6 +10,7 @@ import android.provider.OpenableColumns
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -29,7 +30,7 @@ import java.net.URL
 class MainActivity : AppCompatActivity() {
 
     private lateinit var drawerLayout: DrawerLayout
-    private val VERSION = "v5.80"
+    private val VERSION = "v5.81"
     private val REPO_OWNER = "fbvlink2026-lab"
     private val REPO_NAME = "apk-generator"
 
@@ -102,19 +103,19 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         drawerLayout = findViewById(R.id.drawer_layout)
-        findViewById<TextView>(R.id.tvCurrentVersion).text = "📌 Bersyon: $VERSION"
-        findViewById<TextView>(R.id.tvStatus).text = "Katayuan: Handa na"
+        findViewById<TextView>(R.id.tvCurrentVersion)?.text = "📌 Bersyon: $VERSION"
+        findViewById<TextView>(R.id.tvStatus)?.text = "Katayuan: Handa na"
 
         buildMainMenu()
 
-        findViewById<Button>(R.id.btnCheckVersion).setOnClickListener { checkVersionFromGitHub() }
-        findViewById<Button>(R.id.btnCloseDrawer).setOnClickListener { drawerLayout.closeDrawer(Gravity.START) }
+        findViewById<Button>(R.id.btnCheckVersion)?.setOnClickListener { checkVersionFromGitHub() }
+        findViewById<Button>(R.id.btnCloseDrawer)?.setOnClickListener { drawerLayout.closeDrawer(Gravity.START) }
     }
 
     private fun buildMainMenu() {
         currentScreen = "MAIN"
         val container = findViewById<LinearLayout>(R.id.main_menu_container)
-        container.removeAllViews()
+        container?.removeAllViews() ?: return
 
         addMenuHeader(container, "========================================")
         addMenuHeader(container, "       📤  M A R T O P U S H  $VERSION")
@@ -137,7 +138,7 @@ class MainActivity : AppCompatActivity() {
     private fun buildPathCategoryMenu() {
         currentScreen = "PATH_CATEGORY"
         val container = findViewById<LinearLayout>(R.id.main_menu_container)
-        container.removeAllViews()
+        container?.removeAllViews() ?: return
 
         addMenuHeader(container, "📂 ANO ANG URI NG IPAPADALA MO?")
         addSpace(container, 12)
@@ -157,7 +158,7 @@ class MainActivity : AppCompatActivity() {
     private fun showIconDestinations() {
         currentScreen = "PATH_ICON"
         val container = findViewById<LinearLayout>(R.id.main_menu_container)
-        container.removeAllViews()
+        container?.removeAllViews() ?: return
 
         addMenuHeader(container, "🖼️  DESTINASYON PARA SA ICON / LARAWAN")
         addSpace(container, 8)
@@ -180,7 +181,7 @@ class MainActivity : AppCompatActivity() {
     private fun showCodeDestinations() {
         currentScreen = "PATH_CODE"
         val container = findViewById<LinearLayout>(R.id.main_menu_container)
-        container.removeAllViews()
+        container?.removeAllViews() ?: return
 
         addMenuHeader(container, "💻 DESTINASYON PARA SA CODE / SCRIPT / FILE")
         addSpace(container, 8)
@@ -199,14 +200,23 @@ class MainActivity : AppCompatActivity() {
         addMenuItem(container, "b", "⬅️ Bumalik sa Uri ng File") { buildPathCategoryMenu() }
     }
 
-    // ✅ SARILING DAAN
+    // ✅ SARILING DAAN — AYUS NA WALANG ERROR!
     private fun showCustomPathInput() {
+        val input = EditText(this)
+        input.hint = "hal: apps/GitHubUpdater/app/src/main/"
+
         android.app.AlertDialog.Builder(this)
             .setTitle("✏️ ILAGAY ANG DESTINASYON")
-            .setMessage("Halimbawa: apps/GitHubUpdater/app/src/main/")
-            .setPositiveButton("I-SAVE") { _, dialog ->
-                dialog.dismiss()
+            .setView(input)
+            .setPositiveButton("I-SAVE") { dialog, _ ->
+                val path = input.text.toString().trim()
+                if (path.isNotEmpty()) {
+                    savedDefaultPath = if (path.endsWith("/")) path else "$path/"
+                    Toast.makeText(this, "💾 NA-SAVE:\n$savedDefaultPath", Toast.LENGTH_LONG).show()
+                }
+                dialog.dismiss() // ✅ TAMA — WALANG ERROR NA!
             }
+            .setNegativeButton("❌ KANSILA", null)
             .show()
     }
 
@@ -216,7 +226,7 @@ class MainActivity : AppCompatActivity() {
     private fun buildIconMenu() {
         currentScreen = "ICON"
         val container = findViewById<LinearLayout>(R.id.main_menu_container)
-        container.removeAllViews()
+        container?.removeAllViews() ?: return
 
         addMenuHeader(container, "🖼️  ICON — PUMILI → I-RESIZE → IPADALA")
         addSpace(container, 12)
@@ -239,7 +249,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val container = findViewById<LinearLayout>(R.id.main_menu_container)
-        container.removeAllViews()
+        container?.removeAllViews() ?: return
         processedIcons.clear()
 
         addMenuHeader(container, "📏 NAGSISIMULA ANG PAGBABAGO NG SUKAT...")
@@ -395,7 +405,7 @@ class MainActivity : AppCompatActivity() {
     private fun buildCatCodeMenu() {
         currentScreen = "CATCODE"
         val container = findViewById<LinearLayout>(R.id.main_menu_container)
-        container.removeAllViews()
+        container?.removeAllViews() ?: return
         addMenuHeader(container, "📄 CAT CODE — SABAY-SABAY NA PAGPADALA")
         addSpace(container, 12)
         addMenuItem(container, "1", "📋 I-paste ang Cat Code dito") {
@@ -424,7 +434,7 @@ class MainActivity : AppCompatActivity() {
     //   🔄 OPTION 5 — TUMATSEK NG BERSYON
     // ==========================================
     private fun checkVersionFromGitHub() {
-        val tvStatus = findViewById<TextView>(R.id.tvStatus)
+        val tvStatus = findViewById<TextView>(R.id.tvStatus) ?: return
         tvStatus.text = "🔍 Tinitignan..."
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -463,7 +473,7 @@ class MainActivity : AppCompatActivity() {
             this.text = text
             textSize = 14f
             setTextColor(0xFF1565C0.toInt())
-            setPadding(0, 4, 0, 4)
+            setPadding(0, 6, 0, 6)
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             gravity = Gravity.CENTER
         })
@@ -473,11 +483,11 @@ class MainActivity : AppCompatActivity() {
         container.addView(Button(this).apply {
             text = "[$num]   $label"
             textSize = 14f
-            setPadding(20, 16, 20, 16)
+            setPadding(24, 18, 24, 18)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { setMargins(0, 4, 0, 4) }
+            ).apply { setMargins(8, 6, 8, 6) }
             setOnClickListener { action() }
         })
     }
