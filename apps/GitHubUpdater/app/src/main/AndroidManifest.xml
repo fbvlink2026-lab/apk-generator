@@ -1,17 +1,15 @@
+FILE: apps/GitHubUpdater/app/src/main/AndroidManifest.xml
+--- LAMAN ---
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- ✅ NANDIYAN NA — PANATILIHIN -->
+    <!-- ✅ MGA PAHINTULOT -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-
-    <!-- ✅ IDINAGDAG — KAILANGAN SA PAG-DOWNLOAD -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />
 
     <application
         android:allowBackup="true"
@@ -20,7 +18,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <!-- ✅ SPLASH — PANATILIHIN KUNG GUSTO MO — DAPAT AYUSIN ANG DALOY -->
+        <!-- ✅ SPLASH SCREEN — PANATILHIN -->
         <activity
             android:name=".SplashActivity"
             android:exported="true"
@@ -31,12 +29,12 @@
             </intent-filter>
         </activity>
 
-        <!-- ✅ MAIN ACTIVITY — GAWING EXPORTED KUNG KAILANGAN -->
+        <!-- ✅ PANGUNAHING SCREEN -->
         <activity
             android:name=".MainActivity"
-            android:exported="false" />
+            android:exported="true" />
 
-        <!-- ✅ KAILANGAN PARA MA-INSTALL ANG APK MULA SA LOOB NG APP -->
+        <!-- ✅ FILE PROVIDER — KAILANGAN PARA SA PAG-INSTALL NG APK -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -48,35 +46,6 @@
         </provider>
 
     </application>
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
-    <application
-        android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="GitHubUpdater"
-        android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
-
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <!-- ✅ FILE PROVIDER — KAILANGAN PAG-INSTALL NG APK -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
-    </application>
 </manifest>
+--- END ---
