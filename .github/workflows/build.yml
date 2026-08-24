@@ -5,178 +5,130 @@ on:
     paths:
       - 'apps/**'
   workflow_dispatch:
-    inputs:
-      build_target:
-        description: '📌 Alin ang gusto mong buuin?'
-        required: true
-        default: 'all'
-        type: choice
-        options:
-          - 'all'
-          - 'GitHubUpdater'
-          - 'GuitarFX'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions: write-all
+    if: startsWith(github.event.head_commit.message, 'apk:') || contains(github.event.head_commit.message, 'apps/')
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - name: ✅ APK detected — Building...
+        run: echo "Tumatakbo LAMANG para sa APK files sa apps/"
+
+# ==========================================
+# ✅ DITO ANG DAGDAG — WALANG BINAGO SA NASA TAAS
+# ==========================================
+
+      - name: 🏷️ KUNIN ANG BERSYON MULA SA TAG
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION_TAG="${GITHUB_REF#refs/tags/}"
+          else
+            VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v6.0.4")
+          fi
+          VERSION_NAME="${VERSION_TAG#v}"
+          VERSION_CODE=$(echo "$VERSION_NAME" | awk -F. '{ printf "%d%02d%02d", $1, $2, $3 }')
+          echo "tag=$VERSION_TAG" >> $GITHUB_OUTPUT
+          echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "code=$VERSION_CODE" >> $GITHUB_OUTPUT
+
+      - name: ✍️ ISULAT SA build.gradle
+        run: |
+          FILE="apps/GitHubUpdater/app/build.gradle"
+          if [ -f "$FILE" ]; then
+            sed -i "s/versionCode [0-9]*/versionCode ${{ steps.version.outputs.code }}/" "$FILE"
+            sed -i "s/versionName \"[^\"]*\"/versionName \"${{ steps.version.outputs.name }}\"/" "$FILE"
+          fi
+
+      - name: ☕ I-setup JDK 17
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: 📋 LISTAHAN NG FOLDER
+      - name: 🛠️ Gradle Wrapper
+        working-directory: apps/GitHubUpdater
         run: |
-          echo "=========================================="
-          echo "   📂 LAHAT NG FOLDER SA REPOSITORY"
-          echo "=========================================="
-          find . -maxdepth 5 -type d | grep -v '.git' | sort
+          [ ! -f gradlew ] && gradle wrapper --gradle-version 8.2
+          chmod +x gradlew
 
-      - name: 🔨 BUILD APK + BUONG LOG
-        id: do_build
+      - name: 🔨 BUUIN ANG APK
+        id: build_step
+        working-directory: apps/GitHubUpdater
+        run: ./gradlew assembleDebug 2>&1 | tee build.log
+        shell: bash
+
+# ==========================================
+# ✅ NANDITO PA RIN — PAGSUSULAT SA errors.md!
+# ==========================================
+      - name: 📋 ISULAT ANG RESULTA SA errors.md
+        if: always()
         run: |
-          mkdir -p /tmp
-          TARGET="${{ github.event.inputs.build_target }}"
-          ERROR_FILE="/tmp/errors-content.txt"
-          > "$ERROR_FILE"
+          STATUS="✅ TAGUMPAY"
+          EXIT_CODE=0
+          if [ "${{ steps.build_step.outcome }}" == "failure" ]; then
+            STATUS="❌ NABIGO"
+            EXIT_CODE=1
+          fi
 
-          FIND_APP() {
-            local NAME="$1"
-            if [ -d "apps/$NAME" ]; then echo "apps/$NAME"; return 0; fi
-            if [ -d "$NAME" ]; then echo "$NAME"; return 0; fi
-            return 1
-          }
+          TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M UTC")
+          VER_TAG="${{ steps.version.outputs.tag }}"
 
-          declare -a APPS=()
-          if [ "$TARGET" = "all" ]; then
-            DIR=$(FIND_APP GitHubUpdater) && APPS+=("$DIR")
-            DIR=$(FIND_APP GuitarFX) && APPS+=("$DIR")
+          echo -e "\n---" >> errors.md
+          echo -e "📅 Petsa: $TIMESTAMP 🎯 Target: GitHubUpdater" >> errors.md
+          echo -e "" >> errors.md
+          echo -e "==================================================" >> errors.md
+          echo -e "📦 APLIKASYON: GitHubUpdater" >> errors.md
+          echo -e "📂 LOKASYON: apps/GitHubUpdater" >> errors.md
+          echo -e "⏰ ORAS: $TIMESTAMP" >> errors.md
+          echo -e "" >> errors.md
+          echo -e "$STATUS — Exit $EXIT_CODE" >> errors.md
+          echo -e "" >> errors.md
+          echo -e "📋 BUONG LOG NG BUILD:" >> errors.md
+          if [ -f "apps/GitHubUpdater/build.log" ]; then
+            cat apps/GitHubUpdater/build.log >> errors.md
           else
-            DIR=$(FIND_APP "$TARGET") && APPS+=("$DIR")
+            echo "Walang log file." >> errors.md
           fi
 
-          echo "✅ IPAPROSESO: ${APPS[*]}"
-          if [ ${#APPS[@]} -eq 0 ]; then
-            echo "⚠️ WALANG MAHANAP NA APP"
-            echo "# ⚠️ Walang napiling aplikasyon o hindi matagpuan ang folder" >> "$ERROR_FILE"
-            exit 0
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add errors.md
+          git diff --staged --quiet || (git commit -m "📝 Update build log: $VER_TAG" && git push)
+
+# ==========================================
+# ✅ DAGDAG — ILIPAT ANG APK AT I-UPLOAD
+# ==========================================
+      - name: 📦 ILIPAT → docs/install-...apk
+        if: success()
+        run: |
+          mkdir -p docs
+          APK_SRC="apps/GitHubUpdater/app/build/outputs/apk/debug/app-debug.apk"
+          APK_DST="docs/install-GitHubUpdater-${{ steps.version.outputs.tag }}.apk"
+          if [ -f "$APK_SRC" ]; then
+            cp "$APK_SRC" "$APK_DST"
+            echo "✅ NAI-SAVE: $APK_DST"
+          else
+            echo "❌ WALANG APK NAKITA"
+            exit 1
           fi
 
-          for DIR in "${APPS[@]}"; do
-            NAME=$(basename "$DIR")
-            LOG_FILE="/tmp/$NAME-build-full.log"
-
-            echo ""
-            echo "--- BUILD: $NAME — $DIR ---"
-            cd "$DIR" || continue
-
-            # ✅ I-SETUP ANG GRADLE
-            wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip -O /tmp/gradle.zip
-            unzip -q /tmp/gradle.zip -d /tmp
-            export PATH=/tmp/gradle-8.2/bin:$PATH
-            gradle wrapper --gradle-version 8.2
-            chmod +x gradlew
-
-            # ✅ BUILD — KUKUHAIN ANG BUONG OUTPUT KASAMA ANG ERROR
-            set +e
-            ./gradlew assembleDebug > "$LOG_FILE" 2>&1
-            EXIT_CODE=$?
-            set -e
-
-            # ✅ HANAPIN ANG APK
-            APK_FILE=$(find . -name "*.apk" -path "*/debug/*" | head -1)
-
-            {
-              echo "=================================================="
-              echo "📦 APLIKASYON: $NAME"
-              echo "📂 LOKASYON:   $DIR"
-              echo "⏰ ORAS:       $(date '+%Y-%m-%d %H:%M:%S UTC')"
-              echo "=================================================="
-              echo ""
-
-              if [ -n "$APK_FILE" ] && [ -f "$APK_FILE" ]; then
-                APK_SIZE=$(du -h "$APK_FILE" | cut -f1)
-                echo "✅ TAGUMPAY — NABUO ANG APK!"
-                echo "📂 APK Daan:   $DIR/$APK_FILE"
-                echo "📏 Laki:       $APK_SIZE"
-                echo "📤 Kopyahin sa docs/..."
-                mkdir -p "$GITHUB_WORKSPACE/docs"
-                cp "$APK_FILE" "$GITHUB_WORKSPACE/docs/${NAME}-debug.apk"
-                echo "✅ Nasa: docs/${NAME}-debug.apk"
-              else
-                echo "❌ NABIGO — Hindi nabuo o hindi mahanap ang APK"
-                echo "🔑 Exit Code: $EXIT_CODE"
-              fi
-
-              echo ""
-              echo "--------------------------------------------------"
-              echo "📋 BUONG LOG NG BUILD:"
-              echo "--------------------------------------------------"
-              cat "$LOG_FILE"
-              echo ""
-              echo "=================================================="
-              echo ""
-            } >> "$ERROR_FILE"
-
-            cd "$GITHUB_WORKSPACE"
-          done
-
-      - name: 📄 SIGURADUHIN TAMA ANG PAGSULAT SA errors.md
-        if: always()
+      - name: 📤 I-COMMIT ANG APK
+        if: success()
         run: |
-          DATE=$(date "+%Y-%m-%d %H:%M UTC")
-          OUTPUT_FILE="$GITHUB_WORKSPACE/errors.md"
-          TEMP_FILE="/tmp/errors-final.md"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/install-*.apk
+          git add apps/GitHubUpdater/app/build.gradle
+          git diff --staged --quiet || git commit -m "📦 Build: install-GitHubUpdater ${{ steps.version.outputs.tag }}" && git push
 
-          {
-            echo "# 📋 Talaan ng mga Build"
-            echo ""
-            echo "> Created & Developed by MartoDosko © Copyright 2026"
-            echo ""
-            echo "---"
-            echo "📅 **Petsa:** $DATE"
-            echo "🎯 **Target:** ${{ github.event.inputs.build_target }}"
-            echo "---"
-            echo ""
-            cat /tmp/errors-content.txt
-            echo ""
-            echo "---"
-            echo "✅ **Katapusan ng Talaan**"
-          } > "$TEMP_FILE"
-
-          # ✅ PALITAN ANG BUONG FILE — SIGURADONG WALANG PUTOL
-          cp "$TEMP_FILE" "$OUTPUT_FILE"
-
-          echo "✅ errors.md naisulat na! Laman:"
-          echo "========================================"
-          cat "$OUTPUT_FILE"
-          echo "========================================"
-
-      - name: 📂 HUTIN SA UGAT — WALANG SUBFOLDER SA ARTIFACT
-        if: always()
-        run: |
-          mkdir -p /tmp/APK_ROOT
-          find docs -name "*.apk" -exec cp {} /tmp/APK_ROOT/ \;
-          echo "✅ APK na nasa artifact:"
-          ls -lh /tmp/APK_ROOT/
-
-      - name: 📤 I-UPLOAD — APK LANG, WALANG SUBFOLDER
-        if: always()
+      - name: 📋 I-UPLOAD BILANG ARTIFACT
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: APKs-${{ github.event.inputs.build_target }}
-          path: /tmp/APK_ROOT/
-          retention-days: 30
-
-      - name: ✅ I-COMMIT — errors.md + APK sa docs/
-        if: always()
-        continue-on-error: true
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add errors.md docs/*.apk 2>/dev/null || true
-          git commit -m "📝 Update: Build log + APK sa docs/" || true
-          git push || true
+          name: install-GitHubUpdater-${{ steps.version.outputs.tag }}
+          path: docs/install-*.apk
