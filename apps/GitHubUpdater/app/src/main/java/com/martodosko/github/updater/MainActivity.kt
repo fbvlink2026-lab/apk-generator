@@ -111,6 +111,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.tvCurrentVersion)?.text = "📌 Bersyon: $VERSION"
         updateStatusDisplay()
         findViewById<Button>(R.id.btnCheckVersion)?.setOnClickListener { checkVersionFromGitHub() }
+        findViewById<Button>(R.id.btnDownloadUpdate)?.setOnClickListener { downloadUpdate() }
         findViewById<Button>(R.id.btnCloseDrawer)?.setOnClickListener { buildMainMenu() }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
