@@ -522,7 +522,7 @@ class MainActivity : AppCompatActivity() {
                         if (name.lowercase().endsWith(".apk")) {
                             if (name > latestName) {
                                 latestName = name
-                                latestDownload = file.optString("download_url", "") ?: ""
+                                latestDownload = file.optString("download_url", "") ?: "" ?: ""
                             }
                         }
                     }
