@@ -3,7 +3,7 @@
 > Created & Developed by MartoDosko © Copyright 2026
 
 ---
-📅 **Petsa:** 2026-08-24 14:32 UTC
+📅 **Petsa:** 2026-08-24 15:25 UTC
 🎯 **Target:** GitHubUpdater
 🏷️ **Bersyon:** v6.0.4
 ---
@@ -11,7 +11,7 @@
 ==================================================
 📦 APLIKASYON: GitHubUpdater
 📂 LOKASYON:   apps/GitHubUpdater
-⏰ ORAS:       2026-08-24 14:32:04 UTC
+⏰ ORAS:       2026-08-24 15:25:06 UTC
 🏷️ BERSYON:    v6.0.4
 ==================================================
 
@@ -49,17 +49,22 @@ Downloading https://services.gradle.org/distributions/gradle-8.2-bin.zip
 > Task :app:compressDebugAssets
 > Task :app:desugarDebugFileDependencies
 > Task :app:mergeDebugJniLibFolders
-> Task :app:mergeDebugNativeLibs NO-SOURCE
 > Task :app:checkDebugDuplicateClasses
-> Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:mergeDebugNativeLibs NO-SOURCE
+> Task :app:processDebugManifestForPackage
 > Task :app:mergeLibDexDebug
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:processDebugResources
 > Task :app:validateSigningDebug
+> Task :app:mergeExtDexDebug
 > Task :app:writeDebugAppMetadata
 > Task :app:writeDebugSigningConfigVersions
-> Task :app:processDebugManifestForPackage
-> Task :app:mergeExtDexDebug
-> Task :app:processDebugResources
+
 > Task :app:compileDebugKotlin
+w: file:///home/runner/work/apk-generator/apk-generator/apps/GitHubUpdater/app/src/main/java/com/martodosko/github/updater/MainActivity.kt:222:31 There is more than one label with such a name in this scope
+w: file:///home/runner/work/apk-generator/apk-generator/apps/GitHubUpdater/app/src/main/java/com/martodosko/github/updater/MainActivity.kt:428:49 Type mismatch: inferred type is Nothing? but String was expected
+w: file:///home/runner/work/apk-generator/apk-generator/apps/GitHubUpdater/app/src/main/java/com/martodosko/github/updater/MainActivity.kt:491:111 Type mismatch: inferred type is Nothing? but String was expected
+
 > Task :app:compileDebugJavaWithJavac NO-SOURCE
 > Task :app:processDebugJavaRes
 > Task :app:mergeDebugJavaResource
@@ -69,7 +74,7 @@ Downloading https://services.gradle.org/distributions/gradle-8.2-bin.zip
 > Task :app:createDebugApkListingFileRedirect
 > Task :app:assembleDebug
 
-BUILD SUCCESSFUL in 49s
+BUILD SUCCESSFUL in 53s
 32 actionable tasks: 32 executed
 
 ==================================================
