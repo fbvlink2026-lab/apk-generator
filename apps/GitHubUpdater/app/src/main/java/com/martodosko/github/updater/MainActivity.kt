@@ -43,7 +43,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvCurrentVersion: TextView
     private lateinit var btnDownloadUpdate: Button
 
-    // ✅ AUTOMATIC — Token lang ang hihingi, kukunin ang may-ari/repo mula sa GitHub API
     private var repoOwner = ""
     private var repoName = ""
     private var savedDefaultPath = ""
@@ -51,7 +50,8 @@ class MainActivity : AppCompatActivity() {
     private var latestApkName: String? = null
     private var GITHUB_TOKEN = ""
 
-    private val VERSION = "v6.0.3 — Token Lang + Auto-Detect Repo"
+    // 🏷️ BAGONG BERSYON
+    private val VERSION = "v6.0.4 — Recursive Paths + Releases Only"
 
     private val imagePickerLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -98,6 +98,7 @@ class MainActivity : AppCompatActivity() {
         GITHUB_TOKEN = prefs.getString("github_token", "") ?: ""
         repoOwner = prefs.getString("github_owner", "") ?: ""
         repoName = prefs.getString("github_repo", "") ?: ""
+        savedDefaultPath = prefs.getString("default_destination_path", "") ?: ""
     }
 
     private fun saveGitHubInfo(token: String, owner: String, repo: String) {
@@ -154,7 +155,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // ✅ OPTION 6 — TOKEN LANG ANG HIHINGI!
+    // ✅ OPTION 6 — TOKEN LANG ANG HIHINGI
     // ==========================================
     private fun setupGitHubMenu() {
         mainMenuContainer.removeAllViews()
@@ -185,7 +186,6 @@ class MainActivity : AppCompatActivity() {
         addMenuButton("🔙 Bumalik") { buildMainMenu() }
     }
 
-    // ✅ AWTO — KUKUHA ANG LAHAT NG REPOSITORY MULA SA TOKEN!
     private fun detectRepositoriesFromToken(token: String) {
         tvStatus.text = "🔍 Binabasa ang iyong mga Repository..."
         CoroutineScope(Dispatchers.IO).launch {
@@ -206,13 +206,12 @@ class MainActivity : AppCompatActivity() {
                 val reposArray = JSONArray(readConnectionText(conn))
                 conn.disconnect()
 
-                val reposList = mutableListOf<Pair<String, String>>() // owner/repo
+                val reposList = mutableListOf<Pair<String, String>>()
                 for (i in 0 until reposArray.length()) {
                     val repo = reposArray.getJSONObject(i)
-                    val fullName = repo.getString("full_name") // "fbvlink2026-lab/apk-generator"
-                    val name = repo.getString("name")
+                    val fullName = repo.getString("full_name")
                     val owner = repo.getJSONObject("owner").getString("login")
-                    reposList.add(fullName to "$owner/$name")
+                    reposList.add(fullName to "$owner/${repo.getString("name")}")
                 }
 
                 launch(Dispatchers.Main) {
@@ -221,8 +220,6 @@ class MainActivity : AppCompatActivity() {
                         tvStatus.text = "⚠️ Walang Repository"
                         return@launch
                     }
-
-                    // ✅ IPAPAKITA ANG LAHAT — PUMILI ANG USER!
                     showRepoSelectionDialog(token, reposList)
                 }
             } catch (e: Exception) {
@@ -234,21 +231,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ✅ IPAPAKITA ANG LAHAT NG REPO — PUMILI ANG USER
     private fun showRepoSelectionDialog(token: String, repos: List<Pair<String, String>>) {
         val namesArray = repos.map { it.second }.toTypedArray()
         AlertDialog.Builder(this)
             .setTitle("📂 PUMILI NG REPOSITORY")
             .setMessage("${repos.size} na nakitang Repository — Pumili:")
             .setItems(namesArray) { _, which ->
-                val selectedFull = repos[which].first // "owner/repo"
+                val selectedFull = repos[which].first
                 val parts = selectedFull.split("/", limit = 2)
                 if (parts.size == 2) {
-                    val owner = parts[0]
-                    val repo = parts[1]
-                    saveGitHubInfo(token, owner, repo)
+                    saveGitHubInfo(token, parts[0], parts[1])
                     updateStatusDisplay()
-                    Toast.makeText(this, "✅ NAPILI: $owner/$repo", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "✅ NAPILI: ${parts[0]}/${parts[1]}", Toast.LENGTH_LONG).show()
                     buildMainMenu()
                 }
             }
@@ -257,7 +251,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // ✅ OPTION 4 — PUMILI NG DESTINASYON
+    // ✅ OPTION 4 — RECURSIVE NA! LAHAT NG SUBFOLDER MAKIKITA NA!
     // ==========================================
     private fun selectDestinationMenu() {
         if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty()) {
@@ -268,7 +262,7 @@ class MainActivity : AppCompatActivity() {
 
         mainMenuContainer.removeAllViews()
         addMenuHeader("📂 4 — PUMILI NG DESTINASYON")
-        addSubHeader("🔍 Kinukuha ang listahan ng folder...")
+        addSubHeader("🔍 Kinukuha ang BUONG listahan ng folder...")
 
         CoroutineScope(Dispatchers.IO).launch {
             val folders = fetchRepoFolders()
@@ -282,7 +276,7 @@ class MainActivity : AppCompatActivity() {
 
                 if (folders.isEmpty()) {
                     addSubHeader("⚠️ Walang nakitang folder!")
-                    addSubHeader("💡 Suriin ang koneksyon o muliang buksan")
+                    addSubHeader("💡 Suriin ang koneksyon o muling buksan")
                 } else {
                     addSubHeader("✅ ${folders.size} folder na nakita — Pumili:")
                     folders.forEach { folderPath ->
@@ -300,10 +294,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ✅ RECURSIVE — KUKUHA ANG LAHAT NG SUBFOLDER! HINDI LANG UGAT!
     private suspend fun fetchRepoFolders(): List<String> {
         return withContext(Dispatchers.IO) {
+            val list = mutableListOf<String>()
             try {
-                val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents").openConnection() as HttpURLConnection
+                val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/git/trees/main?recursive=1").openConnection() as HttpURLConnection
                 conn.setRequestProperty("Accept", "application/json")
                 conn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
 
@@ -311,24 +307,135 @@ class MainActivity : AppCompatActivity() {
                     conn.disconnect()
                     return@withContext emptyList()
                 }
-                val arr = JSONArray(readConnectionText(conn))
+
+                val json = JSONObject(readConnectionText(conn))
+                val tree = json.getJSONArray("tree")
                 conn.disconnect()
-                val list = mutableListOf<String>()
-                for (i in 0 until arr.length()) {
-                    val obj = arr.getJSONObject(i)
-                    if (obj.optString("type") == "dir") {
-                        list.add(obj.getString("path")) // ✅ BUONG DAAN
+
+                for (i in 0 until tree.length()) {
+                    val item = tree.getJSONObject(i)
+                    if (item.optString("type") == "tree") { // folder
+                        list.add(item.getString("path"))
                     }
                 }
-                list
+
+                list.sort() // ✅ Ayusin nang maayos A-Z
+
             } catch (e: Exception) {
+                Log.e("FOLDERS", "Error: ${e.message}")
                 emptyList()
             }
+            list
         }
     }
 
     // ==========================================
-    // ✅ NATITIRANG MGA FUNGSI — HINDI BINAGO
+    // ✅ CHECK UPDATE — SA RELEASES NA! HINDI NA SA docs/!
+    // ==========================================
+    private fun checkVersionFromGitHub() {
+        if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty()) {
+            Toast.makeText(this, "⚠️ I-setup muna ang GitHub (Option 6)", Toast.LENGTH_SHORT).show()
+            return
+        }
+        tvStatus.text = "🔍 Tinitignan sa Releases..."
+        btnDownloadUpdate.visibility = View.GONE
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/releases/latest").openConnection() as HttpURLConnection
+                conn.setRequestProperty("Accept", "application/json")
+                conn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
+
+                if (conn.responseCode == 200) {
+                    val release = JSONObject(readConnectionText(conn))
+                    conn.disconnect()
+
+                    val tagName = release.getString("tag_name")
+                    val assets = release.optJSONArray("assets")
+
+                    var latestApkName = ""
+                    var latestDownloadLink = ""
+
+                    if (assets != null) {
+                        for (i in 0 until assets.length()) {
+                            val asset = assets.getJSONObject(i)
+                            val name = asset.getString("name")
+                            if (name.lowercase().endsWith(".apk")) {
+                                latestApkName = name
+                                latestDownloadLink = asset.getString("browser_download_url")
+                                break
+                            }
+                        }
+                    }
+
+                    launch(Dispatchers.Main) {
+                        if (latestApkName.isNotEmpty()) {
+                            tvStatus.text = "✅ $tagName — $latestApkName"
+                            latestApkUrl = latestDownloadLink
+                            latestApkName = latestApkName
+                            btnDownloadUpdate.visibility = View.VISIBLE
+                            btnDownloadUpdate.text = "⬇️ I-DOWNLOAD: $latestApkName"
+                        } else {
+                            tvStatus.text = "⚠️ Walang APK sa Releases ($tagName)"
+                        }
+                    }
+                } else {
+                    conn.disconnect()
+                    launch(Dispatchers.Main) {
+                        tvStatus.text = "⚠️ Walang Release pa"
+                    }
+                }
+            } catch (e: Exception) {
+                launch(Dispatchers.Main) {
+                    tvStatus.text = "❌ Error: ${e.message}"
+                }
+            }
+        }
+    }
+
+    private fun checkUpdateOnLaunch() {
+        if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty()) return
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // ✅ SA RELEASES NA RIN — HINDI NA SA docs/
+                val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/releases/latest").openConnection() as HttpURLConnection
+                conn.setRequestProperty("Accept", "application/json")
+                conn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
+
+                if (conn.responseCode == 200) {
+                    val release = JSONObject(readConnectionText(conn))
+                    conn.disconnect()
+
+                    val assets = release.optJSONArray("assets")
+                    var latestName = ""
+                    var latestDownload = ""
+
+                    if (assets != null) {
+                        for (i in 0 until assets.length()) {
+                            val asset = assets.getJSONObject(i)
+                            val n = asset.getString("name")
+                            if (n.lowercase().endsWith(".apk")) {
+                                latestName = n
+                                latestDownload = asset.getString("browser_download_url")
+                                break
+                            }
+                        }
+                    }
+
+                    launch(Dispatchers.Main) {
+                        if (latestName.isNotEmpty()) {
+                            latestApkName = latestName
+                            latestApkUrl = latestDownload
+                            showUpdatePrompt(latestName, latestDownload)
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    // ==========================================
+    // ✅ NATITIRANG MGA FUNGSI — GANOON PA RIN
     // ==========================================
 
     private fun sendCodeMenu() {
@@ -609,38 +716,6 @@ class MainActivity : AppCompatActivity() {
         addMenuButton("🔙 Bumalik") { buildMainMenu() }
     }
 
-    private fun checkUpdateOnLaunch() {
-        if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty()) return
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/docs").openConnection() as HttpURLConnection
-                conn.setRequestProperty("Accept", "application/json")
-                conn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
-                if (conn.responseCode == 200) {
-                    val jsonArray = JSONArray(readConnectionText(conn))
-                    conn.disconnect()
-                    var latestName = ""
-                    var latestDownload = ""
-                    for (i in 0 until jsonArray.length()) {
-                        val f = jsonArray.getJSONObject(i)
-                        val n = f.getString("name")
-                        if (n.lowercase().endsWith(".apk") && n > latestName) {
-                            latestName = n
-                            latestDownload = f.optString("download_url", "") ?: ""
-                        }
-                    }
-                    launch(Dispatchers.Main) {
-                        if (latestName.isNotEmpty()) {
-                            latestApkName = latestName
-                            latestApkUrl = latestDownload
-                            showUpdatePrompt(latestName, latestDownload)
-                        }
-                    }
-                }
-            } catch (_: Exception) {}
-        }
-    }
-
     private fun showUpdatePrompt(apkName: String, downloadUrl: String) {
         AlertDialog.Builder(this)
             .setTitle("📢 MAY BAGONG VERSYON!")
@@ -690,49 +765,6 @@ class MainActivity : AppCompatActivity() {
         intent.setDataAndType(uri, "application/vnd.android.package-archive")
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
-    }
-
-    private fun checkVersionFromGitHub() {
-        if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty()) {
-            Toast.makeText(this, "⚠️ I-setup muna ang GitHub (Option 6)", Toast.LENGTH_SHORT).show()
-            return
-        }
-        tvStatus.text = "🔍 Tinitignan sa docs/..."
-        btnDownloadUpdate.visibility = View.GONE
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/docs").openConnection() as HttpURLConnection
-                conn.setRequestProperty("Accept", "application/json")
-                conn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
-                if (conn.responseCode == 200) {
-                    val arr = JSONArray(readConnectionText(conn))
-                    conn.disconnect()
-                    var latestApkName = ""
-                    var latestDownloadLink = ""
-                    for (i in 0 until arr.length()) {
-                        val f = arr.getJSONObject(i)
-                        val n = f.getString("name")
-                        if (n.lowercase().endsWith(".apk") && n > latestApkName) {
-                            latestApkName = n
-                            latestDownloadLink = f.optString("download_url", "") ?: ""
-                        }
-                    }
-                    launch(Dispatchers.Main) {
-                        if (latestApkName.isNotEmpty()) {
-                            tvStatus.text = "✅ NAKITA: $latestApkName"
-                            latestApkUrl = latestDownloadLink
-                            latestApkName = latestApkName
-                            btnDownloadUpdate.visibility = View.VISIBLE
-                            btnDownloadUpdate.text = "⬇️ I-DOWNLOAD: $latestApkName"
-                        } else {
-                            tvStatus.text = "⚠️ Walang .apk sa docs/"
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                launch(Dispatchers.Main) { tvStatus.text = "❌ Error: ${e.message}" }
-            }
-        }
     }
 
     private fun downloadUpdate() {
