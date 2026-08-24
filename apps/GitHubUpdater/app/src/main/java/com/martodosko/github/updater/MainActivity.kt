@@ -269,7 +269,7 @@ class MainActivity : AppCompatActivity() {
         addMenuButton("📂 Pumili ng Larawan") {
             val intent = Intent(Intent.ACTION_GET_CONTENT)
             intent.type = "image/*"
-            startActivityForResult(intent, 101)
+            imagePickerLauncher.launch(Intent.createChooser(intent, "Pumili ng Larawan"))
         }
         addMenuButton("🔙 Bumalik") { buildMainMenu() }
     }
