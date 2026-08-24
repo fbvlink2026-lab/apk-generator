@@ -145,6 +145,74 @@ class MainActivity : AppCompatActivity() {
     private fun getGitHubToken(): String = prefs.getString("github_token", "")!!
     private fun updateStatusDisplay() {
         findViewById<TextView>(R.id.tvStatus)?.text = "✅ $repoOwner/$repoName"
+        btnDownloadUpdate = findViewById(R.id.btnDownloadUpdate)
+        btnDownloadUpdate.visibility = View.GONE
+    }
+
+    // 🔍 TIGNAN ANG UPDATE — HANAPIN ANG APK SA docs/ FOLDER
+    private fun checkVersionFromGitHub() {
+        val tvStatus = findViewById<TextView>(R.id.tvStatus)
+        tvStatus.text = "🔍 Tinitignan sa docs/ folder..."
+        btnDownloadUpdate.visibility = View.GONE
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/docs").openConnection() as HttpURLConnection
+                conn.setRequestProperty("Accept", "application/json")
+
+                if (conn.responseCode == 200) {
+                    val jsonArray = JSONArray(readConnectionText(conn))
+                    conn.disconnect()
+
+                    var latestApkName = ""
+                    var latestDownloadUrl = ""
+
+                    for (i in 0 until jsonArray.length()) {
+                        val file = jsonArray.getJSONObject(i)
+                        val name = file.getString("name")
+                        if (name.lowercase().endsWith(".apk")) {
+                            if (name > latestApkName) {
+                                latestApkName = name
+                                latestDownloadUrl = file.optString("download_url", "")
+                            }
+                        }
+                    }
+
+                    launch(Dispatchers.Main) {
+                        if (latestApkName.isNotEmpty()) {
+                            tvStatus.text = "✅ NAKITA: $latestApkName"
+                            downloadUrl = latestDownloadUrl
+                            btnDownloadUpdate.visibility = View.VISIBLE
+                            btnDownloadUpdate.text = "⬇️ I-DOWNLOAD: $latestApkName"
+                            Toast.makeText(this@MainActivity, "✅ May APK sa docs/", Toast.LENGTH_LONG).show()
+                        } else {
+                            tvStatus.text = "⚠️ Walang nakitang .apk sa docs/"
+                            btnDownloadUpdate.visibility = View.GONE
+                        }
+                    }
+                } else {
+                    conn.disconnect()
+                    launch(Dispatchers.Main) {
+                        tvStatus.text = "❌ Hindi mabasa ang docs/ — Code: ${conn.responseCode}"
+                    }
+                }
+            } catch (e: Exception) {
+                launch(Dispatchers.Main) {
+                    tvStatus.text = "❌ Error: ${e.message}"
+                }
+            }
+        }
+    }
+
+    // ⬇️ I-DOWNLOAD ANG APK
+    private fun downloadUpdate() {
+        if (downloadUrl.isNullOrEmpty()) {
+            Toast.makeText(this, "Walang link ng pag-download", Toast.LENGTH_SHORT).show()
+            return
+        }
+        Toast.makeText(this, "⬇️ Binubuksan ang pag-download...", Toast.LENGTH_LONG).show()
+        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(downloadUrl))
+        startActivity(intent)
     }
     private fun scrollToTop() { mainScrollView.scrollTo(0, 0) }
 
