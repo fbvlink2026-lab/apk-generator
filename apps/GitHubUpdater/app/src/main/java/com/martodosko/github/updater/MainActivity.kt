@@ -1,17 +1,16 @@
+FILE: apps/GitHubUpdater/app/src/main/java/com/martodosko/github/updater/MainActivity.kt
+--- LAMAN ---
 package com.martodosko.github.updater
 
 import android.Manifest
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
-import androidx.activity.result.contract.ActivityResultContracts
 import android.content.SharedPreferences
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.provider.OpenableColumns
 import android.util.Base64
 import android.util.Log
 import android.view.View
@@ -21,10 +20,8 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,17 +52,13 @@ class MainActivity : AppCompatActivity() {
     private var latestApkName: String? = null
     private var GITHUB_TOKEN = ""
 
+    private val VERSION = "v6.0.2"
+
     // ✅ BAGONG IMAGE PICKER — WALANG DEPRECATED
     private val imagePickerLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { processSelectedIcon(it) }
-    }
-
-    private val VERSION = "v6.0.2 — Auto-Update"
-
-    companion object {
-        private const val REQUEST_INSTALL_PERMISSION = 1001
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,7 +82,7 @@ class MainActivity : AppCompatActivity() {
         updateStatusDisplay()
         buildMainMenu()
 
-        // ✅ PAGBUKAS NG APP — AGAD TIGNAN ANG UPDATE
+        // ✅ PAGBUKAS — AGAD TIGNAN ANG UPDATE
         checkUpdateOnLaunch()
     }
 
@@ -116,8 +109,6 @@ class MainActivity : AppCompatActivity() {
         repoOwner = owner
         repoName = repo
     }
-
-    private fun getGitHubToken(): String = GITHUB_TOKEN
 
     private fun buildMainMenu() {
         mainMenuContainer.removeAllViews()
@@ -276,15 +267,9 @@ class MainActivity : AppCompatActivity() {
         addMenuHeader("🖼️ 2 — IPADALA ANG ICON")
         addSubHeader("Piliin ang larawan mula sa Gallery")
         addMenuButton("📂 Pumili ng Larawan") {
-            val intent = Intent(Intent.ACTION_GET_CONTENT)
-            intent.type = "image/*"
-            imagePickerLauncher.launch(Intent.createChooser(intent, "Pumili ng Larawan"))
+            imagePickerLauncher.launch("image/*")
         }
         addMenuButton("🔙 Bumalik") { buildMainMenu() }
-    }
-
-    private val imagePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let { processSelectedIcon(it) }
     }
 
     private fun processSelectedIcon(uri: Uri) {
@@ -497,7 +482,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // ✅ AUTO-UPDATE SYSTEM — TIGNAN SA PAGBUKAS
+    // ✅ AUTO-UPDATE — TIGNAN SA PAGBUKAS
     // ==========================================
 
     private fun checkUpdateOnLaunch() {
@@ -522,7 +507,7 @@ class MainActivity : AppCompatActivity() {
                         if (name.lowercase().endsWith(".apk")) {
                             if (name > latestName) {
                                 latestName = name
-                                latestDownload = file.optString("download_url", "") ?: "" ?: ""
+                                latestDownload = file.optString("download_url", "") ?: ""
                             }
                         }
                     }
@@ -538,7 +523,7 @@ class MainActivity : AppCompatActivity() {
                     conn.disconnect()
                 }
             } catch (_: Exception) {
-                // Tahimik lang kung walang internet — hindi isturbo ang user
+                // Tahimik lang kung walang internet
             }
         }
     }
@@ -614,7 +599,7 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-    // 🔍 MANUAL CHECK — Pindutin ang Button
+    // 🔍 MANUAL CHECK
     private fun checkVersionFromGitHub() {
         tvStatus.text = "🔍 Tinitignan sa docs/ folder..."
         btnDownloadUpdate.visibility = View.GONE
@@ -640,7 +625,7 @@ class MainActivity : AppCompatActivity() {
                         if (name.lowercase().endsWith(".apk")) {
                             if (name > latestApkName) {
                                 latestApkName = name
-                                latestDownloadLink = file.optString("download_url", "") ?: "" ?: "" ?: ""
+                                latestDownloadLink = file.optString("download_url", "") ?: ""
                             }
                         }
                     }
@@ -672,7 +657,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ⬇️ MANUAL DOWNLOAD — Pindutin ang Button
+    // ⬇️ MANUAL DOWNLOAD
     private fun downloadUpdate() {
         if (latestApkUrl.isNullOrEmpty() || latestApkName.isNullOrEmpty()) {
             Toast.makeText(this, "❌ Walang nakitang APK!", Toast.LENGTH_SHORT).show()
@@ -685,3 +670,4 @@ class MainActivity : AppCompatActivity() {
         return BufferedReader(InputStreamReader(conn.inputStream, StandardCharsets.UTF_8)).use { it.readText() }
     }
 }
+--- END ---
