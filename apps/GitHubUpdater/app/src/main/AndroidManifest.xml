@@ -1,5 +1,3 @@
-FILE: apps/GitHubUpdater/app/src/main/AndroidManifest.xml
---- LAMAN ---
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -48,4 +46,3 @@ FILE: apps/GitHubUpdater/app/src/main/AndroidManifest.xml
     </application>
 
 </manifest>
---- END ---
