@@ -51,8 +51,8 @@ class MainActivity : AppCompatActivity() {
     private var latestVersionFound = ""
     private var GITHUB_TOKEN = ""
 
-    private val VERSION = "v6.0.4 — Docs Auto-Update + Full Folder List"
-    private val CURRENT_APP_VERSION = "v6.0.4"
+    private val VERSION = "v6.0.5 — Fixed Warnings"
+    private val CURRENT_APP_VERSION = "v6.0.5"
 
     private val imagePickerLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -213,21 +213,22 @@ class MainActivity : AppCompatActivity() {
                 val reposArray = JSONArray(readConnectionText(conn))
                 conn.disconnect()
 
-                val reposList = mutableListOf<Pair<String, String>>()
+                // ✅ BINAGO: IBA NA ANG PANGALAN — WALANG DOBLE!
+                val foundRepos = mutableListOf<Pair<String, String>>()
                 for (i in 0 until reposArray.length()) {
                     val repo = reposArray.getJSONObject(i)
                     val fullName = repo.getString("full_name")
                     val name = repo.getString("name")
-                    reposList.add(fullName to name)
+                    foundRepos.add(fullName to name)
                 }
 
                 launch(Dispatchers.Main) {
-                    if (reposList.isEmpty()) {
+                    if (foundRepos.isEmpty()) {
                         Toast.makeText(this@MainActivity, "⚠️ Walang nakitang Repository!", Toast.LENGTH_LONG).show()
                         tvStatus.text = "⚠️ Walang Repository"
                         return@launch
                     }
-                    showRepoSelectionDialog(token, reposList)
+                    showRepoSelectionDialog(token, foundRepos)
                 }
             } catch (e: Exception) {
                 launch(Dispatchers.Main) {
@@ -260,7 +261,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // ✅ OPTION 4 — BUONG LISTAHAN NG LAHAT NG SUBFOLDER!
+    // ✅ OPTION 4 — BUONG LISTAHAN NG LAHAT NG SUBFOLDER
     // ==========================================
     private fun selectDestinationMenu() {
         if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty() || repoName.isEmpty()) {
@@ -302,7 +303,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ✅ RECURSIVE — KUKUHA ANG LAHAT NG SUBFOLDER HANGGANG SA ILALIM!
     private suspend fun fetchAllFoldersRecursive(): List<String> = withContext(Dispatchers.IO) {
         val result = mutableSetOf<String>()
         try {
@@ -334,17 +334,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // ✅ AUTO-UPDATE — MULA SA /docs FOLDER LANG!
+    // ✅ AUTO-UPDATE — MULA SA /docs FOLDER
     // ==========================================
     private fun checkUpdateOnLaunch() {
         if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty() || repoName.isEmpty()) return
         CoroutineScope(Dispatchers.IO).launch {
             val found = findLatestApkInDocsFolder()
             if (found != null) {
-                val (name, url) = found
+                val (name, url, version) = found
                 latestApkName = name
                 latestApkUrl = url
-                latestVersionFound = extractVersionFromApkName(name)
+                latestVersionFound = version
 
                 if (isNewerVersion(latestVersionFound, CURRENT_APP_VERSION)) {
                     launch(Dispatchers.Main) {
@@ -367,16 +367,16 @@ class MainActivity : AppCompatActivity() {
             val found = findLatestApkInDocsFolder()
             launch(Dispatchers.Main) {
                 if (found != null) {
-                    val (name, url) = found
+                    val (name, url, version) = found
                     latestApkName = name
                     latestApkUrl = url
-                    latestVersionFound = extractVersionFromApkName(name)
+                    latestVersionFound = version
                     tvStatus.text = "✅ NAKITA: $name"
                     btnDownloadUpdate.visibility = View.VISIBLE
-                    btnDownloadUpdate.text = "⬇️ I-UPDATE: $latestVersionFound"
+                    btnDownloadUpdate.text = "⬇️ I-UPDATE: $version"
 
-                    if (isNewerVersion(latestVersionFound, CURRENT_APP_VERSION)) {
-                        showUpdatePrompt(name, url, latestVersionFound)
+                    if (isNewerVersion(version, CURRENT_APP_VERSION)) {
+                        showUpdatePrompt(name, url, version)
                     } else {
                         Toast.makeText(this@MainActivity, "✅ Kasalukuyan ka na sa pinakabagong bersyon", Toast.LENGTH_SHORT).show()
                     }
@@ -387,6 +387,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ✅ AYUSIN: SIGURADO NANG IBINABALIK ANG TRIPLE — WALANG NULL!
     private suspend fun findLatestApkInDocsFolder(): Triple<String, String, String>? = withContext(Dispatchers.IO) {
         try {
             val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/docs").openConnection() as HttpURLConnection
@@ -410,14 +411,15 @@ class MainActivity : AppCompatActivity() {
                 val n = f.getString("name")
                 if (n.lowercase().endsWith(".apk")) {
                     val ver = extractVersionFromApkName(n)
-                    if (ver.isNotEmpty() && (latestVersion.isEmpty() || isNewerVersion(ver, latestVersion))) {
-                        latestVersion = ver
+                    if (ver.isNotEmpty()) {
+                        if (latestVersion.isEmpty() || isNewerVersion(ver, latestVersion)) {
+                            latestVersion = ver
+                            latestName = n
+                            latestDownload = f.optString("download_url", "")
+                        }
+                    } else if (latestName.isEmpty() || n > latestName) {
                         latestName = n
-                        latestDownload = f.optString("download_url", "") ?: ""
-                    }
-                    if (latestVersion.isEmpty() && n > latestName) {
-                        latestName = n
-                        latestDownload = f.optString("download_url", "") ?: ""
+                        latestDownload = f.optString("download_url", "")
                     }
                 }
             }
@@ -526,7 +528,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // ✅ NATITIRANG MGA FUNGSI — HINDI BINAGO
+    // ✅ NATITIRANG MGA FUNGSI
     // ==========================================
 
     private fun sendCodeMenu() {
