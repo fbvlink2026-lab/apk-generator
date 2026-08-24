@@ -5,6 +5,7 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -43,20 +44,76 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvCurrentVersion: TextView
     private lateinit var btnDownloadUpdate: Button
 
-    // ✅ AUTOMATIC — Token lang ang hihingi, kukunin ang may-ari/repo mula sa GitHub API
     private var repoOwner = ""
     private var repoName = ""
     private var savedDefaultPath = ""
     private var latestApkUrl: String? = null
     private var latestApkName: String? = null
+    private var latestVersionName: String? = null
     private var GITHUB_TOKEN = ""
 
-    private val VERSION = "v6.0.3 — Token Lang + Auto-Detect Repo"
+    private val VERSION = "v6.0.4 — Version Compare Fixed"
 
     private val imagePickerLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { processSelectedIcon(it) }
+    }
+
+    // ✅ KASALUKUYANG VERSYON — MULA SA TUNAY NA APK
+    private fun getInstalledVersionName(): String {
+        return try {
+            val packageInfo = packageManager.getPackageInfo(packageName, 0)
+            packageInfo.versionName ?: "v1.0.0"
+        } catch (e: PackageManager.NameNotFoundException) {
+            "v1.0.0"
+        }
+    }
+
+    private fun getInstalledVersionCode(): Long {
+        return try {
+            val packageInfo = packageManager.getPackageInfo(packageName, 0)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                packageInfo.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                packageInfo.versionCode.toLong()
+            }
+        } catch (e: PackageManager.NameNotFoundException) {
+            1
+        }
+    }
+
+    // ✅ I-EXTRACT ANG VERSYON MULA SA PANGALAN NG FILE (hal: MartoPush-v6.0.4.apk → v6.0.4)
+    private fun extractVersionFromFileName(fileName: String): String {
+        val clean = fileName
+            .replace(".apk", "")
+            .replace("-", " ")
+            .replace("_", " ")
+        // Hanapin ang pattern tulad ng v6.0.4 o 6.0.4
+        val regex = Regex("""v?\d+[.\d]*""")
+        val match = regex.find(clean)
+        return match?.value ?: ""
+    }
+
+    // ✅ IKUMBARA ANG DALAWANG VERSYON — BAGUHIN: True = Mas bago
+    private fun isNewerVersion(latest: String, current: String): Boolean {
+        if (latest.isEmpty()) return false
+        // Alisin ang "v" sa unahan
+        val latestNum = latest.removePrefix("v")
+        val currentNum = current.removePrefix("v")
+        // Hatiin sa mga numero
+        val latestParts = latestNum.split(".").map { it.toIntOrNull() ?: 0 }
+        val currentParts = currentNum.split(".").map { it.toIntOrNull() ?: 0 }
+        // Ihambing isa-isa
+        val maxLen = maxOf(latestParts.size, currentParts.size)
+        for (i in 0 until maxLen) {
+            val l = if (i < latestParts.size) latestParts[i] else 0
+            val c = if (i < currentParts.size) currentParts[i] else 0
+            if (l > c) return true
+            if (l < c) return false
+        }
+        return false // Pareho
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,7 +126,9 @@ class MainActivity : AppCompatActivity() {
         tvCurrentVersion = findViewById(R.id.tvCurrentVersion)
         btnDownloadUpdate = findViewById(R.id.btnDownloadUpdate)
 
-        tvCurrentVersion.text = "📌 Bersyon: $VERSION"
+        // ✅ IPALIT SA TUNAY NA VERSYON NG APK
+        val currentVer = getInstalledVersionName()
+        tvCurrentVersion.text = "📌 Kasalukuyan: $currentVer"
         btnDownloadUpdate.visibility = View.GONE
 
         findViewById<Button>(R.id.btnCheckVersion)?.setOnClickListener { checkVersionFromGitHub() }
@@ -154,7 +213,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // ✅ OPTION 6 — TOKEN LANG ANG HIHINGI!
+    // ✅ OPTION 6 — TOKEN LANG ANG HIHINGI
     // ==========================================
     private fun setupGitHubMenu() {
         mainMenuContainer.removeAllViews()
@@ -172,7 +231,6 @@ class MainActivity : AppCompatActivity() {
         addSubHeader("💡 Saan makukuha?")
         addSubHeader("   GitHub → Settings → Developer settings →")
         addSubHeader("   Personal access tokens → Tokens (classic)")
-        addSubHeader("   Pangalan: repo / repo:status / repo_deployment")
 
         addMenuButton("✅ I-DETECT ANG REPOSITORY") {
             val token = etToken.text.toString().trim()
@@ -185,7 +243,6 @@ class MainActivity : AppCompatActivity() {
         addMenuButton("🔙 Bumalik") { buildMainMenu() }
     }
 
-    // ✅ AWTO — KUKUHA ANG LAHAT NG REPOSITORY MULA SA TOKEN!
     private fun detectRepositoriesFromToken(token: String) {
         tvStatus.text = "🔍 Binabasa ang iyong mga Repository..."
         CoroutineScope(Dispatchers.IO).launch {
@@ -197,8 +254,8 @@ class MainActivity : AppCompatActivity() {
                 if (conn.responseCode != 200) {
                     conn.disconnect()
                     launch(Dispatchers.Main) {
-                        Toast.makeText(this@MainActivity, "❌ Maling Token o hindi makakonekta!", Toast.LENGTH_LONG).show()
-                        tvStatus.text = "❌ Hindi makabasa — Suriin ang Token"
+                        Toast.makeText(this@MainActivity, "❌ Maling Token!", Toast.LENGTH_LONG).show()
+                        tvStatus.text = "❌ Hindi makabasa"
                     }
                     return@launch
                 }
@@ -206,49 +263,42 @@ class MainActivity : AppCompatActivity() {
                 val reposArray = JSONArray(readConnectionText(conn))
                 conn.disconnect()
 
-                val reposList = mutableListOf<Pair<String, String>>() // owner/repo
+                val reposList = mutableListOf<Pair<String, String>>()
                 for (i in 0 until reposArray.length()) {
                     val repo = reposArray.getJSONObject(i)
-                    val fullName = repo.getString("full_name") // "fbvlink2026-lab/apk-generator"
-                    val name = repo.getString("name")
+                    val fullName = repo.getString("full_name")
                     val owner = repo.getJSONObject("owner").getString("login")
+                    val name = repo.getString("name")
                     reposList.add(fullName to "$owner/$name")
                 }
 
                 launch(Dispatchers.Main) {
                     if (reposList.isEmpty()) {
                         Toast.makeText(this@MainActivity, "⚠️ Walang nakitang Repository!", Toast.LENGTH_LONG).show()
-                        tvStatus.text = "⚠️ Walang Repository"
                         return@launch
                     }
-
-                    // ✅ IPAPAKITA ANG LAHAT — PUMILI ANG USER!
                     showRepoSelectionDialog(token, reposList)
                 }
             } catch (e: Exception) {
                 launch(Dispatchers.Main) {
                     Toast.makeText(this@MainActivity, "❌ Error: ${e.message}", Toast.LENGTH_LONG).show()
-                    tvStatus.text = "❌ Nabigo"
                 }
             }
         }
     }
 
-    // ✅ IPAPAKITA ANG LAHAT NG REPO — PUMILI ANG USER
     private fun showRepoSelectionDialog(token: String, repos: List<Pair<String, String>>) {
         val namesArray = repos.map { it.second }.toTypedArray()
         AlertDialog.Builder(this)
             .setTitle("📂 PUMILI NG REPOSITORY")
-            .setMessage("${repos.size} na nakitang Repository — Pumili:")
+            .setMessage("${repos.size} na nakitang Repository")
             .setItems(namesArray) { _, which ->
-                val selectedFull = repos[which].first // "owner/repo"
+                val selectedFull = repos[which].first
                 val parts = selectedFull.split("/", limit = 2)
                 if (parts.size == 2) {
-                    val owner = parts[0]
-                    val repo = parts[1]
-                    saveGitHubInfo(token, owner, repo)
+                    saveGitHubInfo(token, parts[0], parts[1])
                     updateStatusDisplay()
-                    Toast.makeText(this, "✅ NAPILI: $owner/$repo", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "✅ NAPILI: ${parts[0]}/${parts[1]}", Toast.LENGTH_LONG).show()
                     buildMainMenu()
                 }
             }
@@ -265,7 +315,6 @@ class MainActivity : AppCompatActivity() {
             setupGitHubMenu()
             return
         }
-
         mainMenuContainer.removeAllViews()
         addMenuHeader("📂 4 — PUMILI NG DESTINASYON")
         addSubHeader("🔍 Kinukuha ang listahan ng folder...")
@@ -275,14 +324,12 @@ class MainActivity : AppCompatActivity() {
             launch(Dispatchers.Main) {
                 mainMenuContainer.removeAllViews()
                 addMenuHeader("📂 4 — PUMILI NG DESTINASYON")
-
                 if (savedDefaultPath.isNotEmpty()) {
                     addSubHeader("💾 KASALUKUYANG: $savedDefaultPath")
                 }
-
                 if (folders.isEmpty()) {
                     addSubHeader("⚠️ Walang nakitang folder!")
-                    addSubHeader("💡 Suriin ang koneksyon o muliang buksan")
+                    addSubHeader("💡 Suriin ang koneksyon o Token")
                 } else {
                     addSubHeader("✅ ${folders.size} folder na nakita — Pumili:")
                     folders.forEach { folderPath ->
@@ -306,7 +353,6 @@ class MainActivity : AppCompatActivity() {
                 val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents").openConnection() as HttpURLConnection
                 conn.setRequestProperty("Accept", "application/json")
                 conn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
-
                 if (conn.responseCode != 200) {
                     conn.disconnect()
                     return@withContext emptyList()
@@ -317,7 +363,7 @@ class MainActivity : AppCompatActivity() {
                 for (i in 0 until arr.length()) {
                     val obj = arr.getJSONObject(i)
                     if (obj.optString("type") == "dir") {
-                        list.add(obj.getString("path")) // ✅ BUONG DAAN
+                        list.add(obj.getString("path"))
                     }
                 }
                 list
@@ -328,9 +374,204 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // ✅ NATITIRANG MGA FUNGSI — HINDI BINAGO
+    // ✅ VERSION CHECK — TOTOONG PAGKUMBARA!
     // ==========================================
+    private fun checkUpdateOnLaunch() {
+        if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty()) return
 
+        val currentVer = getInstalledVersionName()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/docs").openConnection() as HttpURLConnection
+                conn.setRequestProperty("Accept", "application/json")
+                conn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
+
+                if (conn.responseCode == 200) {
+                    val jsonArray = JSONArray(readConnectionText(conn))
+                    conn.disconnect()
+
+                    var latestName = ""
+                    var latestDownload = ""
+                    var latestVer = ""
+
+                    for (i in 0 until jsonArray.length()) {
+                        val file = jsonArray.getJSONObject(i)
+                        val name = file.getString("name")
+                        if (name.lowercase().endsWith(".apk")) {
+                            if (name > latestName) {
+                                latestName = name
+                                latestDownload = file.optString("download_url", "") ?: ""
+                                latestVer = extractVersionFromFileName(name)
+                            }
+                        }
+                    }
+
+                    launch(Dispatchers.Main) {
+                        if (latestName.isNotEmpty() && latestDownload.isNotEmpty()) {
+                            latestApkName = latestName
+                            latestApkUrl = latestDownload
+                            latestVersionName = latestVer
+
+                            // ✅ IKUMBARA — BAGO LANG IPAPAKITA ANG DIALOG!
+                            if (isNewerVersion(latestVer, currentVer)) {
+                                showUpdatePrompt(latestName, latestDownload, currentVer, latestVer)
+                            } else {
+                                // ✅ PAREHO O LUMA — HUWAG IPAPAKITA!
+                                Log.d("UPDATE", "Naka-update na! Kasalukuyan: $currentVer, Pinakabago: $latestVer")
+                            }
+                        }
+                    }
+                } else {
+                    conn.disconnect()
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    // ✅ IPAPAKITA LANG KUNG TALAGANG MAS BAGO
+    private fun showUpdatePrompt(apkName: String, downloadUrl: String, currentVer: String, latestVer: String) {
+        AlertDialog.Builder(this)
+            .setTitle("📢 MAY BAGONG VERSYON!")
+            .setMessage("Kasalukuyan: $currentVer\nPinakabago:  $latestVer\n\n📄 $apkName\n\nGusto mo bang i-update na ngayon?")
+            .setPositiveButton("✅ OO — I-UPDATE AGAD") { _, _ ->
+                startUpdateDownload(downloadUrl, apkName)
+            }
+            .setNegativeButton("❌ HUWAG MUNA", null)
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun startUpdateDownload(downloadUrl: String, fileName: String) {
+        Toast.makeText(this, "⬇️ Dinadownload ang update...", Toast.LENGTH_LONG).show()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val downloadsDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)!!
+                if (!downloadsDir.exists()) downloadsDir.mkdirs()
+                val apkFile = File(downloadsDir, fileName)
+
+                val conn = URL(downloadUrl).openConnection() as HttpURLConnection
+                conn.inputStream.use { input ->
+                    FileOutputStream(apkFile).use { output ->
+                        input.copyTo(output, 8192)
+                    }
+                }
+                conn.disconnect()
+
+                launch(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "✅ Na-download na! Sinisimulan ang pag-install...", Toast.LENGTH_LONG).show()
+                    installApk(apkFile)
+                }
+            } catch (e: Exception) {
+                launch(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "❌ Nabigo: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun installApk(apkFile: File) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (!packageManager.canRequestPackageInstalls()) {
+                val intent = Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                intent.data = Uri.parse("package:$packageName")
+                startActivity(intent)
+                Toast.makeText(this, "⚠️ Payagan muna ang pag-install mula sa app na ito", Toast.LENGTH_LONG).show()
+                return
+            }
+        }
+        val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            FileProvider.getUriForFile(this, "$packageName.fileprovider", apkFile)
+        } else {
+            Uri.fromFile(apkFile)
+        }
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.setDataAndType(uri, "application/vnd.android.package-archive")
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
+    }
+
+    // 🔍 MANUAL CHECK — PALAGING NAGPAPAKITA NG RESULTA
+    private fun checkVersionFromGitHub() {
+        if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty()) {
+            Toast.makeText(this, "⚠️ I-setup muna ang GitHub (Option 6)", Toast.LENGTH_SHORT).show()
+            return
+        }
+        tvStatus.text = "🔍 Tinitignan sa docs/ folder..."
+        btnDownloadUpdate.visibility = View.GONE
+
+        val currentVer = getInstalledVersionName()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/docs").openConnection() as HttpURLConnection
+                conn.setRequestProperty("Accept", "application/json")
+                conn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
+
+                if (conn.responseCode == 200) {
+                    val jsonArray = JSONArray(readConnectionText(conn))
+                    conn.disconnect()
+
+                    var latestApkName = ""
+                    var latestDownloadLink = ""
+                    var latestVer = ""
+
+                    for (i in 0 until jsonArray.length()) {
+                        val file = jsonArray.getJSONObject(i)
+                        val name = file.getString("name")
+                        if (name.lowercase().endsWith(".apk")) {
+                            if (name > latestApkName) {
+                                latestApkName = name
+                                latestDownloadLink = file.optString("download_url", "") ?: ""
+                                latestVer = extractVersionFromFileName(name)
+                            }
+                        }
+                    }
+
+                    launch(Dispatchers.Main) {
+                        if (latestApkName.isNotEmpty() && latestDownloadLink.isNotEmpty()) {
+                            latestApkUrl = latestDownloadLink
+                            latestApkName = latestApkName
+                            latestVersionName = latestVer
+
+                            if (isNewerVersion(latestVer, currentVer)) {
+                                tvStatus.text = "✅ MAY BAGONG VERSYON: $latestVer"
+                                btnDownloadUpdate.visibility = View.VISIBLE
+                                btnDownloadUpdate.text = "⬇️ I-DOWNLOAD: $latestApkName"
+                                Toast.makeText(this@MainActivity, "✅ May nakitang bagong bersyon!", Toast.LENGTH_LONG).show()
+                            } else {
+                                tvStatus.text = "✅ NAKA-UPDATE NA — $currentVer (Pinakabago: $latestVer)"
+                                Toast.makeText(this@MainActivity, "✅ Naka-update na!", Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            tvStatus.text = "⚠️ Walang .apk sa docs/"
+                        }
+                    }
+                } else {
+                    conn.disconnect()
+                    launch(Dispatchers.Main) {
+                        tvStatus.text = "❌ Hindi mabasa — Code: ${conn.responseCode}"
+                    }
+                }
+            } catch (e: Exception) {
+                launch(Dispatchers.Main) {
+                    tvStatus.text = "❌ Error: ${e.message}"
+                }
+            }
+        }
+    }
+
+    private fun downloadUpdate() {
+        if (latestApkUrl.isNullOrEmpty() || latestApkName.isNullOrEmpty()) {
+            Toast.makeText(this, "❌ Walang nakitang APK!", Toast.LENGTH_SHORT).show()
+            return
+        }
+        startUpdateDownload(latestApkUrl!!, latestApkName!!)
+    }
+
+    // ==========================================
+    // ✅ NATITIRANG MGA FUNGSI
+    // ==========================================
     private fun sendCodeMenu() {
         mainMenuContainer.removeAllViews()
         addMenuHeader("📤 1 — IPADALA ANG CODE")
@@ -600,6 +841,7 @@ class MainActivity : AppCompatActivity() {
         addMenuHeader("ℹ️ TUNGKOL SA APP")
         addSubHeader("GitHub Updater — $VERSION")
         addSubHeader("Binuo ni: MartoDosko © 2026")
+        addSubHeader("📌 Kasalukuyang Bersyon: ${getInstalledVersionName()}")
         if (repoOwner.isNotEmpty() && repoName.isNotEmpty()) {
             addSubHeader("Repository: $repoOwner/$repoName")
         }
@@ -607,140 +849,6 @@ class MainActivity : AppCompatActivity() {
             addSubHeader("✅ Daan: $savedDefaultPath")
         }
         addMenuButton("🔙 Bumalik") { buildMainMenu() }
-    }
-
-    private fun checkUpdateOnLaunch() {
-        if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty()) return
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/docs").openConnection() as HttpURLConnection
-                conn.setRequestProperty("Accept", "application/json")
-                conn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
-                if (conn.responseCode == 200) {
-                    val jsonArray = JSONArray(readConnectionText(conn))
-                    conn.disconnect()
-                    var latestName = ""
-                    var latestDownload = ""
-                    for (i in 0 until jsonArray.length()) {
-                        val f = jsonArray.getJSONObject(i)
-                        val n = f.getString("name")
-                        if (n.lowercase().endsWith(".apk") && n > latestName) {
-                            latestName = n
-                            latestDownload = f.optString("download_url", "") ?: ""
-                        }
-                    }
-                    launch(Dispatchers.Main) {
-                        if (latestName.isNotEmpty()) {
-                            latestApkName = latestName
-                            latestApkUrl = latestDownload
-                            showUpdatePrompt(latestName, latestDownload)
-                        }
-                    }
-                }
-            } catch (_: Exception) {}
-        }
-    }
-
-    private fun showUpdatePrompt(apkName: String, downloadUrl: String) {
-        AlertDialog.Builder(this)
-            .setTitle("📢 MAY BAGONG VERSYON!")
-            .setMessage("Nakita:\n📄 $apkName\n\nI-update na ba?")
-            .setPositiveButton("✅ OO") { _, _ -> startUpdateDownload(downloadUrl, apkName) }
-            .setNegativeButton("❌ HUWAG MUNA", null)
-            .setCancelable(false)
-            .show()
-    }
-
-    private fun startUpdateDownload(downloadUrl: String, fileName: String) {
-        Toast.makeText(this, "⬇️ Dinadownload...", Toast.LENGTH_LONG).show()
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val downloadsDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)!!
-                if (!downloadsDir.exists()) downloadsDir.mkdirs()
-                val apkFile = File(downloadsDir, fileName)
-                val conn = URL(downloadUrl).openConnection() as HttpURLConnection
-                conn.inputStream.use { input -> FileOutputStream(apkFile).use { input.copyTo(it, 8192) } }
-                conn.disconnect()
-                launch(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "✅ Na-download! Sinisimulan ang pag-install...", Toast.LENGTH_LONG).show()
-                    installApk(apkFile)
-                }
-            } catch (e: Exception) {
-                launch(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "❌ Nabigo: ${e.message}", Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    }
-
-    private fun installApk(apkFile: File) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !packageManager.canRequestPackageInstalls()) {
-            val intent = Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
-            intent.data = Uri.parse("package:$packageName")
-            startActivity(intent)
-            Toast.makeText(this, "⚠️ Payagan muna ang pag-install", Toast.LENGTH_LONG).show()
-            return
-        }
-        val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            FileProvider.getUriForFile(this, "$packageName.fileprovider", apkFile)
-        } else {
-            Uri.fromFile(apkFile)
-        }
-        val intent = Intent(Intent.ACTION_VIEW)
-        intent.setDataAndType(uri, "application/vnd.android.package-archive")
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-        startActivity(intent)
-    }
-
-    private fun checkVersionFromGitHub() {
-        if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty()) {
-            Toast.makeText(this, "⚠️ I-setup muna ang GitHub (Option 6)", Toast.LENGTH_SHORT).show()
-            return
-        }
-        tvStatus.text = "🔍 Tinitignan sa docs/..."
-        btnDownloadUpdate.visibility = View.GONE
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/docs").openConnection() as HttpURLConnection
-                conn.setRequestProperty("Accept", "application/json")
-                conn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
-                if (conn.responseCode == 200) {
-                    val arr = JSONArray(readConnectionText(conn))
-                    conn.disconnect()
-                    var latestApkName = ""
-                    var latestDownloadLink = ""
-                    for (i in 0 until arr.length()) {
-                        val f = arr.getJSONObject(i)
-                        val n = f.getString("name")
-                        if (n.lowercase().endsWith(".apk") && n > latestApkName) {
-                            latestApkName = n
-                            latestDownloadLink = f.optString("download_url", "") ?: ""
-                        }
-                    }
-                    launch(Dispatchers.Main) {
-                        if (latestApkName.isNotEmpty()) {
-                            tvStatus.text = "✅ NAKITA: $latestApkName"
-                            latestApkUrl = latestDownloadLink
-                            latestApkName = latestApkName
-                            btnDownloadUpdate.visibility = View.VISIBLE
-                            btnDownloadUpdate.text = "⬇️ I-DOWNLOAD: $latestApkName"
-                        } else {
-                            tvStatus.text = "⚠️ Walang .apk sa docs/"
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                launch(Dispatchers.Main) { tvStatus.text = "❌ Error: ${e.message}" }
-            }
-        }
-    }
-
-    private fun downloadUpdate() {
-        if (latestApkUrl.isNullOrEmpty() || latestApkName.isNullOrEmpty()) {
-            Toast.makeText(this, "❌ Walang nakitang APK!", Toast.LENGTH_SHORT).show()
-            return
-        }
-        startUpdateDownload(latestApkUrl!!, latestApkName!!)
     }
 
     private fun readConnectionText(conn: HttpURLConnection): String =
