@@ -124,11 +124,10 @@ jobs:
                 echo "✅ TAGUMPAY — NABUO ANG APK!"
                 echo "📂 APK Daan:   $DIR/$APK_FILE"
                 echo "📏 Laki:       $APK_SIZE"
-                echo "📤 Kopyahin pansamantala..."
-                mkdir -p /tmp/APK_OUTPUT
-                NEW_APK_NAME="install-${NAME}-${{ steps.version.outputs.tag }}.apk"
-                cp "$APK_FILE" "/tmp/APK_OUTPUT/$NEW_APK_NAME"
-                echo "✅ Nakatago pansamantala — ililipat sa Releases"
+                echo "📤 Inihahanda para sa Release..."
+                echo "✅ Handa na para sa Release"
+                echo "APK_PATH=$APK_FILE" >> $GITHUB_ENV
+                echo "APK_NAME=install-${NAME}-${{ steps.version.outputs.tag }}.apk" >> $GITHUB_ENV
               else
                 echo "❌ NABIGO — Hindi nabuo o hindi mahanap ang APK"
                 echo "🔑 Exit Code: $EXIT_CODE"
@@ -172,59 +171,46 @@ jobs:
           } > "$TEMP_FILE"
 
           cp "$TEMP_FILE" "$OUTPUT_FILE"
-
           echo "✅ errors.md naisulat na!"
 
-      - name: 🗑️ BURA ANG APK SA docs/ — HINDI NA DAPAT DOON!
-        if: always()
-        run: |
-          rm -f docs/*.apk 2>/dev/null || true
-          echo "✅ Burado na ang APK sa docs/"
-
-      - name: 📂 IHANDA ANG APK PARA SA RELEASES
+      - name: 📂 KOPYAHIN ANG APK SA PANSAMANTALANG LUGAR
         id: prepare_apk
         if: always()
         run: |
-          mkdir -p /tmp/APK_ROOT
-          if [ -d /tmp/APK_OUTPUT ]; then
-            cp /tmp/APK_OUTPUT/*.apk /tmp/APK_ROOT/ 2>/dev/null || true
+          mkdir -p /tmp/RELEASE_APK
+          APK_SRC=$(find apps -name "*.apk" -path "*/debug/*" | head -1)
+          if [ -n "$APK_SRC" ] && [ -f "$APK_SRC" ]; then
+            APK_NAME="install-GitHubUpdater-${{ steps.version.outputs.tag }}.apk"
+            cp "$APK_SRC" /tmp/RELEASE_APK/"$APK_NAME"
+            echo "APK_NAME=$APK_NAME" >> $GITHUB_OUTPUT
+            echo "✅ APK nakopya: $APK_NAME"
+          else
+            echo "⚠️ Walang APK na nakita"
           fi
-          ls -lh /tmp/APK_ROOT/
-          echo "apk_count=$(ls -1 /tmp/APK_ROOT/*.apk 2>/dev/null | wc -l)" >> $GITHUB_OUTPUT
 
-      - name: 📤 I-UPLOAD SA RELEASES — APK PA RIN, HINDI ZIP! ✅
-        if: always() && steps.prepare_apk.outputs.apk_count != '0'
+      - name: 🚀 I-UPLOAD SA GITHUB RELEASES — HINDI SA docs/!
+        if: always()
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: "Build ${{ steps.version.outputs.tag }} — ${{ github.event.inputs.build_target }}"
+          name: "Release ${{ steps.version.outputs.tag }}"
           body: |
-            📦 Aplikasyon: ${{ github.event.inputs.build_target }}
-            🏷️ Bersyon: ${{ steps.version.outputs.tag }}
-            📅 Petsa: ${{ github.event.head_commit.timestamp }}
-            
-            ✅ **APK ay nasa Releases na — hindi na sa docs/**
-            ✅ Direktang i-download at i-install — walang hang!
-          files: /tmp/APK_ROOT/*.apk
-          fail_on_unmatched_files: false
+            📦 Build: ${{ steps.version.outputs.tag }}
+            📅 Petsa: $(date "+%Y-%m-%d %H:%M UTC")
+            🎯 Target: ${{ github.event.inputs.build_target }}
+            ✅ Binuo nang awtomatiko
+          files: /tmp/RELEASE_APK/*.apk
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 📤 I-UPLOAD BILANG ARTIFACT
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: APKs-${{ steps.version.outputs.tag }}
-          path: /tmp/APK_ROOT/
-          retention-days: 30
-
-      - name: ✅ I-COMMIT — WALANG APK SA docs/
+      - name: ✅ I-COMMIT (errors.md at build.gradle lang)
         if: always()
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add errors.md apps/GitHubUpdater/app/build.gradle 2>/dev/null || true
-          git add docs/ 2>/dev/null || true
-          git commit -m "📦 Build: ${{ steps.version.outputs.tag }} — APK → RELEASES" || true
+          git commit -m "📋 Build Log: ${{ steps.version.outputs.tag }}" || true
           git push || true
