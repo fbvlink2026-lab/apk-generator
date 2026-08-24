@@ -55,6 +55,13 @@ class MainActivity : AppCompatActivity() {
     private var latestApkName: String? = null
     private var GITHUB_TOKEN = ""
 
+    // ✅ BAGONG IMAGE PICKER — WALANG DEPRECATED
+    private val imagePickerLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { processSelectedIcon(it) }
+    }
+
     private val VERSION = "v6.0.2 — Auto-Update"
 
     companion object {
