@@ -62,7 +62,7 @@ jobs:
       - name: 🔨 BUILD APK + BUONG LOG
         id: do_build
         run: |
-          mkdir -p /tmp
+          mkdir -p /tmp /tmp/RELEASE_APK
           TARGET="${{ github.event.inputs.build_target }}"
           ERROR_FILE="/tmp/errors-content.txt"
           > "$ERROR_FILE"
@@ -124,10 +124,9 @@ jobs:
                 echo "✅ TAGUMPAY — NABUO ANG APK!"
                 echo "📂 APK Daan:   $DIR/$APK_FILE"
                 echo "📏 Laki:       $APK_SIZE"
-                echo "📤 Inihahanda para sa Release..."
-                echo "✅ Handa na para sa Release"
-                echo "APK_PATH=$APK_FILE" >> $GITHUB_ENV
-                echo "APK_NAME=install-${NAME}-${{ steps.version.outputs.tag }}.apk" >> $GITHUB_ENV
+                APK_OUT_NAME="${NAME}-${{ steps.version.outputs.tag }}.apk"
+                cp "$APK_FILE" /tmp/RELEASE_APK/"$APK_OUT_NAME"
+                echo "✅ HANDA SA RELEASE: $APK_OUT_NAME"
               else
                 echo "❌ NABIGO — Hindi nabuo o hindi mahanap ang APK"
                 echo "🔑 Exit Code: $EXIT_CODE"
@@ -173,22 +172,10 @@ jobs:
           cp "$TEMP_FILE" "$OUTPUT_FILE"
           echo "✅ errors.md naisulat na!"
 
-      - name: 📂 KOPYAHIN ANG APK SA PANSAMANTALANG LUGAR
-        id: prepare_apk
-        if: always()
-        run: |
-          mkdir -p /tmp/RELEASE_APK
-          APK_SRC=$(find apps -name "*.apk" -path "*/debug/*" | head -1)
-          if [ -n "$APK_SRC" ] && [ -f "$APK_SRC" ]; then
-            APK_NAME="install-GitHubUpdater-${{ steps.version.outputs.tag }}.apk"
-            cp "$APK_SRC" /tmp/RELEASE_APK/"$APK_NAME"
-            echo "APK_NAME=$APK_NAME" >> $GITHUB_OUTPUT
-            echo "✅ APK nakopya: $APK_NAME"
-          else
-            echo "⚠️ Walang APK na nakita"
-          fi
+      # ❌ TINANGGAL: upload-artifact — WALANG ZIP NA GAGAWIN!
+      # ❌ TINANGGAL: pagkopya sa docs/ — HINDI NA DOON PUPUNTA!
 
-      - name: 🚀 I-UPLOAD SA GITHUB RELEASES — HINDI SA docs/!
+      - name: 🚀 I-UPLOAD SA RELEASES — APK LANG! WALANG ZIP!
         if: always()
         uses: softprops/action-gh-release@v1
         with:
@@ -205,7 +192,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: ✅ I-COMMIT (errors.md at build.gradle lang)
+      - name: ✅ I-COMMIT
         if: always()
         continue-on-error: true
         run: |
