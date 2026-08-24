@@ -312,7 +312,8 @@ Ito ay talaan...
                     toast("❌ Walang nakitang folder — I-setup muna ang GitHub")
                     return@withContext
                 }
-                val folderArray = folders.toTypedArray()
+                // ✅ NA-AYOS: TINUKOY NA ANG URI — String
+                val folderArray: Array<String> = folders.toTypedArray()
                 AlertDialog.Builder(this@MainActivity)
                     .setTitle("📂 Pumili ng Base Folder")
                     .setItems(folderArray) { _, which ->
@@ -365,7 +366,7 @@ Ito ay talaan...
                     val stream = contentResolver.openInputStream(uri)
                     val bitmap = android.graphics.BitmapFactory.decodeStream(stream)
                     stream?.close()
-                    val scaled = Bitmap.createScaledBitmap(bitmap, size, size, true)
+                    val scaled = android.graphics.Bitmap.createScaledBitmap(bitmap, size, size, true)
                     val out = java.io.ByteArrayOutputStream()
                     scaled.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
                     output.add(Triple(qual, size, out.toByteArray()))
@@ -389,7 +390,7 @@ Ito ay talaan...
     }
 
     // ==========================================
-    // ✅ OPTION 4 — DESTINATION MENU — RECURSIVE LAHAT NG FOLDER!
+    // ✅ OPTION 4 — DESTINATION MENU
     // ==========================================
     private fun showDestinationMenu() {
         mainMenuContainer.removeAllViews()
@@ -690,7 +691,7 @@ Ito ay talaan...
     }
 
     // ==========================================
-    // ✅ PAGPAPADALA SA GITHUB — LAHAT NG URI
+    // ✅ PAGPAPADALA SA GITHUB
     // ==========================================
     private fun promptDestinationAndUpload(path: String, content: String) {
         val dest = if (savedDefaultPath.isNotEmpty()) "$savedDefaultPath/$path" else path
