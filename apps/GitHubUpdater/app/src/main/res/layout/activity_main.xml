@@ -43,7 +43,16 @@
             android:textColor="#FFFFFF"/>
 
         <Button
-            android:id="@+id/btnCloseDrawer"
+            android:id="@+id/android:textColor="#FFFFFF"/>  <Button  android:id="@+id/btnDownloadUpdate"
+  android:layout_width="wrap_content"
+  android:layout_height="wrap_content"
+  android:text="⬇️ I-DOWNLOAD ANG UPDATE"
+  android:textSize="12sp"
+  android:layout_marginTop="6dp"
+  android:backgroundTint="#4CAF50"
+  android:textColor="#FFFFFF"
+  android:visibility="gone"/>
+  <Button  android:id="@+id/btnCloseDrawer""
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="✕ Isara"
