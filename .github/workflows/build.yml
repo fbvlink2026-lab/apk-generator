@@ -97,17 +97,20 @@ jobs:
             echo "--- BUILD: $NAME — $DIR ---"
             cd "$DIR" || continue
 
+            # ✅ I-SETUP ANG GRADLE
             wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip -O /tmp/gradle.zip
             unzip -q /tmp/gradle.zip -d /tmp
             export PATH=/tmp/gradle-8.2/bin:$PATH
             gradle wrapper --gradle-version 8.2
             chmod +x gradlew
 
+            # ✅ BUILD — KUKUHAIN ANG BUONG OUTPUT KASAMA ANG ERROR
             set +e
             ./gradlew assembleDebug > "$LOG_FILE" 2>&1
             EXIT_CODE=$?
             set -e
 
+            # ✅ HANAPIN ANG APK
             APK_FILE=$(find . -name "*.apk" -path "*/debug/*" | head -1)
 
             {
@@ -169,11 +172,16 @@ jobs:
             echo "✅ **Katapusan ng Talaan**"
           } > "$TEMP_FILE"
 
+          # ✅ PALITAN ANG BUONG FILE — SIGURADONG WALANG PUTOL
           cp "$TEMP_FILE" "$OUTPUT_FILE"
-          echo "✅ errors.md naisulat na!"
 
-      # ❌ TINANGGAL: upload-artifact — WALANG ZIP NA GAGAWIN!
-      # ❌ TINANGGAL: pagkopya sa docs/ — HINDI NA DOON PUPUNTA!
+          echo "✅ errors.md naisulat na! Laman:"
+          echo "========================================"
+          cat "$OUTPUT_FILE"
+          echo "========================================"
+
+      # ❌ TINANGGAL: Pagkopya sa docs/ — HINDI NA DOON PUPUNTA
+      # ❌ TINANGGAL: upload-artifact — WALANG ZIP NA GAGAWIN
 
       - name: 🚀 I-UPLOAD SA RELEASES — APK LANG! WALANG ZIP!
         if: always()
@@ -192,12 +200,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: ✅ I-COMMIT
+      - name: ✅ I-COMMIT — errors.md + build.gradle
         if: always()
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add errors.md apps/GitHubUpdater/app/build.gradle 2>/dev/null || true
-          git commit -m "📋 Build Log: ${{ steps.version.outputs.tag }}" || true
+          git commit -m "📝 Update: Build log + Bersyon na-update" || true
           git push || true
