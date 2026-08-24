@@ -3,7 +3,7 @@
 > Created & Developed by MartoDosko © Copyright 2026
 
 ---
-📅 **Petsa:** 2026-08-24 14:00 UTC
+📅 **Petsa:** 2026-08-24 14:15 UTC
 🎯 **Target:** GitHubUpdater
 🏷️ **Bersyon:** v6.0.4
 ---
@@ -11,13 +11,74 @@
 ==================================================
 📦 APLIKASYON: GitHubUpdater
 📂 LOKASYON:   apps/GitHubUpdater
+⏰ ORAS:       2026-08-24 14:15:56 UTC
 🏷️ BERSYON:    v6.0.4
 ==================================================
 
-❌ NABIGO — Hindi mahanap ang APK
-🔑 Exit Code: 1
+✅ TAGUMPAY — NABUO ANG APK!
+📂 APK Daan:   apps/GitHubUpdater/./app/build/outputs/apk/debug/install-GitHubUpdater-v6.0.4.apk
+📏 Laki:       5.6M
+📤 Kopyahin sa docs/...
+✅ Nasa: docs/install-GitHubUpdater-v6.0.4.apk
 
-📋 BUONG LOG:
-Error: Could not find or load main class org.gradle.wrapper.GradleWrapperMain
-Caused by: java.lang.ClassNotFoundException: org.gradle.wrapper.GradleWrapperMain
+--------------------------------------------------
+📋 BUONG LOG NG BUILD:
+--------------------------------------------------
+Downloading https://services.gradle.org/distributions/gradle-8.2-bin.zip
+............10%............20%............30%.............40%............50%............60%............70%.............80%............90%............100%
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:generateDebugResValues
+> Task :app:checkDebugAarMetadata
+> Task :app:mapDebugSourceSetPaths
+> Task :app:generateDebugResources
+> Task :app:packageDebugResources
+> Task :app:mergeDebugResources
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
+> Task :app:parseDebugLocalResources
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:javaPreCompileDebug
+> Task :app:mergeDebugShaders
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets
+> Task :app:compressDebugAssets
+> Task :app:desugarDebugFileDependencies
+> Task :app:mergeDebugJniLibFolders
+> Task :app:checkDebugDuplicateClasses
+> Task :app:mergeDebugNativeLibs NO-SOURCE
+> Task :app:processDebugManifestForPackage
+> Task :app:mergeLibDexDebug
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:validateSigningDebug
+> Task :app:writeDebugAppMetadata
+> Task :app:writeDebugSigningConfigVersions
+> Task :app:processDebugResources
+> Task :app:mergeExtDexDebug
 
+> Task :app:compileDebugKotlin
+w: file:///home/runner/work/apk-generator/apk-generator/apps/GitHubUpdater/app/src/main/java/com/martodosko/github/updater/MainActivity.kt:278:31 There is more than one label with such a name in this scope
+w: file:///home/runner/work/apk-generator/apk-generator/apps/GitHubUpdater/app/src/main/java/com/martodosko/github/updater/MainActivity.kt:669:49 Type mismatch: inferred type is Nothing? but String was expected
+w: file:///home/runner/work/apk-generator/apk-generator/apps/GitHubUpdater/app/src/main/java/com/martodosko/github/updater/MainActivity.kt:732:111 Type mismatch: inferred type is Nothing? but String was expected
+
+> Task :app:compileDebugJavaWithJavac NO-SOURCE
+> Task :app:processDebugJavaRes
+> Task :app:mergeDebugJavaResource
+> Task :app:dexBuilderDebug
+> Task :app:mergeProjectDexDebug
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect
+> Task :app:assembleDebug
+
+BUILD SUCCESSFUL in 54s
+32 actionable tasks: 32 executed
+
+==================================================
+
+
+---
+✅ **Katapusan ng Talaan**
