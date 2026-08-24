@@ -1,5 +1,3 @@
-FILE: apps/GitHubUpdater/app/src/main/java/com/martodosko/github/updater/MainActivity.kt
---- LAMAN ---
 package com.martodosko.github.updater
 
 import android.Manifest
@@ -670,4 +668,3 @@ class MainActivity : AppCompatActivity() {
         return BufferedReader(InputStreamReader(conn.inputStream, StandardCharsets.UTF_8)).use { it.readText() }
     }
 }
---- END ---
