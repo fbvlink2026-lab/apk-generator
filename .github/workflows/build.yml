@@ -2,8 +2,10 @@ name: Build APK
 
 on:
   push:
+    branches: [ main ]
     paths:
       - 'apps/**'
+      - '.github/workflows/build.yml'
     tags:
       - 'v*'
   workflow_dispatch:
@@ -25,48 +27,31 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: 🏷️ AWTO — BERSYON SA BAWAT BUILD
+      - name: 🏷️ KUNIN ANG BERSYON
         id: version
         run: |
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            BASE_TAG="${GITHUB_REF#refs/tags/}"
+            VERSION_TAG="${GITHUB_REF#refs/tags/}"
           else
-            BASE_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v6.0.5")
+            VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v6.0.4")
           fi
-          BASE_VERSION="${BASE_TAG#v}"
-          COMMIT_COUNT=$(git rev-list --count HEAD 2>/dev/null || echo "0")
-          VERSION_NAME="$BASE_VERSION.$COMMIT_COUNT"
-          VERSION_CODE=$(echo "$VERSION_NAME" | awk -F. '{ printf "%d%02d%02d%03d", $1,$2,$3,$4 }')
-          VERSION_TAG="v$VERSION_NAME"
+          VERSION_NAME="${VERSION_TAG#v}"
+          VERSION_CODE=$(echo "$VERSION_NAME" | awk -F. '{ printf "%d%02d%02d", $1,$2,$3 }')
           echo "tag=$VERSION_TAG" >> $GITHUB_OUTPUT
           echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "code=$VERSION_CODE" >> $GITHUB_OUTPUT
-          echo "base=$BASE_TAG" >> $GITHUB_OUTPUT
 
-      - name: ✍️ ISULAT ANG BERSYON SA build.gradle
+      - name: ✍️ ISULAT SA build.gradle
         run: |
           FILE="apps/GitHubUpdater/app/build.gradle"
           if [ -f "$FILE" ]; then
             sed -i "s/versionCode [0-9]*/versionCode ${{ steps.version.outputs.code }}/" "$FILE"
             sed -i "s/versionName \"[^\"]*\"/versionName \"${{ steps.version.outputs.name }}\"/" "$FILE"
-            echo "✅ build.gradle → ${{ steps.version.outputs.name }} / ${{ steps.version.outputs.code }}"
-          fi
-
-      - name: ✍️ ISULAT ANG BERSYON SA LOOB NG APP (MainActivity.kt)
-        run: |
-          FILE="apps/GitHubUpdater/app/src/main/java/com/martodosko/github/updater/MainActivity.kt"
-          if [ -f "$FILE" ]; then
-            sed -i "s/private val CURRENT_VERSION = \"v[^\"]*\"/private val CURRENT_VERSION = \"${{ steps.version.outputs.tag }}\"/" "$FILE"
-            echo "✅ MainActivity.kt → CURRENT_VERSION = ${{ steps.version.outputs.tag }}"
           fi
 
       - name: 📋 LISTAHAN NG FOLDER
@@ -76,7 +61,7 @@ jobs:
           echo "=========================================="
           find . -maxdepth 5 -type d | grep -v '.git' | sort
 
-      - name: 🔨 BUILD APK + BUONG LOG
+      - name: 🔨 BUILD APK
         id: do_build
         run: |
           mkdir -p /tmp
@@ -109,15 +94,14 @@ jobs:
           for DIR in "${APPS[@]}"; do
             NAME=$(basename "$DIR")
             LOG_FILE="/tmp/$NAME-build-full.log"
-
-            echo ""
-            echo "--- BUILD: $NAME — $DIR ---"
             cd "$DIR" || continue
 
-            wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip -O /tmp/gradle.zip
-            unzip -q /tmp/gradle.zip -d /tmp
-            export PATH=/tmp/gradle-8.2/bin:$PATH
-            gradle wrapper --gradle-version 8.2
+            if [ ! -f "gradlew" ]; then
+              wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip -O /tmp/gradle.zip
+              unzip -q /tmp/gradle.zip -d /tmp
+              export PATH=/tmp/gradle-8.2/bin:$PATH
+              gradle wrapper --gradle-version 8.2
+            fi
             chmod +x gradlew
 
             set +e
@@ -131,45 +115,33 @@ jobs:
               echo "=================================================="
               echo "📦 APLIKASYON: $NAME"
               echo "📂 LOKASYON:   $DIR"
-              echo "⏰ ORAS:       $(date '+%Y-%m-%d %H:%M:%S UTC')"
               echo "🏷️ BERSYON:    ${{ steps.version.outputs.tag }}"
               echo "=================================================="
               echo ""
-
               if [ -n "$APK_FILE" ] && [ -f "$APK_FILE" ]; then
                 APK_SIZE=$(du -h "$APK_FILE" | cut -f1)
                 echo "✅ TAGUMPAY — NABUO ANG APK!"
-                echo "📂 APK Daan:   $DIR/$APK_FILE"
-                echo "📏 Laki:       $APK_SIZE"
-                echo "📤 Kopyahin sa docs/..."
+                echo "📏 Laki: $APK_SIZE"
                 mkdir -p "$GITHUB_WORKSPACE/docs"
-                NEW_APK_NAME="install-${NAME}-${{ steps.version.outputs.tag }}.apk"
-                cp "$APK_FILE" "$GITHUB_WORKSPACE/docs/$NEW_APK_NAME"
-                echo "✅ Nasa: docs/$NEW_APK_NAME"
+                NEW_APK="install-${NAME}-${{ steps.version.outputs.tag }}.apk"
+                cp "$APK_FILE" "$GITHUB_WORKSPACE/docs/$NEW_APK"
+                echo "✅ NAI-SAVE: docs/$NEW_APK"
               else
-                echo "❌ NABIGO — Hindi nabuo o hindi mahanap ang APK"
+                echo "❌ NABIGO — Hindi mahanap ang APK"
                 echo "🔑 Exit Code: $EXIT_CODE"
               fi
-
               echo ""
-              echo "--------------------------------------------------"
-              echo "📋 BUONG LOG NG BUILD:"
-              echo "--------------------------------------------------"
+              echo "📋 BUONG LOG:"
               cat "$LOG_FILE"
-              echo ""
-              echo "=================================================="
-              echo ""
             } >> "$ERROR_FILE"
 
             cd "$GITHUB_WORKSPACE"
           done
 
-      - name: 📄 SIGURADUHIN TAMA ANG PAGSULAT SA errors.md
+      - name: 📄 ISULAT SA errors.md
         if: always()
         run: |
           DATE=$(date "+%Y-%m-%d %H:%M UTC")
-          OUTPUT_FILE="$GITHUB_WORKSPACE/errors.md"
-          TEMP_FILE="/tmp/errors-final.md"
           {
             echo "# 📋 Talaan ng mga Build"
             echo ""
@@ -183,44 +155,16 @@ jobs:
             echo ""
             cat /tmp/errors-content.txt
             echo ""
-            echo "---"
-            echo "✅ **Katapusan ng Talaan**"
-          } > "$TEMP_FILE"
-          cp "$TEMP_FILE" "$OUTPUT_FILE"
-          echo "✅ errors.md naisulat na!"
+          } > errors.md
+          cat errors.md
 
-      - name: 📂 IKUMPON ANG MGA APK
-        id: collect_apks
-        if: always()
-        run: |
-          mkdir -p /tmp/APK_ROOT
-          find docs -name "*.apk" -exec cp {} /tmp/APK_ROOT/ \;
-          ls -lh /tmp/APK_ROOT/
-          echo "APK_DIR=/tmp/APK_ROOT" >> $GITHUB_OUTPUT
-
-      - name: 📤 I-UPLOAD SA ARTIFACTS
+      - name: 📤 I-UPLOAD ANG APK
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: APKs-${{ steps.version.outputs.tag }}
-          path: /tmp/APK_ROOT/
+          path: docs/
           retention-days: 30
-
-      - name: 🚀 I-UPLOAD SA GITHUB RELEASES
-        if: success() && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: "Bersyon ${{ steps.version.outputs.tag }}"
-          body: |
-            ✅ Bagong Build — ${{ steps.version.outputs.tag }}
-            📅 ${{ github.event.head_commit.message }}
-            ---
-            📥 I-download ang APK sa ibaba 👇
-          files: /tmp/APK_ROOT/*.apk
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: ✅ I-COMMIT
         if: always()
@@ -228,6 +172,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add errors.md docs/*.apk apps/GitHubUpdater/app/build.gradle apps/GitHubUpdater/app/src/main/java/com/martodosko/github/updater/MainActivity.kt 2>/dev/null || true
+          git add .
           git commit -m "📦 Build: ${{ steps.version.outputs.tag }}" || true
           git push || true
