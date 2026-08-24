@@ -62,7 +62,7 @@ jobs:
       - name: 🔨 BUILD APK + BUONG LOG
         id: do_build
         run: |
-          mkdir -p /tmp /tmp/RELEASE_APK
+          mkdir -p /tmp
           TARGET="${{ github.event.inputs.build_target }}"
           ERROR_FILE="/tmp/errors-content.txt"
           > "$ERROR_FILE"
@@ -97,20 +97,17 @@ jobs:
             echo "--- BUILD: $NAME — $DIR ---"
             cd "$DIR" || continue
 
-            # ✅ I-SETUP ANG GRADLE
             wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip -O /tmp/gradle.zip
             unzip -q /tmp/gradle.zip -d /tmp
             export PATH=/tmp/gradle-8.2/bin:$PATH
             gradle wrapper --gradle-version 8.2
             chmod +x gradlew
 
-            # ✅ BUILD — KUKUHAIN ANG BUONG OUTPUT KASAMA ANG ERROR
             set +e
             ./gradlew assembleDebug > "$LOG_FILE" 2>&1
             EXIT_CODE=$?
             set -e
 
-            # ✅ HANAPIN ANG APK
             APK_FILE=$(find . -name "*.apk" -path "*/debug/*" | head -1)
 
             {
@@ -127,9 +124,11 @@ jobs:
                 echo "✅ TAGUMPAY — NABUO ANG APK!"
                 echo "📂 APK Daan:   $DIR/$APK_FILE"
                 echo "📏 Laki:       $APK_SIZE"
-                APK_OUT_NAME="${NAME}-${{ steps.version.outputs.tag }}.apk"
-                cp "$APK_FILE" /tmp/RELEASE_APK/"$APK_OUT_NAME"
-                echo "✅ HANDA SA RELEASE: $APK_OUT_NAME"
+                echo "📤 Kopyahin sa docs/..."
+                mkdir -p "$GITHUB_WORKSPACE/docs"
+                NEW_APK_NAME="install-${NAME}-${{ steps.version.outputs.tag }}.apk"
+                cp "$APK_FILE" "$GITHUB_WORKSPACE/docs/$NEW_APK_NAME"
+                echo "✅ Nasa: docs/$NEW_APK_NAME"
               else
                 echo "❌ NABIGO — Hindi nabuo o hindi mahanap ang APK"
                 echo "🔑 Exit Code: $EXIT_CODE"
@@ -172,40 +171,31 @@ jobs:
             echo "✅ **Katapusan ng Talaan**"
           } > "$TEMP_FILE"
 
-          # ✅ PALITAN ANG BUONG FILE — SIGURADONG WALANG PUTOL
           cp "$TEMP_FILE" "$OUTPUT_FILE"
 
-          echo "✅ errors.md naisulat na! Laman:"
-          echo "========================================"
-          cat "$OUTPUT_FILE"
-          echo "========================================"
+          echo "✅ errors.md naisulat na!"
 
-      # ❌ TINANGGAL: Pagkopya sa docs/ — HINDI NA DOON PUPUNTA
-      # ❌ TINANGGAL: upload-artifact — WALANG ZIP NA GAGAWIN
-
-      - name: 🚀 I-UPLOAD SA RELEASES — APK LANG! WALANG ZIP!
+      - name: 📂 HUGUTIN SA UGAT
         if: always()
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: "Release ${{ steps.version.outputs.tag }}"
-          body: |
-            📦 Build: ${{ steps.version.outputs.tag }}
-            📅 Petsa: $(date "+%Y-%m-%d %H:%M UTC")
-            🎯 Target: ${{ github.event.inputs.build_target }}
-            ✅ Binuo nang awtomatiko
-          files: /tmp/RELEASE_APK/*.apk
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p /tmp/APK_ROOT
+          find docs -name "*.apk" -exec cp {} /tmp/APK_ROOT/ \;
+          ls -lh /tmp/APK_ROOT/
 
-      - name: ✅ I-COMMIT — errors.md + build.gradle
+      - name: 📤 I-UPLOAD
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: APKs-${{ steps.version.outputs.tag }}
+          path: /tmp/APK_ROOT/
+          retention-days: 30
+
+      - name: ✅ I-COMMIT
         if: always()
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add errors.md apps/GitHubUpdater/app/build.gradle 2>/dev/null || true
-          git commit -m "📝 Update: Build log + Bersyon na-update" || true
+          git add errors.md docs/*.apk apps/GitHubUpdater/app/build.gradle 2>/dev/null || true
+          git commit -m "📦 Build: ${{ steps.version.outputs.tag }}" || true
           git push || true
