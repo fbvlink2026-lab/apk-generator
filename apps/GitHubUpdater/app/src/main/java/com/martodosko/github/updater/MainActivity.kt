@@ -59,6 +59,9 @@ class MainActivity : AppCompatActivity() {
     private var currentScreen = "MAIN"
     private var selectedImageUri: Uri? = null
     private var savedDefaultPath = ""
+    private lateinit var btnDownloadUpdate: Button
+    private var latestVersionFound = ""
+    private var downloadUrl: String? = null
 
     private var detectedPackagePath: String = ""
     private var detectedJavaRootPath: String = ""
