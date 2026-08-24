@@ -11,12 +11,15 @@ android {
         applicationId "com.martodosko.github.updater"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode 60004
+        versionName "6.0.4"
     }
 
     buildTypes {
         release {
+            minifyEnabled false
+        }
+        debug {
             minifyEnabled false
         }
     }
@@ -31,15 +34,15 @@ android {
     }
 
     // ==============================================
-    // ✅ DAGDAG: TAMANG PANGALAN NG APK — HINDI NA app-debug.apk!
+    // ✅ PANGALAN NG APK — install-GitHubUpdater-vX.X.X.apk
     // ==============================================
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            output.outputFileName = "GitHubUpdater-${variant.name}.apk"
+            output.outputFileName = "install-GitHubUpdater-v${variant.versionName}.apk"
         }
     }
 }
-    // ✅ Iwan ang iyong kasalukuyang dependencies dito
+
 dependencies {
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
