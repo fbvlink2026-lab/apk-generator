@@ -50,9 +50,9 @@ class MainActivity : AppCompatActivity() {
     private var latestApkName: String? = null
     private var GITHUB_TOKEN = ""
 
-    private val VERSION = "v6.0.2"
+    private val VERSION = "v6.0.2 — Fixed Path List"
 
-    // ✅ BAGONG IMAGE PICKER — WALANG DEPRECATED
+    // ✅ Image Picker — Walang Deprecated
     private val imagePickerLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -80,7 +80,7 @@ class MainActivity : AppCompatActivity() {
         updateStatusDisplay()
         buildMainMenu()
 
-        // ✅ PAGBUKAS — AGAD TIGNAN ANG UPDATE
+        // ✅ Pagbukas — Agad tignan ang update
         checkUpdateOnLaunch()
     }
 
@@ -195,7 +195,7 @@ class MainActivity : AppCompatActivity() {
         var i = 0
         while (i < lines.size) {
             val line = lines[i].trim()
-            if (line.startsWith("FILE:") || line.startsWith("## FILE:") || line.startsWith("# FILE:")) {
+            if (line.startsWith("FILE:")) {
                 var path = line.substringAfter("FILE:").trim()
                 if (path.contains(" ")) path = path.substringBefore(" ")
                 i++
@@ -203,12 +203,17 @@ class MainActivity : AppCompatActivity() {
                 var endFound = false
                 while (i < lines.size && !endFound) {
                     val cl = lines[i]
-                    if (cl.trim() == "--- END ---" || cl.trim() == "ENDOFFILE" || cl.trim() == "EOF" || cl.trim() == "---") endFound = true
-                    else contentLines.add(cl)
+                    if (cl.trim() == "--- END ---" || cl.trim() == "ENDOFFILE" || cl.trim() == "EOF" || cl.trim() == "---") {
+                        endFound = true
+                    } else {
+                        contentLines.add(cl)
+                    }
                     i++
                 }
                 val content = contentLines.joinToString("\n").trim('\n', ' ')
-                if (path.isNotEmpty() && content.isNotEmpty()) result.add(ParsedFile(path, content))
+                if (path.isNotEmpty() && content.isNotEmpty()) {
+                    result.add(ParsedFile(path, content))
+                }
             } else if (line.startsWith("cat > ")) {
                 val path = line.substringAfter("cat > ").substringBefore(" <<").trim()
                 i++
@@ -216,13 +221,20 @@ class MainActivity : AppCompatActivity() {
                 var endFound = false
                 while (i < lines.size && !endFound) {
                     val cl = lines[i]
-                    if (cl.trim() == "ENDOFFILE" || cl.trim() == "EOF" || cl.startsWith("<< ")) endFound = true
-                    else contentLines.add(cl)
+                    if (cl.trim() == "ENDOFFILE" || cl.trim() == "EOF" || cl.startsWith("<< ")) {
+                        endFound = true
+                    } else {
+                        contentLines.add(cl)
+                    }
                     i++
                 }
                 val content = contentLines.joinToString("\n")
-                if (path.isNotEmpty() && content.isNotEmpty()) result.add(ParsedFile(path, content))
-            } else { i++ }
+                if (path.isNotEmpty() && content.isNotEmpty()) {
+                    result.add(ParsedFile(path, content))
+                }
+            } else {
+                i++
+            }
         }
         return result
     }
@@ -256,7 +268,10 @@ class MainActivity : AppCompatActivity() {
                 val ok = putConn.responseCode in 200..299
                 putConn.disconnect()
                 ok
-            } catch (e: Exception) { Log.e("UPLOAD", "Error: ${e.message}"); false }
+            } catch (e: Exception) {
+                Log.e("UPLOAD", "Error: ${e.message}")
+                false
+            }
         }
     }
 
@@ -276,7 +291,13 @@ class MainActivity : AppCompatActivity() {
             val bitmap = contentResolver.openInputStream(uri)?.use {
                 android.graphics.BitmapFactory.decodeStream(it)
             } ?: return@launch
-            val sizes = listOf("mdpi" to 48, "hdpi" to 72, "xhdpi" to 96, "xxhdpi" to 144, "xxxhdpi" to 192)
+            val sizes = listOf(
+                "mdpi" to 48,
+                "hdpi" to 72,
+                "xhdpi" to 96,
+                "xxhdpi" to 144,
+                "xxxhdpi" to 192
+            )
             var uploaded = 0
             for ((qual, size) in sizes) {
                 val scaled = android.graphics.Bitmap.createScaledBitmap(bitmap, size, size, true)
@@ -316,7 +337,9 @@ class MainActivity : AppCompatActivity() {
                 val ok = putConn.responseCode in 200..299
                 putConn.disconnect()
                 ok
-            } catch (e: Exception) { false }
+            } catch (e: Exception) {
+                false
+            }
         }
     }
 
@@ -328,7 +351,7 @@ class MainActivity : AppCompatActivity() {
         input.hint = "FILE: path/file.ext\n--- HANAPIN ---\n...\n--- PALITAN ---\n...\n--- END ---"
         input.setLines(15)
         input.setBackgroundColor(0xFFFFFFFF.toInt())
-        input.setPadding(16,16,16,16)
+        input.setPadding(16, 16, 16, 16)
         mainMenuContainer.addView(input)
         addMenuButton("✅ I-apply ang Patch") {
             val text = input.text.toString()
@@ -397,48 +420,68 @@ class MainActivity : AppCompatActivity() {
                 val ok = putConn.responseCode in 200..299
                 putConn.disconnect()
                 ok
-            } catch (e: Exception) { false }
+            } catch (e: Exception) {
+                false
+            }
         }
     }
 
+    // ✅ OPTION 4 — PUMILI NG DESTINASYON — AYUS NA!
     private fun selectDestinationMenu() {
         mainMenuContainer.removeAllViews()
         addMenuHeader("📂 4 — PUMILI NG DESTINASYON")
-        addSubHeader("I-scan ang repository...")
-        CoroutineScope(Dispatchers.Main).launch {
-            tvStatus.text = "🔍 Binabasa ang folder..."
+        addSubHeader("🔍 Kinukuha ang listahan ng folder...")
+
+        CoroutineScope(Dispatchers.IO).launch {
             val folders = fetchRepoFolders()
-            if (folders.isEmpty()) {
-                addSubHeader("⚠️ Walang nakitang folder — i-setup muna ang GitHub")
-            } else {
-                folders.forEachIndexed { i, folder ->
-                    addMenuButton("${i+1}. $folder") {
-                        savedDefaultPath = folder
-                        Toast.makeText(this@MainActivity, "✅ Napili: $folder", Toast.LENGTH_SHORT).show()
-                        tvStatus.text = "✅ Destinasyon: $folder"
+            launch(Dispatchers.Main) {
+                mainMenuContainer.removeAllViews()
+                addMenuHeader("📂 4 — PUMILI NG DESTINASYON")
+
+                if (folders.isEmpty()) {
+                    addSubHeader("⚠️ Walang nakitang folder!")
+                    addSubHeader("💡 Siguraduhin na naka-setup nang tama ang GitHub (Option 6)")
+                } else {
+                    addSubHeader("✅ ${folders.size} folder na nakita — Pumili:")
+                    folders.forEach { folderPath ->
+                        addMenuButton("📁 $folderPath") {
+                            savedDefaultPath = folderPath
+                            Toast.makeText(this@MainActivity, "✅ Napili: $folderPath", Toast.LENGTH_SHORT).show()
+                            buildMainMenu()
+                        }
                     }
                 }
+                addMenuButton("🔙 Bumalik") { buildMainMenu() }
             }
-            addMenuButton("🔙 Bumalik") { buildMainMenu() }
         }
     }
 
+    // ✅ AYUS — BINABASA ANG "path" HINDI "name" — KAYA BUONG DAAN!
     private suspend fun fetchRepoFolders(): List<String> {
         return withContext(Dispatchers.IO) {
             try {
                 val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents").openConnection() as HttpURLConnection
-                conn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
                 conn.setRequestProperty("Accept", "application/json")
-                if (conn.responseCode != 200) return@withContext emptyList()
+                if (GITHUB_TOKEN.isNotEmpty()) {
+                    conn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
+                }
+                if (conn.responseCode != 200) {
+                    conn.disconnect()
+                    return@withContext emptyList()
+                }
                 val arr = JSONArray(readConnectionText(conn))
                 conn.disconnect()
                 val list = mutableListOf<String>()
                 for (i in 0 until arr.length()) {
                     val obj = arr.getJSONObject(i)
-                    if (obj.optString("type") == "dir") list.add(obj.getString("name"))
+                    if (obj.optString("type") == "dir") {
+                        list.add(obj.getString("path")) // ✅ BUONG DAAN — ITO ANG GUMAGANA!
+                    }
                 }
                 list
-            } catch (e: Exception) { emptyList() }
+            } catch (e: Exception) {
+                emptyList()
+            }
         }
     }
 
@@ -448,25 +491,32 @@ class MainActivity : AppCompatActivity() {
         addSubHeader("GitHub Updater — $VERSION")
         addSubHeader("Binuo ni: MartoDosko © 2026")
         addSubHeader("Repository: $repoOwner/$repoName")
+        if (savedDefaultPath.isNotEmpty()) {
+            addSubHeader("✅ Kasalukuyang Daan: $savedDefaultPath")
+        }
         addMenuButton("🔙 Bumalik") { buildMainMenu() }
     }
 
     private fun setupGitHubMenu() {
         mainMenuContainer.removeAllViews()
         addMenuHeader("🔐 6 — I-SETUP ANG GITHUB")
+
         val etToken = EditText(this)
-        etToken.hint = "GitHub Token"
+        etToken.hint = "Ilagay ang GitHub Token"
         etToken.setText(GITHUB_TOKEN)
         mainMenuContainer.addView(etToken)
+
         val etOwner = EditText(this)
-        etOwner.hint = "Username / Organization"
+        etOwner.hint = "GitHub Username / May-ari"
         etOwner.setText(repoOwner)
         mainMenuContainer.addView(etOwner)
+
         val etRepo = EditText(this)
         etRepo.hint = "Pangalan ng Repository"
         etRepo.setText(repoName)
         mainMenuContainer.addView(etRepo)
-        addMenuButton("✅ I-save") {
+
+        addMenuButton("✅ I-SAVE") {
             saveGitHubToken(
                 etToken.text.toString().trim(),
                 etOwner.text.toString().trim(),
@@ -480,7 +530,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // ✅ AUTO-UPDATE — TIGNAN SA PAGBUKAS
+    // ✅ AUTO-UPDATE SYSTEM
     // ==========================================
 
     private fun checkUpdateOnLaunch() {
