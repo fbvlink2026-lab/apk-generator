@@ -30,10 +30,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-# ==============================================
-# 🆕 DAGDAG 1: KUNIN ANG BERSYON MULA SA TAG
-# ==============================================
-      - name: 🏷️ KUNIN ANG BERSYON — AWTO DETECT
+      - name: 🏷️ KUNIN ANG BERSYON
         id: version
         run: |
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
@@ -47,10 +44,7 @@ jobs:
           echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "code=$VERSION_CODE" >> $GITHUB_OUTPUT
 
-# ==============================================
-# 🆕 DAGDAG 2: ISULAT ANG BERSYON SA build.gradle
-# ==============================================
-      - name: ✍️ ISULAT ANG BERSYON SA build.gradle
+      - name: ✍️ ISULAT SA build.gradle
         run: |
           FILE="apps/GitHubUpdater/app/build.gradle"
           if [ -f "$FILE" ]; then
@@ -58,9 +52,6 @@ jobs:
             sed -i "s/versionName \"[^\"]*\"/versionName \"${{ steps.version.outputs.name }}\"/" "$FILE"
           fi
 
-# ==============================================
-# ✅ ORIHINAL — WALANG BINAGO: LISTAHAN NG FOLDER
-# ==============================================
       - name: 📋 LISTAHAN NG FOLDER
         run: |
           echo "=========================================="
@@ -68,9 +59,6 @@ jobs:
           echo "=========================================="
           find . -maxdepth 5 -type d | grep -v '.git' | sort
 
-# ==============================================
-# ✅ ORIHINAL — WALANG BINAGO: BUILD APK + BUONG LOG
-# ==============================================
       - name: 🔨 BUILD APK + BUONG LOG
         id: do_build
         run: |
@@ -109,20 +97,17 @@ jobs:
             echo "--- BUILD: $NAME — $DIR ---"
             cd "$DIR" || continue
 
-            # ✅ I-SETUP ANG GRADLE — ORIHINAL, WALANG BINAGO
             wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip -O /tmp/gradle.zip
             unzip -q /tmp/gradle.zip -d /tmp
             export PATH=/tmp/gradle-8.2/bin:$PATH
             gradle wrapper --gradle-version 8.2
             chmod +x gradlew
 
-            # ✅ BUILD — KUKUHAIN ANG BUONG OUTPUT KASAMA ANG ERROR — ORIHINAL
             set +e
             ./gradlew assembleDebug > "$LOG_FILE" 2>&1
             EXIT_CODE=$?
             set -e
 
-            # ✅ HANAPIN ANG APK — ORIHINAL
             APK_FILE=$(find . -name "*.apk" -path "*/debug/*" | head -1)
 
             {
@@ -141,9 +126,6 @@ jobs:
                 echo "📏 Laki:       $APK_SIZE"
                 echo "📤 Kopyahin sa docs/..."
                 mkdir -p "$GITHUB_WORKSPACE/docs"
-# ==============================================
-# 🆕 DAGDAG: install- SA UNAHAN NG PANGALAN NG APK
-# ==============================================
                 NEW_APK_NAME="install-${NAME}-${{ steps.version.outputs.tag }}.apk"
                 cp "$APK_FILE" "$GITHUB_WORKSPACE/docs/$NEW_APK_NAME"
                 echo "✅ Nasa: docs/$NEW_APK_NAME"
@@ -165,9 +147,6 @@ jobs:
             cd "$GITHUB_WORKSPACE"
           done
 
-# ==============================================
-# ✅ ORIHINAL — WALANG BINAGO: PAGSULAT SA errors.md
-# ==============================================
       - name: 📄 SIGURADUHIN TAMA ANG PAGSULAT SA errors.md
         if: always()
         run: |
@@ -192,46 +171,31 @@ jobs:
             echo "✅ **Katapusan ng Talaan**"
           } > "$TEMP_FILE"
 
-          # ✅ PALITAN ANG BUONG FILE — SIGURADONG WALANG PUTOL — ORIHINAL
           cp "$TEMP_FILE" "$OUTPUT_FILE"
 
-          echo "✅ errors.md naisulat na! Laman:"
-          echo "========================================"
-          cat "$OUTPUT_FILE"
-          echo "========================================"
+          echo "✅ errors.md naisulat na!"
 
-# ==============================================
-# ✅ ORIHINAL — WALANG BINAGO: HUGUTIN SA UGAT
-# ==============================================
-      - name: 📂 HUGUTIN SA UGAT — WALANG SUBFOLDER SA ARTIFACT
+      - name: 📂 HUGUTIN SA UGAT
         if: always()
         run: |
           mkdir -p /tmp/APK_ROOT
           find docs -name "*.apk" -exec cp {} /tmp/APK_ROOT/ \;
-          echo "✅ APK na nasa artifact:"
           ls -lh /tmp/APK_ROOT/
 
-# ==============================================
-# ✅ ORIHINAL — WALANG BINAGO: I-UPLOAD
-# ==============================================
-      - name: 📤 I-UPLOAD — APK LANG, WALANG SUBFOLDER
+      - name: 📤 I-UPLOAD
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: APKs-${{ github.event.inputs.build_target }}
+          name: APKs-${{ steps.version.outputs.tag }}
           path: /tmp/APK_ROOT/
           retention-days: 30
 
-# ==============================================
-# ✅ ORIHINAL + DAGDAG: I-COMMIT — kasama na build.gradle
-# ==============================================
-      - name: ✅ I-COMMIT — errors.md + APK sa docs/ + build.gradle
+      - name: ✅ I-COMMIT
         if: always()
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add errors.md docs/*.apk 2>/dev/null || true
-          git add apps/GitHubUpdater/app/build.gradle 2>/dev/null || true
-          git commit -m "📦 Build: ${{ steps.version.outputs.tag }} — ${{ github.event.inputs.build_target }}" || true
+          git add errors.md docs/*.apk apps/GitHubUpdater/app/build.gradle 2>/dev/null || true
+          git commit -m "📦 Build: ${{ steps.version.outputs.tag }}" || true
           git push || true
