@@ -274,12 +274,8 @@ class MainActivity : AppCompatActivity() {
         addMenuButton("🔙 Bumalik") { buildMainMenu() }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == 101 && resultCode == RESULT_OK && data != null) {
-            val uri = data.data ?: return
-            processSelectedIcon(uri)
-        }
+    private val imagePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let { processSelectedIcon(it) }
     }
 
     private fun processSelectedIcon(uri: Uri) {
