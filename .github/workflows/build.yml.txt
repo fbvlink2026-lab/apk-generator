@@ -1,0 +1,182 @@
+name: Build APK
+
+on:
+  push:
+    paths:
+      - 'apps/**'
+  workflow_dispatch:
+    inputs:
+      build_target:
+        description: '📌 Alin ang gusto mong buuin?'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - 'all'
+          - 'GitHubUpdater'
+          - 'GuitarFX'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions: write-all
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: 📋 LISTAHAN NG FOLDER
+        run: |
+          echo "=========================================="
+          echo "   📂 LAHAT NG FOLDER SA REPOSITORY"
+          echo "=========================================="
+          find . -maxdepth 5 -type d | grep -v '.git' | sort
+
+      - name: 🔨 BUILD APK + BUONG LOG
+        id: do_build
+        run: |
+          mkdir -p /tmp
+          TARGET="${{ github.event.inputs.build_target }}"
+          ERROR_FILE="/tmp/errors-content.txt"
+          > "$ERROR_FILE"
+
+          FIND_APP() {
+            local NAME="$1"
+            if [ -d "apps/$NAME" ]; then echo "apps/$NAME"; return 0; fi
+            if [ -d "$NAME" ]; then echo "$NAME"; return 0; fi
+            return 1
+          }
+
+          declare -a APPS=()
+          if [ "$TARGET" = "all" ]; then
+            DIR=$(FIND_APP GitHubUpdater) && APPS+=("$DIR")
+            DIR=$(FIND_APP GuitarFX) && APPS+=("$DIR")
+          else
+            DIR=$(FIND_APP "$TARGET") && APPS+=("$DIR")
+          fi
+
+          echo "✅ IPAPROSESO: ${APPS[*]}"
+          if [ ${#APPS[@]} -eq 0 ]; then
+            echo "⚠️ WALANG MAHANAP NA APP"
+            echo "# ⚠️ Walang napiling aplikasyon o hindi matagpuan ang folder" >> "$ERROR_FILE"
+            exit 0
+          fi
+
+          for DIR in "${APPS[@]}"; do
+            NAME=$(basename "$DIR")
+            LOG_FILE="/tmp/$NAME-build-full.log"
+
+            echo ""
+            echo "--- BUILD: $NAME — $DIR ---"
+            cd "$DIR" || continue
+
+            # ✅ I-SETUP ANG GRADLE
+            wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip -O /tmp/gradle.zip
+            unzip -q /tmp/gradle.zip -d /tmp
+            export PATH=/tmp/gradle-8.2/bin:$PATH
+            gradle wrapper --gradle-version 8.2
+            chmod +x gradlew
+
+            # ✅ BUILD — KUKUHAIN ANG BUONG OUTPUT KASAMA ANG ERROR
+            set +e
+            ./gradlew assembleDebug > "$LOG_FILE" 2>&1
+            EXIT_CODE=$?
+            set -e
+
+            # ✅ HANAPIN ANG APK
+            APK_FILE=$(find . -name "*.apk" -path "*/debug/*" | head -1)
+
+            {
+              echo "=================================================="
+              echo "📦 APLIKASYON: $NAME"
+              echo "📂 LOKASYON:   $DIR"
+              echo "⏰ ORAS:       $(date '+%Y-%m-%d %H:%M:%S UTC')"
+              echo "=================================================="
+              echo ""
+
+              if [ -n "$APK_FILE" ] && [ -f "$APK_FILE" ]; then
+                APK_SIZE=$(du -h "$APK_FILE" | cut -f1)
+                echo "✅ TAGUMPAY — NABUO ANG APK!"
+                echo "📂 APK Daan:   $DIR/$APK_FILE"
+                echo "📏 Laki:       $APK_SIZE"
+                echo "📤 Kopyahin sa docs/..."
+                mkdir -p "$GITHUB_WORKSPACE/docs"
+                cp "$APK_FILE" "$GITHUB_WORKSPACE/docs/${NAME}-debug.apk"
+                echo "✅ Nasa: docs/${NAME}-debug.apk"
+              else
+                echo "❌ NABIGO — Hindi nabuo o hindi mahanap ang APK"
+                echo "🔑 Exit Code: $EXIT_CODE"
+              fi
+
+              echo ""
+              echo "--------------------------------------------------"
+              echo "📋 BUONG LOG NG BUILD:"
+              echo "--------------------------------------------------"
+              cat "$LOG_FILE"
+              echo ""
+              echo "=================================================="
+              echo ""
+            } >> "$ERROR_FILE"
+
+            cd "$GITHUB_WORKSPACE"
+          done
+
+      - name: 📄 SIGURADUHIN TAMA ANG PAGSULAT SA errors.md
+        if: always()
+        run: |
+          DATE=$(date "+%Y-%m-%d %H:%M UTC")
+          OUTPUT_FILE="$GITHUB_WORKSPACE/errors.md"
+          TEMP_FILE="/tmp/errors-final.md"
+
+          {
+            echo "# 📋 Talaan ng mga Build"
+            echo ""
+            echo "> Created & Developed by MartoDosko © Copyright 2026"
+            echo ""
+            echo "---"
+            echo "📅 **Petsa:** $DATE"
+            echo "🎯 **Target:** ${{ github.event.inputs.build_target }}"
+            echo "---"
+            echo ""
+            cat /tmp/errors-content.txt
+            echo ""
+            echo "---"
+            echo "✅ **Katapusan ng Talaan**"
+          } > "$TEMP_FILE"
+
+          # ✅ PALITAN ANG BUONG FILE — SIGURADONG WALANG PUTOL
+          cp "$TEMP_FILE" "$OUTPUT_FILE"
+
+          echo "✅ errors.md naisulat na! Laman:"
+          echo "========================================"
+          cat "$OUTPUT_FILE"
+          echo "========================================"
+
+      - name: 📂 HUTIN SA UGAT — WALANG SUBFOLDER SA ARTIFACT
+        if: always()
+        run: |
+          mkdir -p /tmp/APK_ROOT
+          find docs -name "*.apk" -exec cp {} /tmp/APK_ROOT/ \;
+          echo "✅ APK na nasa artifact:"
+          ls -lh /tmp/APK_ROOT/
+
+      - name: 📤 I-UPLOAD — APK LANG, WALANG SUBFOLDER
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: APKs-${{ github.event.inputs.build_target }}
+          path: /tmp/APK_ROOT/
+          retention-days: 30
+
+      - name: ✅ I-COMMIT — errors.md + APK sa docs/
+        if: always()
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add errors.md docs/*.apk 2>/dev/null || true
+          git commit -m "📝 Update: Build log + APK sa docs/" || true
+          git push || true
