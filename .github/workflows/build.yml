@@ -31,7 +31,7 @@ jobs:
           distribution: 'temurin'
 
 # ==============================================
-# 🆕 BAGONG DAGDAG: KUNIN ANG BERSYON — WALANG BINAWAS SA ORIHINAL
+# 🆕 DAGDAG 1: KUNIN ANG BERSYON MULA SA TAG
 # ==============================================
       - name: 🏷️ KUNIN ANG BERSYON — AWTO DETECT
         id: version
@@ -47,6 +47,9 @@ jobs:
           echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "code=$VERSION_CODE" >> $GITHUB_OUTPUT
 
+# ==============================================
+# 🆕 DAGDAG 2: ISULAT ANG BERSYON SA build.gradle
+# ==============================================
       - name: ✍️ ISULAT ANG BERSYON SA build.gradle
         run: |
           FILE="apps/GitHubUpdater/app/build.gradle"
@@ -106,7 +109,7 @@ jobs:
             echo "--- BUILD: $NAME — $DIR ---"
             cd "$DIR" || continue
 
-            # ✅ I-SETUP ANG GRADLE — ORIHINAL
+            # ✅ I-SETUP ANG GRADLE — ORIHINAL, WALANG BINAGO
             wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip -O /tmp/gradle.zip
             unzip -q /tmp/gradle.zip -d /tmp
             export PATH=/tmp/gradle-8.2/bin:$PATH
@@ -139,7 +142,7 @@ jobs:
                 echo "📤 Kopyahin sa docs/..."
                 mkdir -p "$GITHUB_WORKSPACE/docs"
 # ==============================================
-# 🆕 DAGDAG LANG: install- SA UNAHAN
+# 🆕 DAGDAG: install- SA UNAHAN NG PANGALAN NG APK
 # ==============================================
                 NEW_APK_NAME="install-${NAME}-${{ steps.version.outputs.tag }}.apk"
                 cp "$APK_FILE" "$GITHUB_WORKSPACE/docs/$NEW_APK_NAME"
@@ -163,7 +166,7 @@ jobs:
           done
 
 # ==============================================
-# ✅ ORIHINAL — WALANG BINAGO: BUONG PAGSULAT SA errors.md
+# ✅ ORIHINAL — WALANG BINAGO: PAGSULAT SA errors.md
 # ==============================================
       - name: 📄 SIGURADUHIN TAMA ANG PAGSULAT SA errors.md
         if: always()
@@ -198,9 +201,9 @@ jobs:
           echo "========================================"
 
 # ==============================================
-# ✅ ORIHINAL — WALANG BINAGO: HUTIN SA UGAT
+# ✅ ORIHINAL — WALANG BINAGO: HUGUTIN SA UGAT
 # ==============================================
-      - name: 📂 HUTIN SA UGAT — WALANG SUBFOLDER SA ARTIFACT
+      - name: 📂 HUGUTIN SA UGAT — WALANG SUBFOLDER SA ARTIFACT
         if: always()
         run: |
           mkdir -p /tmp/APK_ROOT
@@ -220,14 +223,15 @@ jobs:
           retention-days: 30
 
 # ==============================================
-# ✅ ORIHINAL — WALANG BINAGO: I-COMMIT
+# ✅ ORIHINAL + DAGDAG: I-COMMIT — kasama na build.gradle
 # ==============================================
-      - name: ✅ I-COMMIT — errors.md + APK sa docs/
+      - name: ✅ I-COMMIT — errors.md + APK sa docs/ + build.gradle
         if: always()
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add errors.md docs/*.apk 2>/dev/null || true
-          git commit -m "📝 Update: Build log + APK sa docs/" || true
+          git add apps/GitHubUpdater/app/build.gradle 2>/dev/null || true
+          git commit -m "📦 Build: ${{ steps.version.outputs.tag }} — ${{ github.event.inputs.build_target }}" || true
           git push || true
