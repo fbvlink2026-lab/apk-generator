@@ -3,7 +3,7 @@
 > Created & Developed by MartoDosko © Copyright 2026
 
 ---
-📅 **Petsa:** 2026-08-25 16:02 UTC
+📅 **Petsa:** 2026-08-25 16:26 UTC
 🎯 **Target:** GitHubUpdater
 🏷️ **Bersyon:** v6.0.4
 ---
@@ -11,7 +11,7 @@
 ==================================================
 📦 APLIKASYON: GitHubUpdater
 📂 LOKASYON:   apps/GitHubUpdater
-⏰ ORAS:       2026-08-25 16:02:40 UTC
+⏰ ORAS:       2026-08-25 16:26:55 UTC
 🏷️ BERSYON:    v6.0.4
 ==================================================
 
@@ -48,9 +48,9 @@ Downloading https://services.gradle.org/distributions/gradle-8.2-bin.zip
 > Task :app:mergeDebugJniLibFolders
 > Task :app:checkDebugDuplicateClasses
 > Task :app:mergeDebugNativeLibs NO-SOURCE
-> Task :app:stripDebugDebugSymbols NO-SOURCE
 > Task :app:processDebugManifestForPackage
 > Task :app:mergeLibDexDebug
+> Task :app:stripDebugDebugSymbols NO-SOURCE
 > Task :app:processDebugResources
 > Task :app:validateSigningDebug
 > Task :app:mergeExtDexDebug
@@ -58,7 +58,7 @@ Downloading https://services.gradle.org/distributions/gradle-8.2-bin.zip
 > Task :app:writeDebugSigningConfigVersions
 
 > Task :app:compileDebugKotlin FAILED
-e: file:///home/runner/work/apk-generator/apk-generator/apps/GitHubUpdater/app/src/main/java/com/martodosko/github/updater/MainActivity.kt:555:50 Type mismatch: inferred type is String? but String was expected
+e: file:///home/runner/work/apk-generator/apk-generator/apps/GitHubUpdater/app/src/main/java/com/martodosko/github/updater/MainActivity.kt:484:50 Type mismatch: inferred type is String? but String was expected
 
 FAILURE: Build failed with an exception.
 
@@ -73,7 +73,7 @@ Execution failed for task ':app:compileDebugKotlin'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 55s
+BUILD FAILED in 44s
 26 actionable tasks: 26 executed
 
 ==================================================
