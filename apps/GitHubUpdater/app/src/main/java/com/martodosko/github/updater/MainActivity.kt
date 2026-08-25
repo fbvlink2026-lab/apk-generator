@@ -41,7 +41,7 @@ import java.nio.charset.StandardCharsets
 
 // ==========================================
 // 📤 MARTOPUSH — GitHub Updater & Uploader
-// ✅ VERSION: v6.0.6 — NA-AYOS: Type mismatch Line 555
+// ✅ VERSION: v6.0.7 — NA-AYOS: Line 484 Type mismatch
 // Developed by MartoDosko © 2026
 // ==========================================
 
@@ -65,7 +65,7 @@ class MainActivity : AppCompatActivity() {
     private var scannedFolders = mutableListOf<GitHubFolder>()
     private var alreadyPrompted = false
 
-    private val VERSION = "v6.0.6 — NA-AYOS ✅"
+    private val VERSION = "v6.0.7 — NA-AYOS ✅"
 
     data class GitHubFolder(val path: String, val type: String, val displayName: String)
     data class ParsedFile(val path: String, val content: String)
@@ -215,7 +215,6 @@ class MainActivity : AppCompatActivity() {
         addMenuButton("🔙 Bumalik") { buildMainMenu() }
     }
 
-    // ✅ AWTOMATIK — KUKUHA ANG USERNAME AT REPO MULA SA TOKEN
     private fun detectRepositoriesFromToken(token: String) {
         tvStatus.text = "🔍 Binabasa ang iyong account mula sa Token..."
         CoroutineScope(Dispatchers.IO).launch {
@@ -266,7 +265,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ✅ NA-AYOS — WALANG TYPE MISMATCH DITO! ← LINE 555 FIX
     private fun showRepoSelectionDialog(token: String, repos: List<Pair<String, String>>) {
         val namesArray = repos.map { it.second }.toTypedArray()
         AlertDialog.Builder(this)
@@ -276,7 +274,6 @@ class MainActivity : AppCompatActivity() {
                 val selectedFull = repos[which].first
                 val parts = selectedFull.split("/", limit = 2)
                 if (parts.size >= 2) {
-                    // ✅ SIGURADO — LAGI MAY HALAGA: String hindi String?
                     val owner: String = parts[0]
                     val repo: String = parts[1]
                     saveGitHubInfo(token, owner, repo)
@@ -551,7 +548,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // ✅ OPTION 3 — PATCH
+    // ✅ OPTION 3 — PATCH — LINE 484 NA-AYOS!
     // ==========================================
     private fun patchFileMenu() {
         if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty()) {
@@ -595,15 +592,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ✅ LINE 484 — NA-AYOS: Siguradong String hindi String?
     private fun parsePatch(text: String): List<PatchFile> {
         val result = mutableListOf<PatchFile>()
         text.split("FILE:").filter { it.isNotEmpty() }.forEach { block ->
             val lines = block.lines()
-            val path = lines.firstOrNull()?.trim() ?: return@forEach
-            val find = block.substringAfter("--- HANAPIN ---").substringBefore("--- PALITAN ---").trimIndent()
-            val repl = block.substringAfter("--- PALITAN ---").substringBefore("--- END ---").trimIndent()
-            if (find.isNotEmpty() && repl.isNotEmpty()) {
-                result.add(PatchFile(path, find, repl))
+            // ✅ AYOS — Kung walang linya, laktawan (hindi magiging null)
+            val firstLine = lines.firstOrNull() ?: return@forEach
+            val path: String = firstLine.trim()
+            if (path.isEmpty()) return@forEach
+            val findPart = block.substringAfter("--- HANAPIN ---")
+            val find = findPart.substringBefore("--- PALITAN ---").trimIndent()
+            val replacePart = block.substringAfter("--- PALITAN ---")
+            val replace = replacePart.substringBefore("--- END ---").trimIndent()
+            if (find.isNotEmpty() && replace.isNotEmpty()) {
+                result.add(PatchFile(path, find, replace))
             }
         }
         return result
