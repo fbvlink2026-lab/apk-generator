@@ -41,7 +41,7 @@ import java.nio.charset.StandardCharsets
 
 // ==========================================
 // 📤 MARTOPUSH — GitHub Updater & Uploader
-// ✅ VERSION: v6.0.7 — NA-AYOS: Line 484 Type mismatch
+// ✅ VERSION: v6.0.8 — NA-AYOS: Line 481 Type mismatch — SIGURADONG WALANG NULL
 // Developed by MartoDosko © 2026
 // ==========================================
 
@@ -65,7 +65,7 @@ class MainActivity : AppCompatActivity() {
     private var scannedFolders = mutableListOf<GitHubFolder>()
     private var alreadyPrompted = false
 
-    private val VERSION = "v6.0.7 — NA-AYOS ✅"
+    private val VERSION = "v6.0.8 — NA-AYOS ✅"
 
     data class GitHubFolder(val path: String, val type: String, val displayName: String)
     data class ParsedFile(val path: String, val content: String)
@@ -548,7 +548,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // ✅ OPTION 3 — PATCH — LINE 484 NA-AYOS!
+    // ✅ OPTION 3 — PATCH — LINE 481 NA-AYOS!
     // ==========================================
     private fun patchFileMenu() {
         if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty()) {
@@ -592,22 +592,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ✅ LINE 484 — NA-AYOS: Siguradong String hindi String?
+    // ✅ LINE 481 — TAMA NA! SIGURADONG STRING HINDI NULL
     private fun parsePatch(text: String): List<PatchFile> {
         val result = mutableListOf<PatchFile>()
-        text.split("FILE:").filter { it.isNotEmpty() }.forEach { block ->
+        val blocks = text.split("FILE:").filter { it.isNotBlank() }
+        for (block in blocks) {
+            // ✅ AYOS — Kunin ang unang linya nang SIGURADO
             val lines = block.lines()
-            // ✅ AYOS — Kung walang linya, laktawan (hindi magiging null)
-            val firstLine = lines.firstOrNull() ?: return@forEach
-            val path: String = firstLine.trim()
-            if (path.isEmpty()) return@forEach
-            val findPart = block.substringAfter("--- HANAPIN ---")
-            val find = findPart.substringBefore("--- PALITAN ---").trimIndent()
-            val replacePart = block.substringAfter("--- PALITAN ---")
-            val replace = replacePart.substringBefore("--- END ---").trimIndent()
-            if (find.isNotEmpty() && replace.isNotEmpty()) {
-                result.add(PatchFile(path, find, replace))
-            }
+            if (lines.isEmpty()) continue  // laktawan kung walang laman
+
+            // ✅ SIGURADO — may laman na kaya String na
+            val path: String = lines[0].trim()
+            if (path.isEmpty()) continue
+
+            // ✅ Kunin ang hanapin at palitan
+            val partFind = block.substringAfter("--- HANAPIN ---", missingDelimiterValue = "")
+            if (partFind.isEmpty()) continue
+            val findContent = partFind.substringBefore("--- PALITAN ---").trimIndent()
+            if (findContent.isEmpty()) continue
+
+            val partReplace = block.substringAfter("--- PALITAN ---", missingDelimiterValue = "")
+            if (partReplace.isEmpty()) continue
+            val replaceContent = partReplace.substringBefore("--- END ---").trimIndent()
+            if (replaceContent.isEmpty()) continue
+
+            result.add(PatchFile(path, findContent, replaceContent))
         }
         return result
     }
