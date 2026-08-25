@@ -3,7 +3,7 @@
 > Created & Developed by MartoDosko © Copyright 2026
 
 ---
-📅 **Petsa:** 2026-08-25 16:41 UTC
+📅 **Petsa:** 2026-08-25 16:57 UTC
 🎯 **Target:** GitHubUpdater
 🏷️ **Bersyon:** v6.0.4
 ---
@@ -11,7 +11,7 @@
 ==================================================
 📦 APLIKASYON: GitHubUpdater
 📂 LOKASYON:   apps/GitHubUpdater
-⏰ ORAS:       2026-08-25 16:41:27 UTC
+⏰ ORAS:       2026-08-25 16:57:33 UTC
 🏷️ BERSYON:    v6.0.4
 ==================================================
 
@@ -46,14 +46,14 @@ Downloading https://services.gradle.org/distributions/gradle-8.2-bin.zip
 > Task :app:compressDebugAssets
 > Task :app:desugarDebugFileDependencies
 > Task :app:mergeDebugJniLibFolders
-> Task :app:processDebugManifestForPackage
 > Task :app:checkDebugDuplicateClasses
-> Task :app:processDebugResources
-> Task :app:mergeExtDexDebug
 > Task :app:mergeDebugNativeLibs NO-SOURCE
-> Task :app:mergeLibDexDebug
+> Task :app:processDebugManifestForPackage
 > Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:mergeLibDexDebug
+> Task :app:processDebugResources
 > Task :app:validateSigningDebug
+> Task :app:mergeExtDexDebug
 > Task :app:writeDebugAppMetadata
 > Task :app:writeDebugSigningConfigVersions
 
