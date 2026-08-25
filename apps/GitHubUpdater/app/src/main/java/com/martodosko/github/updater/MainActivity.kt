@@ -50,12 +50,10 @@ class MainActivity : AppCompatActivity() {
     private var latestVersionFound: String = ""
     private var GITHUB_TOKEN = ""
 
-    private val VERSION = "v6.0.6 — Fixed All Warnings"
-    private val CURRENT_APP_VERSION = "v6.0.6"
+    private val VERSION = "v6.0.7 — Fixed Duplicate Label"
+    private val CURRENT_APP_VERSION = "v6.0.7"
 
-    private val imagePickerLauncher = registerForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
+    private val imagePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { processSelectedIcon(it) }
     }
 
@@ -65,16 +63,16 @@ class MainActivity : AppCompatActivity() {
 
         mainMenuContainer = findViewById(R.id.main_menu_container)
         mainScrollView = findViewById(R.id.main_scroll_view)
-        tvStatus = findViewById(R.id.tvStatus)
-        tvCurrentVersion = findViewById(R.id.tvCurrentVersion)
-        btnDownloadUpdate = findViewById(R.id.btnDownloadUpdate)
+        tvStatus = findViewById(R.id.tv_status)
+        tvCurrentVersion = findViewById(R.id.tv_current_version)
+        btnDownloadUpdate = findViewById(R.id.btn_download_update)
 
         tvCurrentVersion.text = "📌 Bersyon: $CURRENT_APP_VERSION"
         btnDownloadUpdate.visibility = View.GONE
 
-        findViewById<Button>(R.id.btnCheckVersion)?.setOnClickListener { checkVersionFromGitHub() }
+        findViewById<Button>(R.id.btn_check_version)?.setOnClickListener { checkVersionFromGitHub() }
         btnDownloadUpdate.setOnClickListener { downloadUpdate() }
-        findViewById<Button>(R.id.btnCloseDrawer)?.setOnClickListener { buildMainMenu() }
+        findViewById<Button>(R.id.btn_close_drawer)?.setOnClickListener { buildMainMenu() }
 
         loadGitHubToken()
         updateStatusDisplay()
@@ -121,8 +119,8 @@ class MainActivity : AppCompatActivity() {
     private fun buildMainMenu() {
         mainMenuContainer.removeAllViews()
         addMenuHeader("📋 PANGUNAHING MENU")
-        addMenuButton("1️⃣ Ipadala ang Code sa GitHub") { sendCodeMenu() }
-        addMenuButton("2️⃣ Ipadala ang Icon sa GitHub") { sendIconMenu() }
+        addMenuButton("1️⃣ Ipadala ang Code") { sendCodeMenu() }
+        addMenuButton("2️⃣ Ipadala ang Icon") { sendIconMenu() }
         addMenuButton("3️⃣ PATCH — Ayusin ang File") { patchFileMenu() }
         addMenuButton("4️⃣ Pumili ng Destinasyon") { selectDestinationMenu() }
         addMenuButton("5️⃣ Tungkol sa App") { aboutAppMenu() }
@@ -133,9 +131,9 @@ class MainActivity : AppCompatActivity() {
     private fun addMenuHeader(text: String) {
         val tv = TextView(this)
         tv.text = text
-        tv.textSize = 16f
+        tv.textSize = 18f
         tv.setTextColor(0xFF1565C0.toInt())
-        tv.setPadding(0, 24, 0, 8)
+        tv.setPadding(0, 24, 0, 12)
         tv.setTypeface(null, android.graphics.Typeface.BOLD)
         mainMenuContainer.addView(tv)
     }
@@ -144,7 +142,7 @@ class MainActivity : AppCompatActivity() {
         val btn = Button(this)
         btn.text = text
         btn.textSize = 14f
-        btn.setPadding(24, 16, 24, 16)
+        btn.setPadding(48, 24, 48, 24)
         btn.setBackgroundColor(0xFFE3F2FD.toInt())
         btn.setTextColor(0xFF1565C0.toInt())
         btn.setOnClickListener { action() }
@@ -156,7 +154,7 @@ class MainActivity : AppCompatActivity() {
         tv.text = text
         tv.textSize = 14f
         tv.setTextColor(0xFF666666.toInt())
-        tv.setPadding(0, 16, 0, 4)
+        tv.setPadding(16, 8, 16, 4)
         mainMenuContainer.addView(tv)
     }
 
@@ -166,20 +164,13 @@ class MainActivity : AppCompatActivity() {
     private fun setupGitHubMenu() {
         mainMenuContainer.removeAllViews()
         addMenuHeader("🔐 6 — I-SETUP ANG GITHUB")
-        addSubHeader("👉 Ilagay lang ang Personal Access Token")
-        addSubHeader("   — Awtomatikong kukunin ang iyong Repository")
-        addSubHeader("")
+        addSubHeader("Ilagay ang Personal Access Token mula sa GitHub")
+        addSubHeader("Pahintulot na kailangan: repo")
 
         val etToken = EditText(this)
-        etToken.hint = "GitHub Personal Access Token"
-        etToken.setText(GITHUB_TOKEN)
-        etToken.inputType = android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        etToken.hint = "ghp_xxxxxxxxxxxxxx"
+        etToken.setPadding(32, 24, 32, 24)
         mainMenuContainer.addView(etToken)
-
-        addSubHeader("💡 Saan makukuha?")
-        addSubHeader("   GitHub → Settings → Developer settings →")
-        addSubHeader("   Personal access tokens → Tokens (classic)")
-        addSubHeader("   Pahintulot: repo")
 
         addMenuButton("✅ I-DETECT ANG REPOSITORY") {
             val token = etToken.text.toString().trim()
@@ -212,22 +203,22 @@ class MainActivity : AppCompatActivity() {
                 val reposArray = JSONArray(readConnectionText(conn))
                 conn.disconnect()
 
-                // ✅ NATATANGING PANGALAN — WALANG DOBLE!
-                val userRepos = mutableListOf<Pair<String, String>>()
-                for (i in 0 until reposArray.length()) {
-                    val repo = reposArray.getJSONObject(i)
+                // ✅ UNIQUE NA PANGALAN — WALANG DOBLE!
+                val userRepoList = mutableListOf<Pair<String, String>>()
+                for (index in 0 until reposArray.length()) {
+                    val repo = reposArray.getJSONObject(index)
                     val fullName = repo.getString("full_name")
                     val name = repo.getString("name")
-                    userRepos.add(fullName to name)
+                    userRepoList.add(fullName to name)
                 }
 
                 launch(Dispatchers.Main) {
-                    if (userRepos.isEmpty()) {
+                    if (userRepoList.isEmpty()) {
                         Toast.makeText(this@MainActivity, "⚠️ Walang nakitang Repository!", Toast.LENGTH_LONG).show()
                         tvStatus.text = "⚠️ Walang Repository"
                         return@launch
                     }
-                    showRepoSelectionDialog(token, userRepos)
+                    showRepoSelectionDialog(token, userRepoList)
                 }
             } catch (e: Exception) {
                 launch(Dispatchers.Main) {
@@ -239,17 +230,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showRepoSelectionDialog(token: String, repos: List<Pair<String, String>>) {
-        val namesArray = repos.map { it.second }.toTypedArray()
+        val repoNames = repos.map { it.second }.toTypedArray()
         AlertDialog.Builder(this)
             .setTitle("📂 PUMILI NG REPOSITORY")
-            .setMessage("${repos.size} na nakitang Repository — Pumili:")
-            .setItems(namesArray) { _, which ->
-                val selectedFull = repos[which].first
-                val parts = selectedFull.split("/", limit = 2)
+            .setItems(repoNames) { _, which ->
+                val selectedFullName = repos[which].first
+                val parts = selectedFullName.split("/", limit = 2)
                 if (parts.size == 2) {
                     saveGitHubInfo(token, parts[0], parts[1])
                     updateStatusDisplay()
-                    Toast.makeText(this, "✅ NAPILI: ${parts[0]}/${parts[1]}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "✅ NAPILI: $selectedFullName", Toast.LENGTH_LONG).show()
                     buildMainMenu()
                 }
             }
@@ -263,13 +253,12 @@ class MainActivity : AppCompatActivity() {
     private fun selectDestinationMenu() {
         if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty() || repoName.isEmpty()) {
             Toast.makeText(this, "⚠️ I-setup muna ang GitHub (Option 6)", Toast.LENGTH_SHORT).show()
-            setupGitHubMenu()
             return
         }
         mainMenuContainer.removeAllViews()
         addMenuHeader("📂 4 — PUMILI NG DESTINASYON")
         if (savedDefaultPath.isNotEmpty()) addSubHeader("💾 KASALUKUYANG: $savedDefaultPath")
-        addSubHeader("🔍 Kinukuha ang lahat ng folder at subfolder...")
+        addSubHeader("🔍 Kinukuha ang lahat ng folder...")
 
         CoroutineScope(Dispatchers.IO).launch {
             val folders = fetchAllFoldersRecursive()
@@ -279,13 +268,13 @@ class MainActivity : AppCompatActivity() {
                 if (savedDefaultPath.isNotEmpty()) addSubHeader("💾 KASALUKUYANG: $savedDefaultPath")
                 if (folders.isEmpty()) {
                     addSubHeader("⚠️ Walang nakitang folder!")
-                    addSubHeader("💡 Suriin ang koneksyon")
+                    addSubHeader("💡 Suriin ang koneksyon o token")
                 } else {
-                    addSubHeader("✅ ${folders.size} folder/subfolder — Pumili:")
+                    addSubHeader("✅ ${folders.size} folder — Pumili:")
                     folders.forEach { path ->
                         addMenuButton("📁 $path") {
                             saveDefaultPath(path)
-                            Toast.makeText(this@MainActivity, "✅ Napili: $path", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@MainActivity, "✅ NAPILI: $path", Toast.LENGTH_SHORT).show()
                             buildMainMenu()
                         }
                     }
@@ -343,7 +332,7 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "⚠️ I-setup muna ang GitHub (Option 6)", Toast.LENGTH_SHORT).show()
             return
         }
-        tvStatus.text = "🔍 Tinitignan sa /docs folder..."
+        tvStatus.text = "🔍 Tinitignan ang /docs..."
         btnDownloadUpdate.visibility = View.GONE
 
         CoroutineScope(Dispatchers.IO).launch {
@@ -359,16 +348,15 @@ class MainActivity : AppCompatActivity() {
                     if (isNewerVersion(apkInfo.third, CURRENT_APP_VERSION)) {
                         showUpdatePrompt(apkInfo.first, apkInfo.second, apkInfo.third)
                     } else {
-                        Toast.makeText(this@MainActivity, "✅ Kasalukuyan ka na sa pinakabagong bersyon", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, "✅ Ikaw ay nasa pinakabagong bersyon na", Toast.LENGTH_SHORT).show()
                     }
                 } else {
-                    tvStatus.text = "⚠️ Walang .apk sa /docs folder"
+                    tvStatus.text = "⚠️ Walang .apk sa /docs"
                 }
             }
         }
     }
 
-    // ✅ AYUSIN: SIGURADONG WALANG NULL — PALAGING MAY DEFAULT NA HALAGA!
     private suspend fun findLatestApkInDocsFolder(): Triple<String, String, String>? = withContext(Dispatchers.IO) {
         try {
             val conn = URL("https://api.github.com/repos/$repoOwner/$repoName/contents/docs").openConnection() as HttpURLConnection
@@ -383,11 +371,11 @@ class MainActivity : AppCompatActivity() {
             var latestVer = ""
 
             for (i in 0 until jsonArray.length()) {
-                val f = jsonArray.getJSONObject(i)
-                val fileName = f.getString("name")
+                val fileObj = jsonArray.getJSONObject(i)
+                val fileName = fileObj.getString("name")
                 if (fileName.lowercase().endsWith(".apk")) {
                     val ver = extractVersionFromApkName(fileName)
-                    val dlUrl = f.optString("download_url", "") // ✅ LAGING STRING — HINDI NULL!
+                    val dlUrl = fileObj.optString("download_url", "")
                     if (ver.isNotEmpty()) {
                         if (latestVer.isEmpty() || isNewerVersion(ver, latestVer)) {
                             latestVer = ver
@@ -414,12 +402,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun isNewerVersion(latestTag: String, currentTag: String): Boolean {
         if (latestTag.isEmpty()) return false
-        fun parse(v: String) = v.removePrefix("v").split(".").map { it.toIntOrNull() ?: 0 }
-        val l = parse(latestTag)
-        val c = parse(currentTag)
-        for (i in 0 until maxOf(l.size, c.size)) {
-            val lv = l.getOrNull(i) ?: 0
-            val cv = c.getOrNull(i) ?: 0
+        fun parseVersion(v: String) = v.removePrefix("v").split(".").map { it.toIntOrNull() ?: 0 }
+        val latestParts = parseVersion(latestTag)
+        val currentParts = parseVersion(currentTag)
+        val maxLen = maxOf(latestParts.size, currentParts.size)
+        for (i in 0 until maxLen) {
+            val lv = latestParts.getOrNull(i) ?: 0
+            val cv = currentParts.getOrNull(i) ?: 0
             if (lv > cv) return true
             if (lv < cv) return false
         }
@@ -429,31 +418,27 @@ class MainActivity : AppCompatActivity() {
     private fun showUpdatePrompt(apkName: String, downloadUrl: String, versionTag: String) {
         AlertDialog.Builder(this)
             .setTitle("📢 MAY BAGONG BERSYON!")
-            .setMessage("""
-                Kasalukuyan: $CURRENT_APP_VERSION
-                Bago:        $versionTag
-                
-                📂 Pinagmulan: /docs/$apkName
-                I-update na ba?
-            """.trimIndent())
-            .setPositiveButton("✅ I-UPDATE AGAD") { _, _ -> startUpdateDownload(downloadUrl, apkName) }
-            .setNegativeButton("❌ HUWAG MUNA", null)
+            .setMessage("Kasalukuyan: $CURRENT_APP_VERSION\nBago: $versionTag\n\n📂 $apkName\n\nI-download at i-install na ba?")
+            .setPositiveButton("✅ I-INSTALL NGAYON") { _, _ -> startUpdateDownload(downloadUrl, apkName) }
+            .setNegativeButton("❌ MAMAYA NA", null)
             .setCancelable(false)
             .show()
     }
 
     private fun startUpdateDownload(downloadUrl: String, fileName: String) {
-        Toast.makeText(this, "⬇️ Dinadownload mula sa /docs...", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "⬇️ Dinadownload...", Toast.LENGTH_LONG).show()
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val outDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)!!
                 if (!outDir.exists()) outDir.mkdirs()
                 val apkFile = File(outDir, fileName)
+
                 val conn = URL(downloadUrl).openConnection() as HttpURLConnection
                 conn.inputStream.use { input ->
                     FileOutputStream(apkFile).use { output -> input.copyTo(output, 8192) }
                 }
                 conn.disconnect()
+
                 launch(Dispatchers.Main) {
                     Toast.makeText(this@MainActivity, "✅ Na-download! Ini-install...", Toast.LENGTH_LONG).show()
                     installApk(apkFile)
@@ -499,17 +484,18 @@ class MainActivity : AppCompatActivity() {
     private fun sendCodeMenu() {
         mainMenuContainer.removeAllViews()
         addMenuHeader("📤 1 — IPADALA ANG CODE")
-        addSubHeader("I-paste ang code sa ibaba:")
-        val input = EditText(this)
-        input.hint = "I-paste dito ang cat code o buong laman ng file..."
-        input.setLines(12)
-        input.setBackgroundColor(0xFFFFFFFF.toInt())
-        input.setPadding(16, 16, 16, 16)
-        mainMenuContainer.addView(input)
-        addMenuButton("✅ Ipadala Ngayon") {
-            val code = input.text.toString()
+        addSubHeader("I-paste ang code dito:")
+
+        val etCode = EditText(this)
+        etCode.hint = "Ilagay dito ang cat code..."
+        etCode.setPadding(32, 24, 32, 24)
+        etCode.minLines = 12
+        mainMenuContainer.addView(etCode)
+
+        addMenuButton("✅ I-ANALYZE AT IPADALA") {
+            val code = etCode.text.toString()
             if (code.isNotEmpty()) processCatCode(code)
-            else Toast.makeText(this, "❌ Walang nakapasok na code!", Toast.LENGTH_SHORT).show()
+            else Toast.makeText(this, "❌ Walang nilagay na code!", Toast.LENGTH_SHORT).show()
         }
         addMenuButton("🔙 Bumalik") { buildMainMenu() }
     }
@@ -519,20 +505,20 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "⚠️ I-setup muna ang GitHub (Option 6)", Toast.LENGTH_SHORT).show()
             return
         }
-        CoroutineScope(Dispatchers.Main).launch {
-            tvStatus.text = "🔍 Sinusuri ang code..."
-            val files = parseCatCodeIntoFiles(code)
-            if (files.isEmpty()) {
-                Toast.makeText(this@MainActivity, "❌ Walang matukoy na file!", Toast.LENGTH_SHORT).show()
-                tvStatus.text = "❌ Hindi matukoy ang file"
-                return@launch
-            }
-            tvStatus.text = "✅ ${files.size} file na matukoy — ipapadala..."
-            var ok = 0
-            files.forEach { if (uploadSingleFile(it.path, it.content)) ok++ }
-            tvStatus.text = "✅ Tapos — $ok/${files.size} naipadala"
-            Toast.makeText(this@MainActivity, "✅ $ok/${files.size} naipadala!", Toast.LENGTH_LONG).show()
+        tvStatus.text = "🔍 Sinusuri ang code..."
+        val files = parseCatCodeIntoFiles(code)
+        if (files.isEmpty()) {
+            Toast.makeText(this, "❌ Hindi matukoy ang anumang file!", Toast.LENGTH_SHORT).show()
+            tvStatus.text = "❌ Hindi matukoy"
+            return
         }
+        tvStatus.text = "✅ ${files.size} file — ipinapadala..."
+        var successCount = 0
+        files.forEach { file ->
+            if (uploadSingleFile(file.path, file.content)) successCount++
+        }
+        tvStatus.text = "✅ Tapos — $successCount/${files.size} naipadala"
+        Toast.makeText(this, "✅ $successCount/${files.size} naipadala!", Toast.LENGTH_LONG).show()
     }
 
     private data class ParsedFile(val path: String, val content: String)
@@ -546,25 +532,29 @@ class MainActivity : AppCompatActivity() {
             when {
                 line.startsWith("FILE:") -> {
                     var path = line.substringAfter("FILE:").trim().substringBefore(" ")
+                    if (path.startsWith("./") || path.startsWith("/")) path = path.removePrefix("./").removePrefix("/")
                     i++
-                    val content = mutableListOf<String>()
+                    val contentLines = mutableListOf<String>()
                     while (i < lines.size && lines[i].trim() !in setOf("--- END ---", "ENDOFFILE", "EOF")) {
-                        content.add(lines[i++])
+                        contentLines.add(lines[i++])
                     }
+                    val content = contentLines.joinToString("\n").trimEnd()
                     if (path.isNotEmpty() && content.isNotEmpty()) {
-                        result.add(ParsedFile(path, content.joinToString("\n").trimIndent()))
+                        result.add(ParsedFile(path, content))
                     }
                     i++
                 }
                 line.startsWith("cat > ") -> {
-                    val path = line.substringAfter("cat > ").substringBefore(" <<").trim()
+                    var path = line.substringAfter("cat > ").substringBefore(" <<").trim()
+                    if (path.startsWith("./") || path.startsWith("/")) path = path.removePrefix("./").removePrefix("/")
                     i++
-                    val content = mutableListOf<String>()
+                    val contentLines = mutableListOf<String>()
                     while (i < lines.size && lines[i].trim() !in setOf("ENDOFFILE", "EOF")) {
-                        content.add(lines[i++])
+                        contentLines.add(lines[i++])
                     }
+                    val content = contentLines.joinToString("\n").trimEnd()
                     if (path.isNotEmpty() && content.isNotEmpty()) {
-                        result.add(ParsedFile(path, content.joinToString("\n")))
+                        result.add(ParsedFile(path, content))
                     }
                     i++
                 }
@@ -574,28 +564,37 @@ class MainActivity : AppCompatActivity() {
         return result
     }
 
-    private suspend fun uploadSingleFile(path: String, content: String): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val finalPath = if (!path.startsWith("/") && savedDefaultPath.isNotEmpty()) "$savedDefaultPath/$path" else path
+    private fun uploadSingleFile(path: String, content: String): Boolean {
+        return try {
+            val finalPath = if (savedDefaultPath.isNotEmpty() && !path.startsWith("/")) "$savedDefaultPath/$path" else path
             val apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/contents/${finalPath.replace(" ", "%20")}"
-            val conn = URL(apiUrl).openConnection() as HttpURLConnection
-            conn.requestMethod = "GET"
-            conn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
-            val sha = if (conn.responseCode == 200) JSONObject(readConnectionText(conn)).optString("sha", "") else ""
-            conn.disconnect()
 
-            val putConn = URL(apiUrl).openConnection() as HttpURLConnection
-            putConn.requestMethod = "PUT"
-            putConn.doOutput = true
-            putConn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
+            val connGet = URL(apiUrl).openConnection() as HttpURLConnection
+            connGet.requestMethod = "GET"
+            connGet.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
+            val sha = if (connGet.responseCode == 200) {
+                val json = JSONObject(readConnectionText(connGet))
+                connGet.disconnect()
+                json.optString("sha", "")
+            } else {
+                connGet.disconnect()
+                ""
+            }
+
+            val connPut = URL(apiUrl).openConnection() as HttpURLConnection
+            connPut.requestMethod = "PUT"
+            connPut.doOutput = true
+            connPut.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
+            connPut.setRequestProperty("Content-Type", "application/json")
+
             val body = JSONObject().apply {
-                put("message", "📤 Update mula sa App: $finalPath")
+                put("message", "📤 Ipadala mula sa App: $finalPath")
                 put("content", Base64.encodeToString(content.toByteArray(StandardCharsets.UTF_8), Base64.NO_WRAP))
                 if (sha.isNotEmpty()) put("sha", sha)
             }
-            putConn.outputStream.use { it.write(body.toString().toByteArray(StandardCharsets.UTF_8)) }
-            val success = putConn.responseCode in 200..299
-            putConn.disconnect()
+            connPut.outputStream.use { it.write(body.toString().toByteArray()) }
+            val success = connPut.responseCode in 200..299
+            connPut.disconnect()
             success
         } catch (e: Exception) {
             Log.e("UPLOAD", "Error: ${e.message}")
@@ -607,151 +606,176 @@ class MainActivity : AppCompatActivity() {
     // ✅ OPTION 2 — IPADALA ANG ICON
     // ==========================================
     private fun sendIconMenu() {
-        if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty()) {
+        if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty() || repoName.isEmpty()) {
             Toast.makeText(this, "⚠️ I-setup muna ang GitHub (Option 6)", Toast.LENGTH_SHORT).show()
-            setupGitHubMenu()
             return
         }
         mainMenuContainer.removeAllViews()
         addMenuHeader("🖼️ 2 — IPADALA ANG ICON")
-        addSubHeader("Piliin ang larawan mula sa Gallery")
-        addMenuButton("📂 Pumili ng Larawan") { imagePickerLauncher.launch("image/*") }
+        addSubHeader("Pumili ng larawan mula sa device:")
+        addMenuButton("📂 PUMILI NG LARAWAN") {
+            imagePickerLauncher.launch("image/*")
+        }
         addMenuButton("🔙 Bumalik") { buildMainMenu() }
     }
 
     private fun processSelectedIcon(uri: Uri) {
-        CoroutineScope(Dispatchers.Main).launch {
-            tvStatus.text = "🔄 Pinoproseso ang Icon..."
-            val bitmap = contentResolver.openInputStream(uri)?.use {
-                android.graphics.BitmapFactory.decodeStream(it)
-            } ?: return@launch
-            val sizes = listOf("mdpi" to 48, "hdpi" to 72, "xhdpi" to 96, "xxhdpi" to 144, "xxxhdpi" to 192)
-            var uploaded = 0
-            for ((qual, size) in sizes) {
-                val scaled = android.graphics.Bitmap.createScaledBitmap(bitmap, size, size, true)
-                val path = "apps/GitHubUpdater/app/src/main/res/mipmap-$qual/ic_launcher.png"
-                if (uploadBitmapFile(scaled, path)) uploaded++
-                tvStatus.text = "⏳ $qual — $uploaded/${sizes.size}"
+        tvStatus.text = "🔄 Pinoproseso ang icon..."
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val sourceStream = contentResolver.openInputStream(uri)
+                val original = android.graphics.BitmapFactory.decodeStream(sourceStream)
+                sourceStream?.close()
+                if (original == null) {
+                    launch(Dispatchers.Main) {
+                        Toast.makeText(this@MainActivity, "❌ Hindi mabasa ang larawan!", Toast.LENGTH_SHORT).show()
+                    }
+                    return@launch
+                }
+                val sizes = listOf("mdpi" to 48, "hdpi" to 72, "xhdpi" to 96, "xxhdpi" to 144, "xxxhdpi" to 192)
+                var uploadedCount = 0
+                sizes.forEach { (qual, sizePx) ->
+                    val scaled = Bitmap.createScaledBitmap(original, sizePx, sizePx, false)
+                    val output = java.io.ByteArrayOutputStream()
+                    scaled.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output)
+                    val pngBytes = output.toByteArray()
+                    val path = "res/mipmap-$qual/ic_launcher.png"
+
+                    val apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/contents/$path"
+                    val connGet = URL(apiUrl).openConnection() as HttpURLConnection
+                    connGet.requestMethod = "GET"
+                    connGet.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
+                    val sha = if (connGet.responseCode == 200) {
+                        val json = JSONObject(readConnectionText(connGet))
+                        connGet.disconnect()
+                        json.optString("sha", "")
+                    } else { connGet.disconnect(); "" }
+
+                    val connPut = URL(apiUrl).openConnection() as HttpURLConnection
+                    connPut.requestMethod = "PUT"
+                    connPut.doOutput = true
+                    connPut.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
+                    JSONObject().apply {
+                        put("message", "🖼️ I-update icon: $qual")
+                        put("content", Base64.encodeToString(pngBytes, Base64.NO_WRAP))
+                        if (sha.isNotEmpty()) put("sha", sha)
+                    }.toString().also { connPut.outputStream.use { out -> out.write(it.toByteArray()) } }
+                    if (connPut.responseCode in 200..299) uploadedCount++
+                    connPut.disconnect()
+                }
+                original.recycle()
+                launch(Dispatchers.Main) {
+                    tvStatus.text = "✅ $uploadedCount/${sizes.size} naipadala"
+                    Toast.makeText(this@MainActivity, "✅ Tapos!", Toast.LENGTH_SHORT).show()
+                    buildMainMenu()
+                }
+            } catch (e: Exception) {
+                launch(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "❌ Error: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
-            tvStatus.text = "✅ Tapos — $uploaded/${sizes.size} naipadala"
-            Toast.makeText(this@MainActivity, "✅ $uploaded naipadala!", Toast.LENGTH_LONG).show()
         }
-    }
-
-    private suspend fun uploadBitmapFile(bitmap: android.graphics.Bitmap, path: String): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/contents/${path.replace(" ", "%20")}"
-            val conn = URL(apiUrl).openConnection() as HttpURLConnection
-            conn.requestMethod = "GET"
-            conn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
-            val sha = if (conn.responseCode == 200) JSONObject(readConnectionText(conn)).optString("sha", "") else ""
-            conn.disconnect()
-
-            val putConn = URL(apiUrl).openConnection() as HttpURLConnection
-            putConn.requestMethod = "PUT"
-            putConn.doOutput = true
-            putConn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
-            val baos = java.io.ByteArrayOutputStream()
-            bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, baos)
-            val body = JSONObject().apply {
-                put("message", "🖼️ Icon: $path")
-                put("content", Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP))
-                if (sha.isNotEmpty()) put("sha", sha)
-            }
-            putConn.outputStream.use { it.write(body.toString().toByteArray(StandardCharsets.UTF_8)) }
-            val ok = putConn.responseCode in 200..299
-            putConn.disconnect()
-            ok
-        } catch (e: Exception) { false }
     }
 
     // ==========================================
     // ✅ OPTION 3 — PATCH
     // ==========================================
     private fun patchFileMenu() {
-        if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty()) {
+        if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty() || repoName.isEmpty()) {
             Toast.makeText(this, "⚠️ I-setup muna ang GitHub (Option 6)", Toast.LENGTH_SHORT).show()
-            setupGitHubMenu()
             return
         }
         mainMenuContainer.removeAllViews()
-        addMenuHeader("🔧 3 — PATCH")
-        addSubHeader("I-paste ang patch sa ibaba:")
-        val input = EditText(this)
-        input.hint = "FILE: path/file.ext\n--- HANAPIN ---\n...\n--- PALITAN ---\n...\n--- END ---"
-        input.setLines(15)
-        input.setBackgroundColor(0xFFFFFFFF.toInt())
-        input.setPadding(16,16,16,16)
-        mainMenuContainer.addView(input)
-        addMenuButton("✅ I-apply ang Patch") {
-            val text = input.text.toString()
-            if (text.isNotEmpty()) applyPatch(text)
-            else Toast.makeText(this, "❌ Walang patch!", Toast.LENGTH_SHORT).show()
+        addMenuHeader("🔧 3 — PATCH — PALITAN ANG BAHAGI")
+        addSubHeader("I-paste ang patch dito:")
+
+        val etPatch = EditText(this)
+        etPatch.hint = "FILE: path/file.kt\n--- HANAPIN ---\nlumang linya\n--- PALITAN ---\nbagong linya\n--- END ---"
+        etPatch.setPadding(32, 24, 32, 24)
+        etPatch.minLines = 10
+        mainMenuContainer.addView(etPatch)
+
+        addMenuButton("✅ I-APPLY ANG PATCH") {
+            val patchText = etPatch.text.toString()
+            if (patchText.isNotEmpty()) applyPatch(patchText)
+            else Toast.makeText(this, "❌ Walang nilagay na patch!", Toast.LENGTH_SHORT).show()
         }
         addMenuButton("🔙 Bumalik") { buildMainMenu() }
     }
 
-    private data class PatchFile(val path: String, val find: String, val replace: String)
-
     private fun applyPatch(patchText: String) {
-        Toast.makeText(this, "🔧 Patch — sinusuri...", Toast.LENGTH_SHORT).show()
-        CoroutineScope(Dispatchers.Main).launch {
-            val patches = patchText.split("FILE:").filter { it.isNotEmpty() }.mapNotNull { block ->
+        Toast.makeText(this, "🔧 Ina-apply...", Toast.LENGTH_SHORT).show()
+        CoroutineScope(Dispatchers.IO).launch {
+            val blocks = patchText.split("FILE:").filter { it.isNotEmpty() }
+            var successCount = 0
+            blocks.forEach { block ->
                 val lines = block.lines()
-                val path = lines.firstOrNull()?.trim() ?: return@mapNotNull null
-                val find = block.substringAfter("--- HANAPIN ---").substringBefore("--- PALITAN ---").trimIndent()
-                val repl = block.substringAfter("--- PALITAN ---").substringBefore("--- END ---").trimIndent()
-                if (find.isNotEmpty() && repl.isNotEmpty()) PatchFile(path, find, repl) else null
+                val path = lines.firstOrNull()?.trim() ?: return@forEach
+                val findMarker = "--- HANAPIN ---"
+                val replaceMarker = "--- PALITAN ---"
+                val endMarker = "--- END ---"
+                val startFind = block.indexOf(findMarker)
+                val startReplace = block.indexOf(replaceMarker)
+                val startEnd = block.indexOf(endMarker)
+                if (startFind < 0 || startReplace < 0 || startEnd < 0 || startReplace <= startFind || startEnd <= startReplace) return@forEach
+
+                val findPart = block.substring(startFind + findMarker.length, startReplace).trimIndent()
+                val replacePart = block.substring(startReplace + replaceMarker.length, startEnd).trimIndent()
+
+                val finalPath = if (savedDefaultPath.isNotEmpty() && !path.startsWith("/")) "$savedDefaultPath/$path" else path
+                val apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/contents/${finalPath.replace(" ", "%20")}"
+
+                val connGet = URL(apiUrl).openConnection() as HttpURLConnection
+                connGet.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
+                if (connGet.responseCode != 200) { connGet.disconnect(); return@forEach }
+                val jsonGet = JSONObject(readConnectionText(connGet))
+                connGet.disconnect()
+                val sha = jsonGet.getString("sha")
+                val oldContent = String(Base64.decode(jsonGet.getString("content"), Base64.DEFAULT), StandardCharsets.UTF_8)
+
+                if (!oldContent.contains(findPart)) return@forEach
+                val newContent = oldContent.replace(findPart, replacePart)
+
+                val connPut = URL(apiUrl).openConnection() as HttpURLConnection
+                connPut.requestMethod = "PUT"
+                connPut.doOutput = true
+                connPut.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
+                JSONObject().apply {
+                    put("message", "🔧 Patch: $finalPath")
+                    put("content", Base64.encodeToString(newContent.toByteArray(StandardCharsets.UTF_8), Base64.NO_WRAP))
+                    put("sha", sha)
+                }.toString().also { connPut.outputStream.use { out -> out.write(it.toByteArray()) } }
+                if (connPut.responseCode in 200..299) successCount++
+                connPut.disconnect()
             }
-            if (patches.isEmpty()) {
-                Toast.makeText(this@MainActivity, "❌ Hindi matukoy ang patch!", Toast.LENGTH_SHORT).show()
-                return@launch
+            launch(Dispatchers.Main) {
+                Toast.makeText(this@MainActivity, "✅ $successCount/${blocks.size} na-apply!", Toast.LENGTH_LONG).show()
+                buildMainMenu()
             }
-            var ok = 0
-            patches.forEach { if (applyPatchToFile(it.path, it.find, it.replace)) ok++ }
-            Toast.makeText(this@MainActivity, "✅ $ok/${patches.size} na-apply!", Toast.LENGTH_LONG).show()
         }
     }
 
-    private suspend fun applyPatchToFile(path: String, find: String, replace: String): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val finalPath = if (!path.startsWith("/") && savedDefaultPath.isNotEmpty()) "$savedDefaultPath/$path" else path
-            val apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/contents/${finalPath.replace(" ", "%20")}"
-            val conn = URL(apiUrl).openConnection() as HttpURLConnection
-            conn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
-            if (conn.responseCode != 200) return@withContext false
-            val json = JSONObject(readConnectionText(conn))
-            conn.disconnect()
-            val content = String(Base64.decode(json.getString("content"), Base64.DEFAULT), StandardCharsets.UTF_8)
-            val sha = json.getString("sha")
-            if (!content.contains(find)) return@withContext false
-            val newContent = content.replace(find, replace)
-            val putConn = URL(apiUrl).openConnection() as HttpURLConnection
-            putConn.requestMethod = "PUT"
-            putConn.doOutput = true
-            putConn.setRequestProperty("Authorization", "token $GITHUB_TOKEN")
-            val body = JSONObject().apply {
-                put("message", "🔧 Patch: $finalPath")
-                put("content", Base64.encodeToString(newContent.toByteArray(StandardCharsets.UTF_8), Base64.NO_WRAP))
-                put("sha", sha)
-            }
-            putConn.outputStream.use { it.write(body.toString().toByteArray(StandardCharsets.UTF_8)) }
-            val success = putConn.responseCode in 200..299
-            putConn.disconnect()
-            success
-        } catch (e: Exception) { false }
-    }
-
+    // ==========================================
+    // ✅ OPTION 5 — TUNGKOL SA APP
+    // ==========================================
     private fun aboutAppMenu() {
         mainMenuContainer.removeAllViews()
         addMenuHeader("ℹ️ TUNGKOL SA APP")
-        addSubHeader("GitHub Updater — $VERSION")
-        addSubHeader("Binuo ni: MartoDosko © 2026")
-        if (repoOwner.isNotEmpty() && repoName.isNotEmpty()) addSubHeader("Repository: $repoOwner/$repoName")
-        if (savedDefaultPath.isNotEmpty()) addSubHeader("✅ Daan: $savedDefaultPath")
+        addSubHeader("MartoPush GitHub Updater")
+        addSubHeader("Bersyon: $VERSION")
+        addSubHeader("")
+        addSubHeader("Ginawa ni: MartoDosko © 2026")
+        addSubHeader("")
+        addSubHeader("Kakayahan:")
+        addSubHeader("• Magpadala ng code/file")
+        addSubHeader("• Magpadala ng icon sa 5 sukat")
+        addSubHeader("• Patch — Hanapin at Palitan")
+        addSubHeader("• Auto-update mula sa /docs")
+        addSubHeader("• GitHub Token Authentication")
         addMenuButton("🔙 Bumalik") { buildMainMenu() }
     }
 
-    private fun readConnectionText(conn: HttpURLConnection): String =
-        BufferedReader(InputStreamReader(conn.inputStream, StandardCharsets.UTF_8)).use { it.readText() }
+    private fun readConnectionText(conn: HttpURLConnection): String {
+        return BufferedReader(InputStreamReader(conn.inputStream, StandardCharsets.UTF_8)).use { it.readText() }
+    }
 }
