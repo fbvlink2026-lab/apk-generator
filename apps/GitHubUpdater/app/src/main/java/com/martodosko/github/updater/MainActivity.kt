@@ -41,7 +41,7 @@ import java.nio.charset.StandardCharsets
 
 // ==========================================
 // 📤 MARTOPUSH — GitHub Updater & Uploader
-// ✅ VERSION: v6.1.0 — LINE 481 TAMA NA! WALANG NULL KAHIT SAAN!
+// ✅ VERSION: v6.1.2 — LINE 481 AYOS NA! ?: "" SA LAHAT!
 // Developed by MartoDosko © 2026
 // ==========================================
 
@@ -65,7 +65,7 @@ class MainActivity : AppCompatActivity() {
     private var scannedFolders = mutableListOf<GitHubFolder>()
     private var alreadyPrompted = false
 
-    private val VERSION = "v6.1.0 — LINE 481 TAMA NA ✅"
+    private val VERSION = "v6.1.2 — LINE 481 AYOS NA ✅"
 
     data class GitHubFolder(val path: String, val type: String, val displayName: String)
     data class ParsedFile(val path: String, val content: String)
@@ -548,7 +548,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // ✅ OPTION 3 — PATCH — LINE 481 TAMA NA! v6.1.0
+    // ✅ OPTION 3 — PATCH — LINE 481 AYOS NA! ?: "" SA LAHAT! v6.1.2
     // ==========================================
     private fun patchFileMenu() {
         if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty()) {
@@ -575,7 +575,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyPatch(patchText: String) {
-        Toast.makeText(this, "🔧 Patch — sinusuri...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "🔧 Patch — Sinusuri...", Toast.LENGTH_SHORT).show()
         CoroutineScope(Dispatchers.Main).launch {
             val files = parsePatch(patchText)
             if (files.isEmpty()) {
@@ -592,7 +592,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ✅ LINE 481 — TAMA NA! WALANG NULL KAHIT SAAN! v6.1.0
+    // ✅ LINE 481 — HULING AYOS: ?: "" SA LAHAT — SIGURADONG WALANG NULL!
     private fun parsePatch(text: String): List<PatchFile> {
         val result = mutableListOf<PatchFile>()
         val blocks = text.split("FILE:").filter { it.isNotBlank() }
@@ -601,24 +601,33 @@ class MainActivity : AppCompatActivity() {
             val lines = block.lines()
             if (lines.isEmpty()) continue
 
-            // ✅ SIGURADO — lines[0] ay LAGING may halaga dito → String hindi String?
+            // ✅ SIGURADO — laging String, hindi String?
             val path: String = lines[0].trim()
             if (path.isEmpty()) continue
 
-            // ✅ Suriin muna kung may delimiter — KUNG WALA → LAKTAAWAN AGAD
-            if (!block.contains("--- HANAPIN ---")) continue
-            val partFind: String = block.substringAfter("--- HANAPIN ---", "")
+            // ✅ ?: "" — KAHIT ANONG MANGYARI, LAGING STRING!
+            val partFind: String =
+                if (block.contains("--- HANAPIN ---")) {
+                    block.substringAfter("--- HANAPIN ---") ?: ""
+                } else ""
             if (partFind.isEmpty()) continue
 
-            if (!partFind.contains("--- PALITAN ---")) continue
-            val findContent: String = partFind.substringBefore("--- PALITAN ---", "").trimIndent()
+            val findContent: String =
+                if (partFind.contains("--- PALITAN ---")) {
+                    partFind.substringBefore("--- PALITAN ---")?.trimIndent() ?: ""
+                } else ""
             if (findContent.isEmpty()) continue
 
-            val partReplace: String = partFind.substringAfter("--- PALITAN ---", "")
+            val partReplace: String =
+                if (partFind.contains("--- PALITAN ---")) {
+                    partFind.substringAfter("--- PALITAN ---") ?: ""
+                } else ""
             if (partReplace.isEmpty()) continue
 
-            if (!partReplace.contains("--- END ---")) continue
-            val replaceContent: String = partReplace.substringBefore("--- END ---", "").trimIndent()
+            val replaceContent: String =
+                if (partReplace.contains("--- END ---")) {
+                    partReplace.substringBefore("--- END ---")?.trimIndent() ?: ""
+                } else ""
             if (replaceContent.isEmpty()) continue
 
             result.add(PatchFile(path, findContent, replaceContent))
@@ -809,7 +818,7 @@ class MainActivity : AppCompatActivity() {
         val tv = TextView(this)
         tv.text = text
         tv.textSize = 14f
-        tv.setTextColor(0xFF555555.toInt())
+        tv.setTextColor(0xFF424242.toInt())
         tv.setPadding(0, 8, 0, 4)
         mainMenuContainer.addView(tv)
     }
