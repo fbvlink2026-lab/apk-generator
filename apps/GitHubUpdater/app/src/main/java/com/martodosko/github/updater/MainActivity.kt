@@ -41,7 +41,7 @@ import java.nio.charset.StandardCharsets
 
 // ==========================================
 // 📤 MARTOPUSH — GitHub Updater & Uploader
-// ✅ VERSION: v6.0.9 — LINE 481 TAMA NA! WALANG NULL!
+// ✅ VERSION: v6.1.0 — LINE 481 TAMA NA! WALANG NULL KAHIT SAAN!
 // Developed by MartoDosko © 2026
 // ==========================================
 
@@ -65,7 +65,7 @@ class MainActivity : AppCompatActivity() {
     private var scannedFolders = mutableListOf<GitHubFolder>()
     private var alreadyPrompted = false
 
-    private val VERSION = "v6.0.9 — LINE 481 TAMA NA ✅"
+    private val VERSION = "v6.1.0 — LINE 481 TAMA NA ✅"
 
     data class GitHubFolder(val path: String, val type: String, val displayName: String)
     data class ParsedFile(val path: String, val content: String)
@@ -548,7 +548,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ==========================================
-    // ✅ OPTION 3 — PATCH — LINE 481 TAMA NA!
+    // ✅ OPTION 3 — PATCH — LINE 481 TAMA NA! v6.1.0
     // ==========================================
     private fun patchFileMenu() {
         if (GITHUB_TOKEN.isEmpty() || repoOwner.isEmpty()) {
@@ -592,7 +592,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ✅ LINE 481 — TAMA NA! SIGURADONG WALANG NULL! v6.0.9
+    // ✅ LINE 481 — TAMA NA! WALANG NULL KAHIT SAAN! v6.1.0
     private fun parsePatch(text: String): List<PatchFile> {
         val result = mutableListOf<PatchFile>()
         val blocks = text.split("FILE:").filter { it.isNotBlank() }
@@ -601,19 +601,24 @@ class MainActivity : AppCompatActivity() {
             val lines = block.lines()
             if (lines.isEmpty()) continue
 
-            // ✅ SIGURADO — String na hindi String?
-            val path = lines[0].trim()
+            // ✅ SIGURADO — lines[0] ay LAGING may halaga dito → String hindi String?
+            val path: String = lines[0].trim()
             if (path.isEmpty()) continue
 
-            // ✅ substringAfter/Before — may default na "" kaya laging String
-            val partFind = block.substringAfter("--- HANAPIN ---", "")
+            // ✅ Suriin muna kung may delimiter — KUNG WALA → LAKTAAWAN AGAD
+            if (!block.contains("--- HANAPIN ---")) continue
+            val partFind: String = block.substringAfter("--- HANAPIN ---", "")
             if (partFind.isEmpty()) continue
-            val findContent = partFind.substringBefore("--- PALITAN ---", "").trimIndent()
+
+            if (!partFind.contains("--- PALITAN ---")) continue
+            val findContent: String = partFind.substringBefore("--- PALITAN ---", "").trimIndent()
             if (findContent.isEmpty()) continue
 
-            val partReplace = block.substringAfter("--- PALITAN ---", "")
+            val partReplace: String = partFind.substringAfter("--- PALITAN ---", "")
             if (partReplace.isEmpty()) continue
-            val replaceContent = partReplace.substringBefore("--- END ---", "").trimIndent()
+
+            if (!partReplace.contains("--- END ---")) continue
+            val replaceContent: String = partReplace.substringBefore("--- END ---", "").trimIndent()
             if (replaceContent.isEmpty()) continue
 
             result.add(PatchFile(path, findContent, replaceContent))
