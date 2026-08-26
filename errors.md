@@ -3,7 +3,7 @@
 > Created & Developed by MartoDosko © Copyright 2026
 
 ---
-📅 **Petsa:** 2026-08-25 20:50 UTC
+📅 **Petsa:** 2026-08-26 06:59 UTC
 🎯 **Target:** GitHubUpdater
 🏷️ **Bersyon:** v6.0.4
 ---
@@ -11,7 +11,7 @@
 ==================================================
 📦 APLIKASYON: GitHubUpdater
 📂 LOKASYON:   apps/GitHubUpdater
-⏰ ORAS:       2026-08-25 20:50:44 UTC
+⏰ ORAS:       2026-08-26 06:59:31 UTC
 🏷️ BERSYON:    v6.0.4
 ==================================================
 
@@ -51,9 +51,9 @@ Downloading https://services.gradle.org/distributions/gradle-8.2-bin.zip
 > Task :app:stripDebugDebugSymbols NO-SOURCE
 > Task :app:mergeLibDexDebug
 > Task :app:validateSigningDebug
-> Task :app:processDebugManifestForPackage
 > Task :app:writeDebugAppMetadata
 > Task :app:writeDebugSigningConfigVersions
+> Task :app:processDebugManifestForPackage
 > Task :app:mergeExtDexDebug
 > Task :app:processDebugResources
 
@@ -73,7 +73,7 @@ Execution failed for task ':app:compileDebugKotlin'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 52s
+BUILD FAILED in 41s
 26 actionable tasks: 26 executed
 
 ==================================================
