@@ -3,7 +3,7 @@
 > Created & Developed by MartoDosko © Copyright 2026
 
 ---
-📅 **Petsa:** 2026-08-26 07:20 UTC
+📅 **Petsa:** 2026-08-27 00:30 UTC
 🎯 **Target:** GitHubUpdater
 🏷️ **Bersyon:** v6.0.4
 ---
@@ -11,12 +11,15 @@
 ==================================================
 📦 APLIKASYON: GitHubUpdater
 📂 LOKASYON:   apps/GitHubUpdater
-⏰ ORAS:       2026-08-26 07:20:01 UTC
+⏰ ORAS:       2026-08-27 00:30:10 UTC
 🏷️ BERSYON:    v6.0.4
 ==================================================
 
-❌ NABIGO — Hindi nabuo o hindi mahanap ang APK
-🔑 Exit Code: 1
+✅ TAGUMPAY — NABUO ANG APK!
+📂 APK Daan:   apps/GitHubUpdater/./app/build/outputs/apk/debug/install-GitHubUpdater-v6.0.4.apk
+📏 Laki:       5.6M
+📤 Kopyahin sa docs/...
+✅ Nasa: docs/install-GitHubUpdater-v6.0.4.apk
 
 --------------------------------------------------
 📋 BUONG LOG NG BUILD:
@@ -32,10 +35,10 @@ Downloading https://services.gradle.org/distributions/gradle-8.2-bin.zip
 > Task :app:mapDebugSourceSetPaths
 > Task :app:generateDebugResources
 > Task :app:packageDebugResources
-> Task :app:mergeDebugResources
 > Task :app:createDebugCompatibleScreenManifests
 > Task :app:extractDeepLinksDebug
 > Task :app:parseDebugLocalResources
+> Task :app:mergeDebugResources
 > Task :app:processDebugMainManifest
 > Task :app:processDebugManifest
 > Task :app:javaPreCompileDebug
@@ -44,37 +47,30 @@ Downloading https://services.gradle.org/distributions/gradle-8.2-bin.zip
 > Task :app:generateDebugAssets UP-TO-DATE
 > Task :app:mergeDebugAssets
 > Task :app:compressDebugAssets
-> Task :app:desugarDebugFileDependencies
-> Task :app:mergeDebugJniLibFolders
 > Task :app:processDebugManifestForPackage
-> Task :app:checkDebugDuplicateClasses
 > Task :app:processDebugResources
-> Task :app:mergeExtDexDebug
-> Task :app:mergeDebugNativeLibs NO-SOURCE
+> Task :app:checkDebugDuplicateClasses
+> Task :app:desugarDebugFileDependencies
+> Task :app:compileDebugKotlin
+> Task :app:compileDebugJavaWithJavac NO-SOURCE
+> Task :app:processDebugJavaRes
 > Task :app:mergeLibDexDebug
+> Task :app:mergeDebugJavaResource
+> Task :app:dexBuilderDebug
+> Task :app:mergeDebugJniLibFolders
+> Task :app:mergeDebugNativeLibs NO-SOURCE
 > Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:mergeProjectDexDebug
 > Task :app:validateSigningDebug
 > Task :app:writeDebugAppMetadata
 > Task :app:writeDebugSigningConfigVersions
+> Task :app:mergeExtDexDebug
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect
+> Task :app:assembleDebug
 
-> Task :app:compileDebugKotlin FAILED
-e: file:///home/runner/work/apk-generator/apk-generator/apps/GitHubUpdater/app/src/main/java/com/martodosko/github/updater/MainActivity.kt:481:50 Type mismatch: inferred type is String? but String was expected
-
-FAILURE: Build failed with an exception.
-
-* What went wrong:
-Execution failed for task ':app:compileDebugKotlin'.
-> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
-   > Compilation error. See log for more details
-
-* Try:
-> Run with --stacktrace option to get the stack trace.
-> Run with --info or --debug option to get more log output.
-> Run with --scan to get full insights.
-> Get more help at https://help.gradle.org.
-
-BUILD FAILED in 51s
-26 actionable tasks: 26 executed
+BUILD SUCCESSFUL in 47s
+32 actionable tasks: 32 executed
 
 ==================================================
 
